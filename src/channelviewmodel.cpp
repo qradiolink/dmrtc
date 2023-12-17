@@ -78,7 +78,12 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
         }
         switch(_state[row][col])
         {
-
+            case ChannelState::ChannelUnused:
+                return "Logical channel not used";
+            break;
+            case ChannelState::ChannelDisabled:
+                return "Logical channel disabled";
+            break;
         }
 
         QString text = QString("Usage: %1").arg(_grid_data[row][col]);
