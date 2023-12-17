@@ -1,0 +1,42 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/white-bg.png</file>
+        <file>res/transparent-bg.png</file>
+        <file>res/logo.png</file>
+        <file>res/arrow-up.png</file>
+        <file>res/arrow-up-red.png</file>
+        <file>res/arrow-left-double.png</file>
+        <file>res/arrow-right-double.png</file>
+        <file>res/go-first-view.png</file>
+        <file>res/go-last-view.png</file>
+        <file>res/text-speak.png</file>
+        <file>res/application-exit.png</file>
+        <file>res/call-start.png</file>
+        <file>res/im-user.png</file>
+        <file>res/speaker.png</file>
+        <file>res/list-add.png</file>
+        <file>res/list-remove.png</file>
+        <file>res/dialog-close.png</file>
+        <file>res/document-save.png</file>
+        <file>res/audio-volume-high.png</file>
+        <file>res/audio-volume-muted.png</file>
+        <file>res/call-stop.png</file>
+        <file>res/media-record.png</file>
+        <file>res/view-conversation-balloon.png</file>
+        <file>res/arrow-down.png</file>
+        <file>res/go-down-arrow.png</file>
+        <file>res/edit-find.png</file>
+        <file>res/user-group-new.png</file>
+        <file>res/system-users.png</file>
+        <file>res/preferences-desktop-user.png</file>
+        <file>res/preferences-contact-list.png</file>
+        <file>res/preferences-system.png</file>
+        <file>res/preferences-system-network.png</file>
+        <file>res/internet-telephony.png</file>
+        <file>res/user-busy.png</file>
+        <file>res/go-top.png</file>
+        <file>res/go-bottom.png</file>
+        <file>res/configure.png</file>
+    </qresource>
+    <qresource prefix="/fonts"/>
+</RCC>
