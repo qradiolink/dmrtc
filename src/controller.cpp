@@ -20,9 +20,6 @@ Controller::Controller(Settings *settings, Logger *logger, QObject *parent) : QO
 {
     _settings = settings;
     _logger = logger;
-    _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
-    _gateway_router = new GatewayRouter(_settings, _logger);
-    _signalling_generator = new Signalling(_settings);
     _mmdvm_config = new QVector<unsigned char>;
     _registered_ms = new QList<unsigned int>;
     _talkgroup_attachments = new QMap<unsigned int, QList<unsigned int>>;
@@ -30,6 +27,9 @@ Controller::Controller(Settings *settings, Logger *logger, QObject *parent) : QO
     _subscribed_talkgroups = new QSet<unsigned int>;
     // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
     _uplink_acks = new QMap<unsigned int, unsigned int>;
+    _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
+    _gateway_router = new GatewayRouter(_settings, _logger);
+    _signalling_generator = new Signalling(_settings);
     _stop_thread = false;
     _late_entry_announcing = false;
     _system_freqs_announcing = false;

@@ -56,7 +56,7 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
 bool DMRRewrite::rewriteSource(CDMRData &data)
 {
     unsigned int srcId = data.getSrcId();
-    if(_registered_ms->contains(srcId))
+    if((_registered_ms->size() > 0) && _registered_ms->contains(srcId))
     {
         data.setSrcId(1);
         return true;
