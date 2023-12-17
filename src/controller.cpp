@@ -667,7 +667,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
                         unsigned char msg[size];
                         memcpy(msg, _data_message, size);
-                        QString text_message = QString::fromUtf8((const char*)msg, size);
+                        QString text_message;
+                        if(_udt_format == 4)
+                            text_message = QString::fromUtf8((const char*)msg, size);
+                        else if(_udt_format == 3)
+                            text_message = QString::fromLatin1((const char*)msg, size);
+                        else if(_udt_format == 7)
+                            text_message = QString::fromUtf16((const char16_t*)msg, size);
                         _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
                                   .arg(srcId)
                                   .arg(Utils::convertBase11GroupNumberToBase10(dstId))
@@ -784,7 +790,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1;
                         unsigned char msg[size];
                         memcpy(msg, _data_message, size);
-                        QString text_message = QString::fromUtf8((const char*)msg, size);
+                        QString text_message;
+                        if(_udt_format == 4)
+                            text_message = QString::fromUtf8((const char*)msg, size);
+                        else if(_udt_format == 3)
+                            text_message = QString::fromLatin1((const char*)msg, size);
+                        else if(_udt_format == 7)
+                            text_message = QString::fromUtf16((const char16_t*)msg, size);
                         _logger->log(Logger::LogLevelInfo, QString("Received private UDT short data message from %1 to %2: %3")
                                   .arg(srcId)
                                   .arg(dstId)
