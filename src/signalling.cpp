@@ -394,8 +394,44 @@ void Signalling::createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId
 void Signalling::createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
-    csbk.setData1(0x01); // Reponse info (not set) + 1 bit reason code 1010 0000
-    csbk.setCBF(0x40);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 160; // reason code 1010 0000 queued
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1); // Reponse info (not set) + 1 bit reason code
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::TSI);
+}
+
+void Signalling::createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 39; // reason code 0010 0111 busy
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::TSI);
+}
+
+void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 45; // reason code 0010 0111 busy
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(StandardAddreses::TSI);
 }
@@ -414,3 +450,4 @@ void Signalling::createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type)
     csbk.setDstId(StandardAddreses::ALLMSI);
     csbk.setSrcId(StandardAddreses::TSI);
 }
+

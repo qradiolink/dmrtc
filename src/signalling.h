@@ -54,6 +54,8 @@ public:
     void createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
 
 private:

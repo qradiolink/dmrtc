@@ -149,7 +149,7 @@ void Controller::run()
     {
         if(!_startup_completed)
         {
-            requestRegistration();
+            requestMassRegistration();
         }
         QtConcurrent::run(this, &Controller::announceLateEntry);
         if(!announce_system_freqs_timer.isActive())
@@ -273,13 +273,14 @@ void Controller::announceLateEntry()
     _late_entry_announcing = false;
 }
 
-void Controller::requestRegistration()
+void Controller::requestMassRegistration()
 {
     _logger->log(Logger::LogLevelInfo, QString("Requesting mass registration"));
     CDMRCSBK csbk;
     _signalling_generator->createRegistrationRequest(csbk);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
     _startup_completed = true;
+    _registered_ms->clear();
 }
 
 void Controller::announceSystemFreqs()
@@ -1087,7 +1088,7 @@ void Controller::handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logic
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
-        _signalling_generator->createReplyCallQueued(csbk, srcId);
+        _signalling_generator->createReplyCallDenied(csbk, srcId);
         if(!_settings->headless_mode)
         {
             emit updateRejectedCallsList(srcId, dstId, local);
@@ -1136,7 +1137,7 @@ void Controller::handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
-        _signalling_generator->createReplyCallQueued(csbk, srcId);
+        _signalling_generator->createReplyCallDenied(csbk, srcId);
         if(!_settings->headless_mode)
         {
             emit updateRejectedCallsList(srcId, dstId, local);
@@ -1256,9 +1257,17 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
         }
     }
-    /// All below signaling needs the MS to be registered
+    /// Service requested while not registered
     else if(!validateLocalSourceId(srcId))
-        return;
+    {
+        _signalling_generator->createReplyNotRegistered(csbk, srcId);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received service request while not registered from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    ///
+    /// All below signaling needs the MS to be registered
+    ///
     /// MS ping reply
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
              _uplink_acks->contains(srcId) &&
@@ -1337,8 +1346,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
              _uplink_acks->contains(srcId) &&
              _uplink_acks->value(srcId) == ServiceAction::ActionPrivateCallRequest)
     {
-        _logger->log(Logger::LogLevelInfo, QString("Received acknowledgement for OACSU call from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
+
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
         _uplink_acks->remove(srcId);
@@ -1375,23 +1383,22 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         {
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
-
+        _logger->log(Logger::LogLevelInfo, QString("Received acknowledgement for OACSU call from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// MS acknowledgement of FOACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8C))
     {
-        _logger->log(Logger::LogLevelDebug, QString("Received acknowledgement for FOACSU call from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelDebug, QString("Received acknowledgement for FOACSU call from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// MS FOACSU call answer
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::ActionsCallService) && ((csbk.getCBF() & 0xF0) == 0))
     {
-        _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call answer from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
         handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
@@ -1409,6 +1416,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         {
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
+        _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call answer from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// call reject
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::ActionsCallService) && ((csbk.getCBF() & 0xF0) == 0x20))
@@ -1449,31 +1458,31 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
              _uplink_acks->value(srcId) == ServiceAction::ActionMessageRequest)
     {
         _uplink_acks->remove(srcId);
-        _logger->log(Logger::LogLevelInfo, QString("Received read receipt for message request from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received read receipt for message request from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Short data service MS to MS
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::PrivateShortDataService))
     {
-        _logger->log(Logger::LogLevelInfo, QString("Received private short data message request from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
         _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
         _short_data_messages.insert(srcId, number_of_blocks);
+        _logger->log(Logger::LogLevelInfo, QString("Received private short data message request from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Short data service MS to TG
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupShortDataService))
     {
-        _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
-                     .arg(srcId).arg(slotNo).arg(dstId));
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
         _short_data_messages.insert(srcId, number_of_blocks);
+        _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
     }
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {

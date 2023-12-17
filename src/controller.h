@@ -74,7 +74,7 @@ public slots:
     void updateMMDVMConfig(unsigned char* payload, int size);
     void writeDMRConfig();
     void handleIdleChannelDeallocation(unsigned int channel_id);
-    void requestRegistration();
+    void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
     void sendUDTShortMessage(QString message, unsigned int target_id);
     void pingRadio(unsigned int target_id, bool group=false);

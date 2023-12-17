@@ -158,7 +158,7 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
                      w, SLOT(displayPingResponse(uint,uint)));
     /// GUI to controller
     QObject::connect(w, SIGNAL(channelEnable(uint,bool)), controller, SLOT(setChannelEnabled(uint,bool)));
-    QObject::connect(w, SIGNAL(registrationRequested()), controller, SLOT(requestRegistration()));
+    QObject::connect(w, SIGNAL(registrationRequested()), controller, SLOT(requestMassRegistration()));
     QObject::connect(w, SIGNAL(sendShortMessage(QString,uint)), controller, SLOT(sendUDTShortMessage(QString,uint)));
     QObject::connect(w, SIGNAL(pingRadio(uint,bool)), controller, SLOT(pingRadio(uint,bool)));
     QObject::connect(w, SIGNAL(resetPing()), controller, SLOT(resetPing()));
