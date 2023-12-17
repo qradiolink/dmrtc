@@ -41,6 +41,7 @@ public:
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
     void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
     void createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);

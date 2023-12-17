@@ -425,7 +425,7 @@ void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
-    unsigned int reason_code = 45; // reason code 0010 0111 busy
+    unsigned int reason_code = 45;
     unsigned char data1 = 0x00;
     data1 |= response_info << 1;
     data1 |= (reason_code >> 7) & 0xFF;
@@ -434,6 +434,21 @@ void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(StandardAddreses::TSI);
+}
+
+void Signalling::createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 98;
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::REGI);
 }
 
 void Signalling::createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId)

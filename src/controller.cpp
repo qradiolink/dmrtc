@@ -1040,8 +1040,9 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigne
             sub = (bool)_settings->receive_tg_attach;
         }
     }
-    else if((csbk.getServiceOptions() &0x01) == 0)
+    else if((csbk.getServiceOptions() & 0x01) == 0)
     {
+        _signalling_generator->createReplyDeregistrationAccepted(csbk, srcId);
         _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received de-registration request from %2 to TG %3")
                      .arg(slotNo).arg(srcId).arg(dstId));
         _registered_ms->removeAll(srcId);
