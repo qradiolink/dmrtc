@@ -198,7 +198,7 @@ void Signalling::createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id,
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createMessageAcceptedACKD(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     csbk.setFID(0x00);
@@ -212,7 +212,7 @@ void Signalling::createMessageAcceptedACKD(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::SDMI);
 }
 
-void Signalling::createRegistrationAcceptedACKD(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId)
 {
     uint8_t accepted_registrations_mask = 0xFE; // be generous in case the manufacturer isn't
     csbk.setCSBKO(CSBKO_ACKD);
@@ -321,7 +321,7 @@ void Signalling::createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int
     csbk.setSrcId(StandardAddreses::TATTSI);
 }
 
-void Signalling::createCallRejectACKD(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
+void Signalling::createReplyCallRejected(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
 {
     unsigned char recipient_refused = 0x14;
     csbk.setCSBKO(CSBKO_ACKD);
@@ -426,6 +426,21 @@ void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
     unsigned int reason_code = 45; // reason code 0010 0111 busy
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::TSI);
+}
+
+void Signalling::createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 48; // reason code 0010 0111 busy
     unsigned char data1 = 0x00;
     data1 |= response_info << 1;
     data1 |= (reason_code >> 7) & 0xFF;

@@ -679,6 +679,9 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 }
                 else
                 {
+                    CDMRCSBK csbk;
+                    _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
                     _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
                 }
                 _data_msg_size = 0;
@@ -693,7 +696,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             if(num_blocks == 0)
             {
                 CDMRCSBK csbk;
-                _signalling_generator->createMessageAcceptedACKD(csbk, dmr_data.getSrcId());
+                _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
                 transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
                 _short_data_messages.remove(srcId);
 
@@ -751,7 +754,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         _uplink_acks->remove(srcId);
 
                         CDMRCSBK csbk;
-                        _signalling_generator->createRegistrationAcceptedACKD(csbk, srcId);
+                        _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
                         transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
 
                         unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
@@ -791,12 +794,15 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     else if(dstId == (unsigned int)_settings->location_service_id)
                     {
                         CDMRCSBK csbk;
-                        _signalling_generator->createMessageAcceptedACKD(csbk, srcId);
+                        _signalling_generator->createReplyMessageAccepted(csbk, srcId);
                         transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
                     }
                 }
                 else
                 {
+                    CDMRCSBK csbk;
+                    _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
                     _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
                 }
                 _data_msg_size = 0;
@@ -1007,7 +1013,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigne
         {
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with attachement to TG %3")
                          .arg(slotNo).arg(srcId).arg(dstId));
-            _signalling_generator->createRegistrationAcceptedACKD(csbk, srcId);
+            _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
             if(!_registered_ms->contains(srcId))
                 _registered_ms->append(srcId);
         }
@@ -1019,7 +1025,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigne
             system_code |= 3; // TODO: PAR
             if(dstId == (system_code & 0xFFFFFF))
             {
-                _signalling_generator->createRegistrationAcceptedACKD(csbk, srcId);
+                _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
                 if(!_registered_ms->contains(srcId))
                     _registered_ms->append(srcId);
             }
@@ -1030,7 +1036,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigne
                          .arg(slotNo).arg(srcId));
             if(!_registered_ms->contains(srcId))
                 _registered_ms->append(srcId);
-            _signalling_generator->createRegistrationAcceptedACKD(csbk, srcId);
+            _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
             sub = (bool)_settings->receive_tg_attach;
         }
     }
@@ -1424,7 +1430,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
-        _signalling_generator->createCallRejectACKD(csbk, srcId, dstId);
+        _signalling_generator->createReplyCallRejected(csbk, srcId, dstId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
     }
     /// cancel private call

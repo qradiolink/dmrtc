@@ -39,15 +39,15 @@ public:
     void createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel);
     void createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time);
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
-    void createMessageAcceptedACKD(CDMRCSBK &csbk, unsigned int dstId);
-    void createRegistrationAcceptedACKD(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
     void createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int dstId, bool group_call);
     void createChannelIdleDeallocation(CDMRCSBK &csbk, unsigned int call_type);
     void createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int dstId, unsigned int UAB);
-    void createCallRejectACKD(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
+    void createReplyCallRejected(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
     void createCancelPrivateCallAhoy(CDMRCSBK &csbk, unsigned int dstId);
     void createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool group_call);
     unsigned int createRequestToUploadMessage(CDMRCSBK &csbk, unsigned int dstId);
@@ -56,6 +56,7 @@ public:
     void createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
 
 private:
