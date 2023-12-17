@@ -20,18 +20,19 @@ Controller::Controller(Settings *settings, Logger *logger, QObject *parent) : QO
 {
     _settings = settings;
     _logger = logger;
-    _stop_thread = false;
-    _late_entry_announcing = false;
-    _system_freqs_announcing = false;
+    _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
+    _gateway_router = new GatewayRouter(_settings, _logger);
+    _signalling_generator = new Signalling(_settings);
     _mmdvm_config = new QVector<unsigned char>;
     _registered_ms = new QList<unsigned int>;
     _talkgroup_attachments = new QMap<unsigned int, QList<unsigned int>>;
     _rejected_calls = new QSet<unsigned int>;
+    _subscribed_talkgroups = new QSet<unsigned int>;
     // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
     _uplink_acks = new QMap<unsigned int, unsigned int>;
-    _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
-    _gateway_router = new GatewayRouter(_settings, _logger);
-    _signalling_generator = new Signalling(_settings);
+    _stop_thread = false;
+    _late_entry_announcing = false;
+    _system_freqs_announcing = false;
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
@@ -52,6 +53,8 @@ Controller::~Controller()
     _rejected_calls->clear();
     delete _rejected_calls;
     _uplink_acks->clear();
+    _subscribed_talkgroups->clear();
+    delete _subscribed_talkgroups;
     delete _uplink_acks;
     delete _dmr_rewrite;
     delete _gateway_router;
@@ -769,6 +772,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             tg |= msg[i+2];
                             unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
                             tg_list.append(converted_id);
+                            _subscribed_talkgroups->insert(converted_id);
                             _logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")
                                          .arg(srcId).arg(converted_id));
                         }

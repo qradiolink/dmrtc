@@ -131,6 +131,7 @@ private:
     QMap<unsigned int, QList<unsigned int>> *_talkgroup_attachments;
     QMap<unsigned int, unsigned int> *_uplink_acks;
     QSet<unsigned int> *_rejected_calls;
+    QSet<unsigned int> *_subscribed_talkgroups;
 
     std::chrono::high_resolution_clock::time_point t1_ping_ms;
 
