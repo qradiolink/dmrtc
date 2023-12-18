@@ -761,14 +761,19 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             (_udt_format==1))
                     {
                         _uplink_acks->remove(srcId);
-
+                        bool existing_user = _registered_ms->contains(srcId);
+                        if(!existing_user)
+                            _registered_ms->append(srcId);
                         CDMRCSBK csbk;
                         _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
                         transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
-                        QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
-                        sendUDTShortMessage(message, srcId);
-                        QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
-                        sendUDTShortMessage(message2, srcId);
+                        if(!existing_user)
+                        {
+                            QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+                            sendUDTShortMessage(message, srcId);
+                            QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
+                            sendUDTShortMessage(message2, srcId);
+                        }
 
                         unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
                         unsigned char msg[size];
@@ -1056,10 +1061,13 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
         {
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with TG subscription list")
                          .arg(slotNo).arg(srcId));
-            if(!_registered_ms->contains(srcId))
-                _registered_ms->append(srcId);
             _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
             sub = (bool)_settings->receive_tg_attach;
+            if(!sub)
+            {
+                if(!_registered_ms->contains(srcId))
+                    _registered_ms->append(srcId);
+            }
         }
     }
     else if((csbk.getServiceOptions() & 0x01) == 0)
@@ -1271,6 +1279,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Registration or deregistration request
     if (csbko == CSBKO_RAND && csbk.getServiceKind() == ServiceKind::RegistrationService)
     {
+        bool existing_user = _registered_ms->contains(srcId);
         unsigned int uab = 0;
         bool sub = handleRegistration(csbk, slotNo, srcId, dstId, uab);
         if(sub)
@@ -1284,10 +1293,13 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         else
         {
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
-            QString message1 = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
-            sendUDTShortMessage(message1, srcId);
-            QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
-            sendUDTShortMessage(message2, srcId);
+            if(!existing_user)
+            {
+                QString message1 = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+                sendUDTShortMessage(message1, srcId);
+                QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
+                sendUDTShortMessage(message2, srcId);
+            }
         }
 
     }
