@@ -7,6 +7,9 @@ This software is licenced under the GPL v3 and is primarily intended for amateur
 This software is intended to work together with DMRGateway, MMDVMHost-SDR, MMDVM-SDR and QRadioLink in order to create a DMR tier III radio site.
 
 
+![Image](https://qradiolink.org/images/dmrtc1.png)
+
+
 DMR tier III services partly or completely implemented
 ----
 
@@ -88,13 +91,13 @@ Running the controller
 - To run it with the GUI interface, simply execute drmtc.
 
 <pre>
-$ ./drmtc
+$ ./dmrtc
 </pre>
 
 - To run it in console, without the GUI interface, start it with the "-h" flag:
 
 <pre>
-$ ./drmtc -h
+$ ./dmrtc -h
 </pre>
 
 - The configuration file is located at $HOME/.config/dmrtc/dmrtc.cfg (see dmrtc.cfg.example)
