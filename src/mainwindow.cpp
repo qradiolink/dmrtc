@@ -47,6 +47,10 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, QWidget *parent) :
                      this, SLOT(deleteLogicalPhysicalChannel()));
     QObject::connect(ui->pushButtonAddLogicalPhysicalChannel, SIGNAL(clicked(bool)),
                      this, SLOT(addLogicalPhysicalChannel()));
+    QObject::connect(ui->pushButtonRemoveServiceId, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteServiceId()));
+    QObject::connect(ui->pushButtonAddServiceId, SIGNAL(clicked(bool)),
+                     this, SLOT(addServiceId()));
     QObject::connect(ui->pushButtonGroupFirst, SIGNAL(clicked(bool)),
                      ui->groupCallsTableWidget, SLOT(scrollToTop()));
     QObject::connect(ui->pushButtonGroupLast, SIGNAL(clicked(bool)),
@@ -147,7 +151,6 @@ void MainWindow::setConfig()
     ui->lineEditNumberOfGateways->setText(QString::number(_settings->gateway_number));
     ui->lineEditPayloadChannelTimeout->setText(QString::number(_settings->payload_channel_idle_timeout));
     ui->lineEditSystemCode->setText(QString::number(_settings->system_identity_code));
-    ui->lineEditLocationServiceId->setText(QString::number(_settings->location_service_id));
     ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(_settings->announce_system_freqs_interval));
     ui->lineEditAnnounceLateEntryInterval->setText(QString::number(_settings->announce_late_entry_interval));
     ui->textEditSystemMessage->setText(_settings->system_announcement_message);
@@ -161,6 +164,7 @@ void MainWindow::setConfig()
     loadTalkgroupRouting();
     loadSlotRewrite();
     loadLogicalPhysicalChannels();
+    loadServiceIds();
 }
 
 void MainWindow::saveConfig()
@@ -178,7 +182,6 @@ void MainWindow::saveConfig()
     _settings->gateway_number = ui->lineEditNumberOfGateways->text().toInt();
     _settings->payload_channel_idle_timeout = ui->lineEditPayloadChannelTimeout->text().toInt();
     _settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
-    _settings->location_service_id = ui->lineEditLocationServiceId->text().toInt();
     _settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
     _settings->announce_late_entry_interval = ui->lineEditAnnounceLateEntryInterval->text().toInt();
     _settings->system_announcement_message = ui->textEditSystemMessage->toPlainText();
@@ -192,7 +195,7 @@ void MainWindow::saveConfig()
     saveTalkgroupRouting();
     saveSlotRewrite();
     saveLogicalPhysicalChannels();
-
+    saveServiceIds();
     _settings->saveConfig();
 }
 
@@ -428,6 +431,76 @@ void MainWindow::deleteLogicalPhysicalChannel()
     for(int row : rows)
     {
         ui->tableWidgetLogicalPhysicalChannels->removeRow(row);
+    }
+}
+
+void MainWindow::loadServiceIds()
+{
+    QMapIterator<QString, unsigned int> i(_settings->service_ids);
+    QStringList header_service_ids;
+    header_service_ids.append("Service");
+    header_service_ids.append("System Id");
+    ui->tableWidgetServiceIds->setRowCount(_settings->service_ids.size());
+    ui->tableWidgetServiceIds->setColumnCount(2);
+    ui->tableWidgetServiceIds->setHorizontalHeaderLabels(header_service_ids);
+    ui->tableWidgetServiceIds->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetServiceIds->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+    while(i.hasNext())
+    {
+        i.next();
+        QTableWidgetItem *service = new QTableWidgetItem(i.key());
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.value()));
+
+        ui->tableWidgetServiceIds->setItem(row, 0, service);
+        ui->tableWidgetServiceIds->setItem(row, 1, id);
+        row++;
+    }
+}
+
+void MainWindow::saveServiceIds()
+{
+    _settings->service_ids.clear();
+    int rows = ui->tableWidgetServiceIds->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetServiceIds->item(i, 0);
+        QTableWidgetItem *item2 = ui->tableWidgetServiceIds->item(i, 1);
+        bool ok2 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0)
+        {
+            item2->text().toInt(&ok2);
+        }
+        if(ok2)
+        {
+            _settings->service_ids.insert(item1->text(), item2->text().toInt());
+        }
+    }
+}
+
+void MainWindow::addServiceId()
+{
+    ui->tableWidgetServiceIds->setRowCount(ui->tableWidgetServiceIds->rowCount() + 1);
+    QTableWidgetItem *service = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetServiceIds->setItem(ui->tableWidgetServiceIds->rowCount() - 1, 0, service);
+    ui->tableWidgetServiceIds->setItem(ui->tableWidgetServiceIds->rowCount() - 1, 1, id);
+    ui->tableWidgetServiceIds->scrollToBottom();
+}
+
+void MainWindow::deleteServiceId()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetServiceIds->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetServiceIds->removeRow(row);
     }
 }
 

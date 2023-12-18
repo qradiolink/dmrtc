@@ -48,9 +48,9 @@ Settings::Settings(Logger *logger)
     announce_system_message = 1;
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
-    location_service_id = 1048677;
     announce_system_freqs_interval = 120;
     announce_late_entry_interval = 1;
+    service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
 }
 
 Settings::~Settings()
@@ -312,14 +312,6 @@ void Settings::readConfig()
     }
     try
     {
-        location_service_id = cfg.lookup("location_service_id");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-        location_service_id = 1048577;
-    }
-    try
-    {
         announce_system_freqs_interval = cfg.lookup("announce_system_freqs_interval");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -391,6 +383,25 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
     }
+    try
+    {
+        const libconfig::Setting &service_map = cfg.lookup("service_ids");
+        for(int i = 0; i < service_map.getLength(); ++i)
+        {
+          const libconfig::Setting &service = service_map[i];
+          std::string service_name;
+          unsigned int id;
+
+          if(!(service.lookupValue("service_name", service_name)
+               && service.lookupValue("id", id)))
+            continue;
+          service_ids.insert(QString::fromStdString(service_name), id);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
+    }
 
 }
 
@@ -422,7 +433,6 @@ void Settings::saveConfig()
     root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
-    root.add("location_service_id",libconfig::Setting::TypeInt) = location_service_id;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;
     root.add("talkgroup_routing",libconfig::Setting::TypeList);
@@ -456,6 +466,16 @@ void Settings::saveConfig()
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
         channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");
         channel.add("colour_code", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("colour_code");
+    }
+    root.add("service_ids",libconfig::Setting::TypeList);
+    libconfig::Setting &service_ids_config = root["service_ids"];
+    QMapIterator<QString, unsigned int> it_services(service_ids);
+    while(it_services.hasNext())
+    {
+        it_services.next();
+        libconfig::Setting &service = service_ids_config.add(libconfig::Setting::TypeGroup);
+        service.add("service_name", libconfig::Setting::TypeString) = it_services.key().toStdString();
+        service.add("id", libconfig::Setting::TypeInt) = (int)it_services.value();
     }
 
     /// Write to file

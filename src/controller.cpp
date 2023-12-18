@@ -765,6 +765,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         CDMRCSBK csbk;
                         _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
                         transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+                        QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+                        sendUDTShortMessage(message, srcId);
+                        QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
+                        sendUDTShortMessage(message2, srcId);
 
                         unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
                         unsigned char msg[size];
@@ -807,7 +811,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         }
                     }
                     /// Location query (Hytera specific)
-                    else if(dstId == (unsigned int)_settings->location_service_id)
+                    else if(dstId == (unsigned int)_settings->service_ids.value("location", 2))
                     {
                         CDMRCSBK csbk;
                         _signalling_generator->createReplyMessageAccepted(csbk, srcId);
@@ -1018,7 +1022,9 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     }
 }
 
-bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigned int srcId, unsigned int dstId, unsigned int &uab)
+bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
+                                    unsigned int srcId, unsigned int dstId,
+                                    unsigned int &uab)
 {
     bool sub = false;
     if((csbk.getServiceOptions() & 0x01) == 1)
@@ -1278,7 +1284,12 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         else
         {
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
+            QString message1 = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+            sendUDTShortMessage(message1, srcId);
+            QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
+            sendUDTShortMessage(message2, srcId);
         }
+
     }
     /// Service requested while not registered
     else if(!validateLocalSourceId(srcId))

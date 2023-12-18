@@ -60,6 +60,9 @@ public slots:
     void saveLogicalPhysicalChannels();
     void addLogicalPhysicalChannel();
     void deleteLogicalPhysicalChannel();
+    void saveServiceIds();
+    void deleteServiceId();
+    void addServiceId();
     void sendPing();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
     void pingTimeout();
@@ -83,6 +86,7 @@ private:
     void loadTalkgroupRouting();
     void loadSlotRewrite();
     void loadLogicalPhysicalChannels();
+    void loadServiceIds();
     void deleteRegisteredMSList();
 
 };

@@ -37,6 +37,7 @@
         <file>res/go-top.png</file>
         <file>res/go-bottom.png</file>
         <file>res/configure.png</file>
+        <file>res/mail-receive.png</file>
     </qresource>
     <qresource prefix="/fonts"/>
 </RCC>
