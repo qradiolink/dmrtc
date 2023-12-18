@@ -62,6 +62,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, QWidget *parent) :
 
     QObject::connect(&_ping_radio_timer, SIGNAL(timeout()), this, SLOT(pingTimeout()));
     ui->tabWidgetSettings->setCurrentIndex(0);
+    ui->tabWidgetDashboard->setCurrentIndex(0);
     ui->channelTableView->setModel(_logical_channel_model);
     ui->channelTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);

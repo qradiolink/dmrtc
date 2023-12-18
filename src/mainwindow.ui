@@ -55,7 +55,7 @@
          <x>0</x>
          <y>0</y>
          <width>1584</width>
-         <height>571</height>
+         <height>679</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -210,40 +210,28 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="toolBoxPageGroupCalls">
+      <widget class="QWidget" name="page_3">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
          <width>1584</width>
-         <height>571</height>
+         <height>679</height>
         </rect>
        </property>
        <attribute name="icon">
         <iconset>
-         <normalon>:/res/system-users.png</normalon>
+         <normalon>:/res/dashboard-show.png</normalon>
         </iconset>
        </attribute>
        <attribute name="label">
-        <string>Group calls</string>
+        <string>Dashboard</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_16">
+       <layout class="QVBoxLayout" name="verticalLayout_21">
         <item>
-         <widget class="QTableWidget" name="groupCallsTableWidget">
-          <property name="minimumSize">
-           <size>
-            <width>500</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="alternatingRowColors">
-           <bool>true</bool>
+         <widget class="QTabWidget" name="tabWidgetDashboard">
+          <property name="currentIndex">
+           <number>0</number>
           </property>
           <property name="iconSize">
            <size>
@@ -251,256 +239,269 @@
             <height>32</height>
            </size>
           </property>
-          <property name="sortingEnabled">
-           <bool>true</bool>
-          </property>
-          <attribute name="horizontalHeaderCascadingSectionResizes">
-           <bool>true</bool>
-          </attribute>
-          <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>250</number>
-          </attribute>
-          <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>300</number>
-          </attribute>
-         </widget>
-        </item>
-        <item>
-         <widget class="QFrame" name="frame_13">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
-           <item>
-            <widget class="QPushButton" name="pushButtonGroupFirst">
-             <property name="text">
-              <string>First</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/go-top.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="pushButtonGroupLast">
-             <property name="text">
-              <string>Last</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/go-bottom.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_5">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="toolBoxPagePrivateCalls">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>1584</width>
-         <height>571</height>
-        </rect>
-       </property>
-       <attribute name="icon">
-        <iconset>
-         <normalon>:/res/preferences-desktop-user.png</normalon>
-        </iconset>
-       </attribute>
-       <attribute name="label">
-        <string>Private calls</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_17">
-        <item>
-         <widget class="QTableWidget" name="privateCallsTableWidget">
-          <property name="iconSize">
-           <size>
-            <width>32</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="textElideMode">
-           <enum>Qt::ElideRight</enum>
-          </property>
-          <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>250</number>
-          </attribute>
-          <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>300</number>
-          </attribute>
-         </widget>
-        </item>
-        <item>
-         <widget class="QFrame" name="frame_14">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <item>
-            <widget class="QPushButton" name="pushButtonPrivateFirst">
-             <property name="text">
-              <string>First</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/go-top.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="pushButtonPrivateLast">
-             <property name="text">
-              <string>Last</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/go-bottom.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_7">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="page">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>1584</width>
-         <height>571</height>
-        </rect>
-       </property>
-       <attribute name="icon">
-        <iconset>
-         <normalon>:/res/view-conversation-balloon.png</normalon>
-        </iconset>
-       </attribute>
-       <attribute name="label">
-        <string>Messages</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_14">
-        <item>
-         <widget class="QFrame" name="frame_12">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_15">
-           <item>
-            <widget class="QTableWidget" name="tableWidgetMessages"/>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="rejectedCallsPage">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>1584</width>
-         <height>571</height>
-        </rect>
-       </property>
-       <attribute name="icon">
-        <iconset>
-         <normalon>:/res/user-busy.png</normalon>
-        </iconset>
-       </attribute>
-       <attribute name="label">
-        <string>Rejected calls</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_12">
-        <item>
-         <widget class="QFrame" name="frame_10">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_13">
-           <item>
-            <widget class="QListWidget" name="listWidgetRejectedCalls">
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <widget class="QWidget" name="tabGroup">
+           <attribute name="icon">
+            <iconset>
+             <normalon>:/res/system-users.png</normalon>
+            </iconset>
+           </attribute>
+           <attribute name="title">
+            <string>Group calls</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_22">
+            <item>
+             <widget class="QTableWidget" name="groupCallsTableWidget">
+              <property name="minimumSize">
+               <size>
+                <width>500</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="alternatingRowColors">
+               <bool>true</bool>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="sortingEnabled">
+               <bool>true</bool>
+              </property>
+              <attribute name="horizontalHeaderCascadingSectionResizes">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="horizontalHeaderMinimumSectionSize">
+               <number>250</number>
+              </attribute>
+              <attribute name="horizontalHeaderDefaultSectionSize">
+               <number>300</number>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_13">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QPushButton" name="pushButtonGroupFirst">
+                 <property name="text">
+                  <string>First</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normalon>:/res/go-top.png</normalon>
+                  </iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButtonGroupLast">
+                 <property name="text">
+                  <string>Last</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normalon>:/res/go-bottom.png</normalon>
+                  </iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_5">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tabPrivate">
+           <attribute name="icon">
+            <iconset>
+             <normalon>:/res/preferences-desktop-user.png</normalon>
+            </iconset>
+           </attribute>
+           <attribute name="title">
+            <string>Private calls</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_23">
+            <item>
+             <widget class="QTableWidget" name="privateCallsTableWidget">
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="textElideMode">
+               <enum>Qt::ElideRight</enum>
+              </property>
+              <attribute name="horizontalHeaderMinimumSectionSize">
+               <number>250</number>
+              </attribute>
+              <attribute name="horizontalHeaderDefaultSectionSize">
+               <number>300</number>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_14">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QPushButton" name="pushButtonPrivateFirst">
+                 <property name="text">
+                  <string>First</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normalon>:/res/go-top.png</normalon>
+                  </iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButtonPrivateLast">
+                 <property name="text">
+                  <string>Last</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normalon>:/res/go-bottom.png</normalon>
+                  </iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_7">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tabMessages">
+           <attribute name="icon">
+            <iconset>
+             <normalon>:/res/view-conversation-balloon.png</normalon>
+            </iconset>
+           </attribute>
+           <attribute name="title">
+            <string>Text messages</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_24">
+            <item>
+             <widget class="QFrame" name="frame_12">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_15">
+               <item>
+                <widget class="QTableWidget" name="tableWidgetMessages"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tabRejected">
+           <attribute name="icon">
+            <iconset>
+             <normalon>:/res/user-busy.png</normalon>
+            </iconset>
+           </attribute>
+           <attribute name="title">
+            <string>Rejected calls</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_25">
+            <item>
+             <widget class="QFrame" name="frame_10">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_13">
+               <item>
+                <widget class="QListWidget" name="listWidgetRejectedCalls">
+                 <property name="iconSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -511,7 +512,7 @@
          <x>0</x>
          <y>0</y>
          <width>1584</width>
-         <height>571</height>
+         <height>679</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -683,8 +684,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1563</width>
-         <height>576</height>
+         <width>1584</width>
+         <height>679</height>
         </rect>
        </property>
        <attribute name="icon">
