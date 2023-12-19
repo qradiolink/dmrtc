@@ -44,15 +44,6 @@ enum CSBKO {
     CSBKO_C_BCAST        = 0x28
 };
 
-enum ServiceKind {
-    RegistrationService = 0x0E,
-    GroupCallService = 0x01,
-    PrivateCallService = 0x00,
-    ActionsCallService = 0x09,
-    CancelCallService = 0x0F,
-    PrivateShortDataService = 0x04,
-    GroupShortDataService = 0x05,
-};
 
 class CDMRCSBK
 {

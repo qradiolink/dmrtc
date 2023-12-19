@@ -30,7 +30,7 @@
 #include "src/logger.h"
 #include "src/udpclient.h"
 #include "src/logicalchannel.h"
-#include "src/standard_addresses.h"
+#include "src/standard_PDU.h"
 #include "src/utils.h"
 #include "src/dmrrewrite.h"
 #include "src/dmridlookup.h"
@@ -123,7 +123,7 @@ private:
     DMRRewrite *_dmr_rewrite;
     Signalling *_signalling_generator;
     QVector<unsigned char> *_mmdvm_config;
-    QMutex _mutex;
+    QMutex _control_mutex;
     QVector<UDPClient*> _udp_channels;
     QVector<UDPClient*> _gateway_channels;
     QVector<LogicalChannel*> _logical_channels;

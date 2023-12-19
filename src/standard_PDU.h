@@ -14,8 +14,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-#ifndef STANDARD_ADDRESSES_H
-#define STANDARD_ADDRESSES_H
+#ifndef STANDARD_PDU_H
+#define STANDARD_PDU_H
 
 
 enum StandardAddreses
@@ -29,4 +29,24 @@ enum StandardAddreses
     TATTSI = 0xFFFED7,
 };
 
-#endif // STANDARD_ADDRESSES_H
+enum ServiceKind
+{
+    IndivVoiceCall = 0,
+    GroupVoiceCall = 1,
+    IndivPacketDataCall = 2,
+    GroupPacketDataCall = 3,
+    IndivUDTDataCall = 4,
+    GroupUDTDataCall = 5,
+    UDTDataPolling = 6,
+    StatusTransport = 7,
+    CallDiversion = 8,
+    CallAnswer = 9,
+    FullDuplexVoiceCall = 10,
+    FullDuplexDataCall = 11,
+    SupplementaryServ = 13,
+    RegiAuthMSCheck = 14,
+    CancelCall = 15
+};
+
+
+#endif // STANDARD_PDU_H

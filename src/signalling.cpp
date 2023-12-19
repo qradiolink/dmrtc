@@ -191,7 +191,7 @@ void Signalling::createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id,
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
     csbk.setData1(0x00);
-    unsigned char data2 = ServiceKind::RegistrationService;
+    unsigned char data2 = ServiceKind::RegiAuthMSCheck;
     data2 |= (group) ? (1 << 6) : (0 << 6);
     csbk.setCBF(data2);
     csbk.setDstId(target_id & 0xFFFFFF);

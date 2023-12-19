@@ -1277,7 +1277,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     bool group_call = dmr_data.getFLCO() == FLCO_GROUP;
 
     /// Registration or deregistration request
-    if (csbko == CSBKO_RAND && csbk.getServiceKind() == ServiceKind::RegistrationService)
+    if (csbko == CSBKO_RAND && csbk.getServiceKind() == ServiceKind::RegiAuthMSCheck)
     {
         bool existing_user = _registered_ms->contains(srcId);
         unsigned int uab = 0;
@@ -1326,7 +1326,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
 
     }
     /// Group call request
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupCallService)
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupVoiceCall)
              && !csbk.getSuplimentaryData())
     {
         bool broadcast_call = false;
@@ -1350,13 +1350,13 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
     }
     /// Group call with suplimentary data
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupCallService) && csbk.getSuplimentaryData())
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupVoiceCall) && csbk.getSuplimentaryData())
     {
         _signalling_generator->createRequestToSendGroupCallSupplimentaryData(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
     }
     /// Direct MS to MS call request
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::PrivateCallService))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
         if(_registered_ms->contains(dstId))
         {
@@ -1443,7 +1443,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// MS FOACSU call answer
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::ActionsCallService) && ((csbk.getCBF() & 0xF0) == 0))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallAnswer) && ((csbk.getCBF() & 0xF0) == 0))
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
@@ -1466,7 +1466,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// call reject
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::ActionsCallService) && ((csbk.getCBF() & 0xF0) == 0x20))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallAnswer) && ((csbk.getCBF() & 0xF0) == 0x20))
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
@@ -1474,7 +1474,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
     }
     /// cancel private call
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCallService) && (csbk.getDstId() > 0))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() > 0))
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
@@ -1482,7 +1482,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
     }
     /// cancel call
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCallService) && (csbk.getDstId() == 0))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() == 0))
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
@@ -1490,7 +1490,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
     }
     /// Call disconnect
-    else if ((csbko == CSBKO_MAINT) && (csbk.getServiceKind() == ServiceKind::PrivateCallService))
+    else if ((csbko == CSBKO_MAINT) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
@@ -1512,7 +1512,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Short data service MS to MS
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::PrivateShortDataService))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivUDTDataCall))
     {
         _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
@@ -1522,7 +1522,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Short data service MS to TG
-    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupShortDataService))
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupUDTDataCall))
     {
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);

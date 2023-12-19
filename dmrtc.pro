@@ -43,7 +43,7 @@ HEADERS += src/settings.h \
     src/logger.h \
     src/logicalchannel.h \
     src/signalling.h \
-    src/standard_addresses.h \
+    src/standard_PDU.h \
     src/udpclient.h \
     src/controller.h \
     src/mainwindow.h \
