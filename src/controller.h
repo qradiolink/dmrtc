@@ -88,6 +88,7 @@ signals:
     void updateLogicalChannels(QVector<LogicalChannel*> *logical_channels);
     void updateCallLog(unsigned int srcId, unsigned int dstId, bool private_call);
     void updateRegisteredMSList(QList<unsigned int>* registered_ms);
+    void updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups);
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);

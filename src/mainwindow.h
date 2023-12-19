@@ -44,6 +44,7 @@ public slots:
     void setLogicalChannels(QVector<LogicalChannel *> *logical_channels);
     void channelStateChange(int row, int col, bool state);
     void updateRegisteredMSList(QList<uint>* registered_ms);
+    void updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups);
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void requestRegistration();
     void sendSystemMessage();
@@ -88,6 +89,7 @@ private:
     void loadLogicalPhysicalChannels();
     void loadServiceIds();
     void deleteRegisteredMSList();
+    void deleteSubscribedTalkgroupList();
 
 };
 

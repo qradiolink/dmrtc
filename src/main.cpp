@@ -148,6 +148,8 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
                      w, SLOT(setLogicalChannels(QVector<LogicalChannel*>*)));
     QObject::connect(controller, SIGNAL(updateRegisteredMSList(QList<uint>*)),
                      w, SLOT(updateRegisteredMSList(QList<uint>*)));
+    QObject::connect(controller, SIGNAL(updateTalkgroupSubscriptionList(QSet<uint>*)),
+                     w, SLOT(updateTalkgroupSubscriptionList(QSet<uint>*)));
     QObject::connect(controller, SIGNAL(updateCallLog(uint,uint,bool)),
                      w, SLOT(updateCallLog(uint,uint,bool)));
     QObject::connect(controller, SIGNAL(updateMessageLog(uint,uint,QString,bool)),

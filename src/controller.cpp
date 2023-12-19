@@ -160,15 +160,18 @@ void Controller::run()
             QtConcurrent::run(this, &Controller::announceSystemFreqs);
             announce_system_freqs_timer.start();
         }
-        if(_settings->announce_system_message)
+
+        uint16_t min = QDateTime::currentDateTime().time().minute();
+        if(((min == 0) || (min == 30) || (min == 15) || (min == 45)) && (min != _minute))
         {
-            uint16_t min = QDateTime::currentDateTime().time().minute();
-            if(((min == 0) || (min == 30)) && (min != _minute))
+            _minute = min;
+            QtConcurrent::run(this, &Controller::announceLocalTime);
+            if(_settings->announce_system_message && ((min == 0) || (min == 30)))
             {
-                _minute = min;
                 QtConcurrent::run(this, &Controller::announceSystemMessage);
             }
         }
+
         QCoreApplication::processEvents(); // process signals
 
 
@@ -568,11 +571,6 @@ void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, b
                 (dataType == DT_RATE_34_DATA))
                 )
         {
-            if(!from_gateway && !validateLocalSourceId(srcId))
-            {
-                delete[] payload;
-                return;
-            }
             processData(dmr_data, udp_channel_id, from_gateway);
         }
         else if(dataType == DT_CSBK && from_gateway)
@@ -767,7 +765,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         CDMRCSBK csbk;
                         _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
                         transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
-                        if(!existing_user)
+                        if(!existing_user && _settings->announce_system_message)
                         {
                             QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
                             sendUDTShortMessage(message, srcId);
@@ -792,6 +790,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                                          .arg(srcId).arg(converted_id));
                         }
                         _talkgroup_attachments->insert(srcId, tg_list);
+                        if(!_settings->headless_mode)
+                        {
+                            emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+                        }
                     }
                     /// Text message
                     else if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
@@ -1293,7 +1295,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         else
         {
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
-            if(!existing_user)
+            if(!existing_user && _settings->announce_system_message)
             {
                 QString message1 = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
                 sendUDTShortMessage(message1, srcId);

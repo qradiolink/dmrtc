@@ -564,6 +564,18 @@ void MainWindow::updateRegisteredMSList(QList<unsigned int>* registered_ms)
     }
 }
 
+void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int> *subscribed_talkgroups)
+{
+    deleteSubscribedTalkgroupList();
+    QSetIterator<unsigned int> it(*subscribed_talkgroups);
+    while(it.hasNext())
+    {
+        QIcon icon = QIcon(":/res/system-users.png");
+        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(it.next()));
+        ui->listWidgetSubscribedTalkgroups->addItem(item);
+    }
+}
+
 void MainWindow::updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call)
 {
     QIcon icon = QIcon(":/res/preferences-desktop-user.png");
@@ -585,6 +597,16 @@ void MainWindow::deleteRegisteredMSList()
     }
     ui->registeredMSListWidget->clear();
     ui->comboBoxRegisteredMS->clear();
+}
+
+void MainWindow::deleteSubscribedTalkgroupList()
+{
+    for(int i=0;i < ui->listWidgetSubscribedTalkgroups->count();i++)
+    {
+        QListWidgetItem *item = ui->listWidgetSubscribedTalkgroups->item(i);
+        delete item;
+    }
+    ui->listWidgetSubscribedTalkgroups->clear();
 }
 
 void MainWindow::requestRegistration()
