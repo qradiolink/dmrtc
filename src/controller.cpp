@@ -668,6 +668,50 @@ void Controller::updateTalkgroupSubscriptions(unsigned int srcId)
     }
 }
 
+void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
+{
+    if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+    {
+        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
+        unsigned char msg[size];
+        memcpy(msg, _data_message, size);
+        QString text_message;
+        if(_udt_format == 4)
+            text_message = QString::fromUtf8((const char*)msg, size);
+        else if(_udt_format == 3)
+            text_message = QString::fromLatin1((const char*)msg, size);
+        else if(_udt_format == 7)
+            text_message = QString::fromUtf16((const char16_t*)msg, size);
+        if(group)
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
+                  .arg(srcId)
+                  .arg(Utils::convertBase11GroupNumberToBase10(dstId))
+                  .arg(text_message));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received private UDT short data message from %1 to %2: %3")
+                      .arg(srcId)
+                      .arg(dstId)
+                      .arg(text_message));
+        }
+        if(!_settings->headless_mode)
+        {
+            if(group)
+            {
+                emit updateMessageLog(srcId,
+                                   Utils::convertBase11GroupNumberToBase10(dstId), text_message, true);
+            }
+            else
+            {
+                emit updateMessageLog(srcId, dstId, text_message, false);
+            }
+        }
+
+    }
+}
+
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
     unsigned int srcId = dmr_data.getSrcId();
@@ -711,29 +755,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 if(valid)
                 {
                     /// Text message
-                    if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
-                    {
-                        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
-                        unsigned char msg[size];
-                        memcpy(msg, _data_message, size);
-                        QString text_message;
-                        if(_udt_format == 4)
-                            text_message = QString::fromUtf8((const char*)msg, size);
-                        else if(_udt_format == 3)
-                            text_message = QString::fromLatin1((const char*)msg, size);
-                        else if(_udt_format == 7)
-                            text_message = QString::fromUtf16((const char16_t*)msg, size);
-                        _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
-                                  .arg(srcId)
-                                  .arg(Utils::convertBase11GroupNumberToBase10(dstId))
-                                  .arg(text_message));
-                        if(!_settings->headless_mode)
-                        {
-                            emit updateMessageLog(srcId,
-                                               Utils::convertBase11GroupNumberToBase10(dstId), text_message, true);
-                        }
-
-                    }
+                    processTextMessage(dstId, srcId, dmr_data.getFLCO() == FLCO_GROUP);
                 }
                 else
                 {
@@ -814,24 +836,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     /// Text message
                     else if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
                     {
-                        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1;
-                        unsigned char msg[size];
-                        memcpy(msg, _data_message, size);
-                        QString text_message;
-                        if(_udt_format == 4)
-                            text_message = QString::fromUtf8((const char*)msg, size);
-                        else if(_udt_format == 3)
-                            text_message = QString::fromLatin1((const char*)msg, size);
-                        else if(_udt_format == 7)
-                            text_message = QString::fromUtf16((const char16_t*)msg, size);
-                        _logger->log(Logger::LogLevelInfo, QString("Received private UDT short data message from %1 to %2: %3")
-                                  .arg(srcId)
-                                  .arg(dstId)
-                                  .arg(text_message));
-                        if(!_settings->headless_mode)
-                        {
-                         emit updateMessageLog(srcId, dstId, text_message, false);
-                        }
+                        processTextMessage(dstId, srcId, false);
                     }
                     /// Location query (Hytera specific)
                     else if(dstId == (unsigned int)_settings->service_ids.value("location", 2))

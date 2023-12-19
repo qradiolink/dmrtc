@@ -150,6 +150,7 @@ private:
     unsigned int _udt_format;
 
     void updateTalkgroupSubscriptions(unsigned int srcId);
+    void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
 };
 
 #endif // CONTROLLER_H
