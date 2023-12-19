@@ -617,6 +617,57 @@ void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, b
 
 }
 
+void Controller::updateTalkgroupSubscriptions(unsigned int srcId)
+{
+    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned char msg[size];
+    memcpy(msg, _data_message, size);
+    _uplink_acks->remove(srcId);
+    bool existing_user = _registered_ms->contains(srcId);
+    if(!existing_user)
+        _registered_ms->append(srcId);
+    if(!_settings->headless_mode)
+    {
+        emit updateRegisteredMSList(_registered_ms);
+    }
+    CDMRCSBK csbk;
+    _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+    if(!existing_user && _settings->announce_system_message)
+    {
+        QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+        sendUDTShortMessage(message, srcId);
+        QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
+        sendUDTShortMessage(message2, srcId);
+    }
+
+    QList<unsigned int> tg_list;
+    for(unsigned int i=1;i<size;i=i+3)
+    {
+        unsigned int tg = 0;
+        tg |= msg[i] << 16;
+        tg |= msg[i+1] << 8;
+        tg |= msg[i+2];
+        unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
+        tg_list.append(converted_id);
+        _subscribed_talkgroups->insert(converted_id);
+        _logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")
+                     .arg(srcId).arg(converted_id));
+    }
+    _talkgroup_attachments->insert(srcId, tg_list);
+    _subscribed_talkgroups->clear();
+    QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
+    while(it.hasNext())
+    {
+        it.next();
+        _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
+    }
+    if(!_settings->headless_mode)
+    {
+        emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+    }
+}
+
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
     unsigned int srcId = dmr_data.getSrcId();
@@ -758,42 +809,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             (_uplink_acks->value(srcId) == ServiceAction::RegistrationWithAttachment) &&
                             (_udt_format==1))
                     {
-                        _uplink_acks->remove(srcId);
-                        bool existing_user = _registered_ms->contains(srcId);
-                        if(!existing_user)
-                            _registered_ms->append(srcId);
-                        CDMRCSBK csbk;
-                        _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
-                        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
-                        if(!existing_user && _settings->announce_system_message)
-                        {
-                            QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
-                            sendUDTShortMessage(message, srcId);
-                            QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
-                            sendUDTShortMessage(message2, srcId);
-                        }
-
-                        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
-                        unsigned char msg[size];
-                        memcpy(msg, _data_message, size);
-                        QList<unsigned int> tg_list;
-                        for(unsigned int i=1;i<size;i=i+3)
-                        {
-                            unsigned int tg = 0;
-                            tg |= msg[i] << 16;
-                            tg |= msg[i+1] << 8;
-                            tg |= msg[i+2];
-                            unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
-                            tg_list.append(converted_id);
-                            _subscribed_talkgroups->insert(converted_id);
-                            _logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")
-                                         .arg(srcId).arg(converted_id));
-                        }
-                        _talkgroup_attachments->insert(srcId, tg_list);
-                        if(!_settings->headless_mode)
-                        {
-                            emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
-                        }
+                        updateTalkgroupSubscriptions(srcId);
                     }
                     /// Text message
                     else if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))

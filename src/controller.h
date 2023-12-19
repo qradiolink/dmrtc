@@ -149,6 +149,7 @@ private:
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
 
+    void updateTalkgroupSubscriptions(unsigned int srcId);
 };
 
 #endif // CONTROLLER_H
