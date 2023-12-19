@@ -118,6 +118,7 @@ private:
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
 
     LogicalChannel* _control_channel;
+    LogicalChannel* _control_channel_alternate;
     Settings *_settings;
     Logger *_logger;
     DMRIdLookup *_id_lookup;

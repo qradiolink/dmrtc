@@ -32,7 +32,8 @@ enum ChannelState
     ChannelFree = 1,
     ChannelDisabled = 2,
     ChannelBusy = 3,
-    ChannelUnused = 4
+    ChannelUnused = 4,
+    ChannelControl = 5,
 };
 
 class ChannelViewModel : public QAbstractTableModel

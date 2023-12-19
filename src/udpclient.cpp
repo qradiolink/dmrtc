@@ -58,7 +58,7 @@ void UDPClient::start()
         status = false;
     if(!status)
     {
-        _logger->log(Logger::LogLevelWarning, QString(
+        _logger->log(Logger::LogLevelFatal, QString(
             "Server could not bind to port %1, another instance is probably listening already"
             ).arg(_listen_port));
         _started = false;
@@ -204,9 +204,6 @@ void UDPClient::writeDMRData(CDMRData &data)
     FLCO flco = data.getFLCO();
     buffer[15U] |= flco == FLCO_GROUP ? 0x00U : 0x40U;
 
-    unsigned int slotIndex = slotNo - 1U;
-
-    std::uniform_int_distribution<uint32_t> dist(0x00000001, 0xfffffffe);
     unsigned char dataType = data.getDataType();
     if (dataType == DT_VOICE_SYNC) {
         buffer[15U] |= 0x10U;
@@ -215,7 +212,6 @@ void UDPClient::writeDMRData(CDMRData &data)
     } else {
         buffer[15U] |= (0x20U | dataType);
     }
-
 
     unsigned int streamId = data.getStreamId();
 

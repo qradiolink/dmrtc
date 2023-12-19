@@ -72,12 +72,11 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case Qt::DisplayRole:
     {
-        if (row == 0 && col == 0)
-        {
-            return "Control channel";
-        }
         switch(_state[row][col])
         {
+            case ChannelState::ChannelControl:
+                return "Control channel";
+            break;
             case ChannelState::ChannelUnused:
                 return "Logical channel not used";
             break;
@@ -93,7 +92,7 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
     {
         QFont boldFont;
         boldFont.setBold(true);
-        if (row == 0 && col == 0)
+        if(_state[row][col] == ChannelState::ChannelControl)
         {
             return boldFont;
         }
@@ -105,11 +104,19 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
     }
     case Qt::BackgroundRole:
     {
+        if(_state[row][col] == ChannelState::ChannelControl)
+        {
+            return QBrush(QColor("#e6e673"));
+        }
         return QBrush(QColor(_colors[row][col]));
         break;
     }
     case Qt::ForegroundRole:
     {
+        if(_state[row][col] == ChannelState::ChannelControl)
+        {
+            return QBrush(QColor("#000000"));
+        }
         if(_colors[row][col] == "#004d99")
         {
             return QBrush(QColor("#FFFFFF"));
@@ -127,18 +134,19 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
         {
             return QIcon(":/res/call-start.png");
         }
+        if(_state[row][col] == ChannelState::ChannelControl)
+        {
+            return QIcon(":/res/internet-telephony.png");
+        }
         break;
     }
     case Qt::TextAlignmentRole:
             return int(Qt::AlignCenter | Qt::AlignVCenter);
         break;
     case Qt::CheckStateRole:
-        if (row == 0 && col == 0)
+        if(_state[row][col] == ChannelState::ChannelControl)
             return Qt::Checked;
-        if (row == 0 && col == 1)
-            return _check_state[row][col];
-        if (row > 0)
-            return _check_state[row][col];
+        return _check_state[row][col];
         break;
     }
     return QVariant();

@@ -524,8 +524,10 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
             _logical_channel_model->setColor(index1, color1);
-            _logical_channel_model->setState(index1, logical_channels->at(j)->getBusy() ?
-                                                 ChannelState::ChannelBusy : ChannelState::ChannelFree, 0);
+            int state1 = logical_channels->at(j)->getBusy() ?
+                        ChannelState::ChannelBusy : ChannelState::ChannelFree;
+            state1 = logical_channels->at(j)->isControlChannel() ? ChannelState::ChannelControl : state1;
+            _logical_channel_model->setState(index1, state1, 0);
 
             QString usage2 = logical_channels->at(j + 1)->getBusy() ? "Call " : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
@@ -536,8 +538,10 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             QString color2 = (logical_channels->at(j + 1)->getBusy() ? "#004d99" : "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
             _logical_channel_model->setColor(index2, color2);
-            _logical_channel_model->setState(index2, logical_channels->at(j + 1)->getBusy() ?
-                                                 ChannelState::ChannelBusy : ChannelState::ChannelFree, 0);
+            int state2 = logical_channels->at(j + 1)->getBusy() ?
+                        ChannelState::ChannelBusy : ChannelState::ChannelFree;
+            state2 = logical_channels->at(j + 1)->isControlChannel() ? ChannelState::ChannelControl : state2;
+            _logical_channel_model->setState(index2, state2, 0);
         }
     }
 }

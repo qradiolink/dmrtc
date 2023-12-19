@@ -84,10 +84,19 @@ void Controller::run()
             _control_channel = new LogicalChannel(_settings, _logger, counter, i, 1, true);
             counter++;
             _logical_channels.append(_control_channel);
-            LogicalChannel *payload_channel = new LogicalChannel(_settings, _logger, counter, i, 2, false);
-            counter++;
-            QObject::connect(payload_channel, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
-            _logical_channels.append(payload_channel);
+            if(_settings->control_channel_slot == 1)
+            {
+                LogicalChannel *payload_channel = new LogicalChannel(_settings, _logger, counter, i, 2, false);
+                counter++;
+                QObject::connect(payload_channel, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
+                _logical_channels.append(payload_channel);
+            }
+            else
+            {
+                _control_channel_alternate = new LogicalChannel(_settings, _logger, counter, i, 2, true);
+                counter++;
+                _logical_channels.append(_control_channel_alternate);
+            }
         }
         else
         {
@@ -1104,6 +1113,18 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
         _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received de-registration request from %2 to TG %3")
                      .arg(slotNo).arg(srcId).arg(dstId));
         _registered_ms->removeAll(srcId);
+        _talkgroup_attachments->remove(srcId);
+        _subscribed_talkgroups->clear();
+        QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
+        while(it.hasNext())
+        {
+            it.next();
+            _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
+        }
+        if(!_settings->headless_mode)
+        {
+            emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+        }
     }
     if(!_settings->headless_mode)
     {
