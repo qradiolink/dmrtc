@@ -58,7 +58,7 @@ class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Controller(Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit Controller(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QObject *parent = nullptr);
     ~Controller();
     QVector<LogicalChannel*>* getLogicalChannels();
     void announceSystemFreqs();
@@ -77,7 +77,7 @@ public slots:
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
-    void sendUDTShortMessage(QString message, unsigned int target_id);
+    void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void pingRadio(unsigned int target_id, bool group=false);
     void resetPing();
 
@@ -120,6 +120,7 @@ private:
     LogicalChannel* _control_channel;
     Settings *_settings;
     Logger *_logger;
+    DMRIdLookup *_id_lookup;
     GatewayRouter *_gateway_router;
     DMRRewrite *_dmr_rewrite;
     Signalling *_signalling_generator;

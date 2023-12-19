@@ -30,6 +30,7 @@ public:
     explicit DMRIdLookup(Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~DMRIdLookup();
     QString lookup(unsigned int id);
+    QString getCallsign(unsigned int id);
 
 signals:
 

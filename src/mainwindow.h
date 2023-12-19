@@ -37,7 +37,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(Settings *settings, Logger *logger, QWidget *parent = nullptr);
+    explicit MainWindow(Settings *settings, Logger *logger, DMRIdLookup *_id_lookup, QWidget *parent = nullptr);
     ~MainWindow();
 
 public slots:
@@ -81,7 +81,7 @@ private:
     Settings *_settings;
     Logger *_logger;
     ChannelViewModel *_logical_channel_model;
-    DMRIdLookup _id_lookup;
+    DMRIdLookup *_id_lookup;
     QTimer _ping_radio_timer;
     void setConfig();
     void loadTalkgroupRouting();

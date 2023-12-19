@@ -30,6 +30,7 @@
 #include "src/controller.h"
 #include "src/udpclient.h"
 #include "src/logger.h"
+#include "src/dmridlookup.h"
 #include "MMDVM/DMRData.h"
 
 
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
     logger->log(Logger::LogLevelInfo, "Starting dmrtc");
     Settings *settings = new Settings(logger);
     settings->readConfig();
+    DMRIdLookup *id_lookup = new DMRIdLookup(settings, logger);
     /// Start remote command listener
     if(headless)
     {
@@ -92,14 +94,14 @@ int main(int argc, char *argv[])
     }
 
 
-    Controller *controller = new Controller(settings, logger);
+    Controller *controller = new Controller(settings, logger, id_lookup);
     QVector<LogicalChannel*> *logical_channels = controller->getLogicalChannels();
     MainWindow *w;
     if(!headless)
     {
         /// Init GUI
         ///
-        w = new MainWindow(settings, logger);
+        w = new MainWindow(settings, logger, id_lookup);
         connectGuiSignals(w, controller);
         /// requires the slots to be set up
         w->setLogicalChannels(logical_channels);

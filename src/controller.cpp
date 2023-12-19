@@ -16,10 +16,11 @@
 
 #include "controller.h"
 
-Controller::Controller(Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
+Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QObject *parent) : QObject(parent)
 {
     _settings = settings;
     _logger = logger;
+    _id_lookup = id_lookup;
     _mmdvm_config = new QVector<unsigned char>;
     _registered_ms = new QList<unsigned int>;
     _talkgroup_attachments = new QMap<unsigned int, QList<unsigned int>>;
@@ -333,23 +334,29 @@ void Controller::announceSystemMessage()
     announceLocalTime();
     QString message = _settings->system_announcement_message;
     _logger->log(Logger::LogLevelInfo, QString("Announcing system message: %1").arg(message));
-    unsigned int target_id = StandardAddreses::ALLMSID;
-    sendUDTShortMessage(message, target_id);
+    unsigned int dstId = StandardAddreses::ALLMSID;
+    sendUDTShortMessage(message, dstId);
 }
 
-void Controller::sendUDTShortMessage(QString message, unsigned int target_id)
+void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
 {
+    if(message.size() > 46)
+        message = message.chopped(46);
     message = message.leftJustified(46, ' ', true);
-    if(target_id == 0)
+    if(dstId == 0)
     {
         // don't process ACKU from all
-        target_id = StandardAddreses::ALLMSID;
+        dstId = StandardAddreses::ALLMSID;
     }
     else
     {
         // process ACKU from target
-        _uplink_acks->insert(target_id, ServiceAction::ActionMessageRequest);
-        _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(target_id));
+        _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+        _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
+    }
+    if(srcId == 0)
+    {
+        srcId = StandardAddreses::SDMI;
     }
     CDMRDataHeader header;
     header.setA(false);
@@ -358,8 +365,8 @@ void Controller::sendUDTShortMessage(QString message, unsigned int target_id)
     header.setFormat(0x00);
     header.setSAP(0x00);
     header.setUDTFormat(0x04);
-    header.setDstId(target_id);
-    header.setSrcId(StandardAddreses::SDMI);
+    header.setDstId(dstId);
+    header.setSrcId(srcId);
     header.setSF(false);
     header.setPF(false);
     header.setBlocks(4);
@@ -635,10 +642,8 @@ void Controller::updateTalkgroupSubscriptions(unsigned int srcId)
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
     if(!existing_user && _settings->announce_system_message)
     {
-        QString message = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+        QString message = QString("Welcome %1, there are %2 users online").arg(_id_lookup->getCallsign(srcId)).arg(_registered_ms->size());
         sendUDTShortMessage(message, srcId);
-        QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
-        sendUDTShortMessage(message2, srcId);
     }
 
     QList<unsigned int> tg_list;
@@ -1318,10 +1323,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
             if(!existing_user && _settings->announce_system_message)
             {
-                QString message1 = QString("Welcome %1, there are %2 users online").arg(srcId).arg(_registered_ms->size());
+                QString message1 = QString("Welcome %1, there are %2 users online").arg(_id_lookup->getCallsign(srcId)).arg(_registered_ms->size());
                 sendUDTShortMessage(message1, srcId);
-                QString message2 = QString("For help, text %1").arg(_settings->service_ids.value("help", 1));
-                sendUDTShortMessage(message2, srcId);
             }
         }
 

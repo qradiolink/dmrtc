@@ -7,7 +7,7 @@ This software is licenced under the GPL v3 and is primarily intended for amateur
 This software is intended to work together with DMRGateway, MMDVMHost-SDR, MMDVM-SDR and QRadioLink in order to create a DMR tier III radio site.
 
 
-![Image](https://qradiolink.org/images/dmrtc1.png)
+[![Image](https://qradiolink.org/images/dmrtc1.png)](https://qradiolink.org/images/dmrtc1.png)
 
 
 DMR tier III services partly or completely implemented

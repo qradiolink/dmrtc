@@ -17,15 +17,15 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-MainWindow::MainWindow(Settings *settings, Logger *logger, QWidget *parent) :
+MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    _id_lookup(settings, logger)
+    ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     setWindowTitle("DMR tier III Trunking controller");
     _settings = settings;
     _logger = logger;
+    _id_lookup = id_lookup;
     _logical_channel_model = new ChannelViewModel;
     _ping_radio_timer.setSingleShot(true);
     QObject::connect(_logical_channel_model, SIGNAL(channelStateChange(int,int,bool)),
@@ -517,7 +517,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             QString usage1 = logical_channels->at(j)->getBusy() ? "Call " : "Free ";
             usage1 = logical_channels->at(j)->getDisabled() ? "Disabled " : usage1;
             _logical_channel_model->setData(index1, QString("%3 %1   -->   %2")
-                                            .arg(_id_lookup.lookup(logical_channels->at(j)->getSource())).
+                                            .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
                                             .arg(usage1));
             QString color1 = (logical_channels->at(j)->getBusy() ? "#004d99" : "#9cffab");
@@ -530,7 +530,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             QString usage2 = logical_channels->at(j + 1)->getBusy() ? "Call " : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
             _logical_channel_model->setData(index2, QString("%3 %1   -->   %2")
-                                            .arg(_id_lookup.lookup(logical_channels->at(j + 1)->getSource()))
+                                            .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
                                             .arg(usage2));
             QString color2 = (logical_channels->at(j + 1)->getBusy() ? "#004d99" : "#9cffab");
@@ -554,7 +554,7 @@ void MainWindow::updateRegisteredMSList(QList<unsigned int>* registered_ms)
     for(int i=0;i<registered_ms->size();i++)
     {
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
-        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(_id_lookup.lookup(registered_ms->at(i))));
+        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(_id_lookup->lookup(registered_ms->at(i))));
         ui->registeredMSListWidget->addItem(item);
     }
     for(int i=0;i<registered_ms->size();i++)
@@ -582,8 +582,8 @@ void MainWindow::updateRejectedCallsList(unsigned int srcId, unsigned int dstId,
     QDateTime datetime = QDateTime::currentDateTime();
     QListWidgetItem *item = new QListWidgetItem(icon, QString("%1: %2 --> %3 (%4)")
                                                 .arg(datetime.toString(Qt::TextDate))
-                                                .arg(_id_lookup.lookup(srcId))
-                                                .arg(_id_lookup.lookup(dstId))
+                                                .arg(_id_lookup->lookup(srcId))
+                                                .arg(_id_lookup->lookup(dstId))
                                                 .arg(local_call ? "local" : "remote"));
     ui->listWidgetRejectedCalls->addItem(item);
 }
@@ -634,9 +634,9 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, bool priv
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
         QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
         QTableWidgetItem *srcitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup.lookup(srcId)));
+                                                    .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup.lookup(dstId)));
+                                                    .arg(_id_lookup->lookup(dstId)));
         uint32_t rows = ui->privateCallsTableWidget->rowCount();
         ui->privateCallsTableWidget->setRowCount(rows + 1);
         ui->privateCallsTableWidget->setItem(rows, 0, dateitem);
@@ -649,7 +649,7 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, bool priv
         QIcon icon_user = QIcon(":/res/preferences-desktop-user.png");
         QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
         QTableWidgetItem *srcitem = new QTableWidgetItem(icon_user, QString("%1")
-                                                    .arg(_id_lookup.lookup(srcId)));
+                                                    .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
                                                     .arg(dstId));
         uint32_t rows = ui->groupCallsTableWidget->rowCount();
@@ -668,9 +668,9 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
         QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
         QTableWidgetItem *srcitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup.lookup(srcId)));
+                                                    .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup.lookup(dstId)));
+                                                    .arg(_id_lookup->lookup(dstId)));
         QTableWidgetItem *msg = new QTableWidgetItem(QString("%1")
                                                     .arg(message));
         uint32_t rows = ui->tableWidgetMessages->rowCount();
@@ -686,7 +686,7 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         QIcon icon_user = QIcon(":/res/preferences-desktop-user.png");
         QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
         QTableWidgetItem *srcitem = new QTableWidgetItem(icon_user, QString("%1")
-                                                    .arg(_id_lookup.lookup(srcId)));
+                                                    .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
                                                     .arg(dstId));
         QTableWidgetItem *msg = new QTableWidgetItem(QString("%1")

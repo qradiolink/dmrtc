@@ -73,3 +73,20 @@ QString DMRIdLookup::lookup(unsigned int id)
     else
         return QString::number(id);
 }
+
+QString DMRIdLookup::getCallsign(unsigned int id)
+{
+    if(id == 0)
+        return "NO CALL";
+    if(_ids->contains(id))
+    {
+        QString value = _ids->value(id);
+        QStringList fields = value.split(" - ");
+        if(fields.size() > 1)
+            return fields[1];
+        else
+            return QString::number(id);
+    }
+    else
+        return QString::number(id);
+}
