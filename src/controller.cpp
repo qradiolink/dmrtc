@@ -349,6 +349,8 @@ void Controller::announceSystemMessage()
 
 void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
 {
+    if(message.size() < 1)
+        return;
     if(message.size() > 46)
         message = message.chopped(46);
     message = message.leftJustified(46, ' ', true);
