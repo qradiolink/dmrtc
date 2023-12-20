@@ -349,19 +349,23 @@ void Controller::announceSystemMessage()
 
 void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
 {
-    if(message.size() < 1)
+    unsigned int msg_size = message.size();
+    if(msg_size < 1)
         return;
-    if(message.size() > 46)
+    if(msg_size > 46)
         message = message.chopped(46);
-    message = message.leftJustified(46, ' ', true);
+
+    unsigned int blocks = msg_size / 12 + 1;
+    unsigned int pad_nibble = (10 - (msg_size % 12)) * 2;
+
     if(dstId == 0)
     {
-        // don't process ACKU from all
+        // don't expect ACKU from all
         dstId = StandardAddreses::ALLMSID;
     }
     else
     {
-        // process ACKU from target
+        // expect ACKU from target
         _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
         _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
     }
@@ -375,13 +379,13 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     header.setRSVD(0x00);
     header.setFormat(0x00);
     header.setSAP(0x00);
-    header.setUDTFormat(0x04);
+    header.setUDTFormat(0x04); // Only ISO8 supported;
     header.setDstId(dstId);
     header.setSrcId(srcId);
     header.setSF(false);
     header.setPF(false);
-    header.setBlocks(4);
-    header.setPadNibble(0);
+    header.setBlocks(blocks);
+    header.setPadNibble(pad_nibble);
     header.setOpcode(UDTOpcode::C_UDTHD);
     header.construct();
     unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
@@ -403,13 +407,13 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
 
 
     unsigned char *data_message = (unsigned char*)(message.toLocal8Bit().constData());
-    unsigned char data[48U];
-    memset(data, 0U, 48U);
-    memcpy(data, data_message, 46U);
+    unsigned char data[msg_size + pad_nibble / 2 + 2U];
+    memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
+    memcpy(data, data_message, msg_size);
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
-    CCRC::addCCITT162(data, 48U);
-
-    for(int i=0;i<3;i++)
+    CCRC::addCCITT162(data, msg_size + pad_nibble / 2 + 2U);
+    unsigned int i;
+    for(i=0;i<blocks - 1;i++)
     {
         unsigned char payload[12];
         memcpy(payload, data + i*12U, 12U);
@@ -433,9 +437,9 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     }
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
-    memcpy(final_block, data + 36U, 10U);
-    final_block[10U] = data[46U];
-    final_block[11U] = data[47U];
+    memcpy(final_block, data + i*12U, 10U);
+    final_block[10U] = data[msg_size + pad_nibble / 2];
+    final_block[11U] = data[msg_size + pad_nibble / 2 + 1U];
     CBPTC19696 bptc3;
     bptc3.encode(final_block, payload_data[3]);
     CDMRSlotType slotType3;
