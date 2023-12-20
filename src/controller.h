@@ -116,6 +116,9 @@ private:
                               unsigned int slotNo, LogicalChannel *&logical_channel, CDMRCSBK &csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
+    void processTalkgroupSubscriptionsMessage(unsigned int srcId);
+    void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
+    void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;
@@ -151,8 +154,8 @@ private:
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
 
-    void updateTalkgroupSubscriptions(unsigned int srcId);
-    void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
+
+
 };
 
 #endif // CONTROLLER_H

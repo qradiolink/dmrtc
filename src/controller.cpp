@@ -635,7 +635,23 @@ void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, b
 
 }
 
-void Controller::updateTalkgroupSubscriptions(unsigned int srcId)
+void Controller::updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId)
+{
+    _talkgroup_attachments->insert(srcId, tg_list);
+    _subscribed_talkgroups->clear();
+    QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
+    while(it.hasNext())
+    {
+        it.next();
+        _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
+    }
+    if(!_settings->headless_mode)
+    {
+        emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+    }
+}
+
+void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId)
 {
     unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
     unsigned char msg[size];
@@ -666,22 +682,10 @@ void Controller::updateTalkgroupSubscriptions(unsigned int srcId)
         tg |= msg[i+2];
         unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
         tg_list.append(converted_id);
-        _subscribed_talkgroups->insert(converted_id);
         _logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")
                      .arg(srcId).arg(converted_id));
     }
-    _talkgroup_attachments->insert(srcId, tg_list);
-    _subscribed_talkgroups->clear();
-    QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
-    while(it.hasNext())
-    {
-        it.next();
-        _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
-    }
-    if(!_settings->headless_mode)
-    {
-        emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
-    }
+    updateSubscriptions(tg_list, srcId);
 }
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
@@ -847,7 +851,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             (_uplink_acks->value(srcId) == ServiceAction::RegistrationWithAttachment) &&
                             (_udt_format==1))
                     {
-                        updateTalkgroupSubscriptions(srcId);
+                        processTalkgroupSubscriptionsMessage(srcId);
                     }
                     /// Text message
                     else if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
@@ -1073,17 +1077,21 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
     bool sub = false;
     if((csbk.getServiceOptions() & 0x01) == 1)
     {
-        unsigned int target_addr_cnts = (csbk.getCBF() << 6) & 0x03;
+        unsigned int target_addr_cnts = (csbk.getCBF() >> 6) & 0x03;
         uab = (csbk.getCBF() << 4) & 0x03;
         if(target_addr_cnts == 1)
         {
+            unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(dstId);
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with attachement to TG %3")
-                         .arg(slotNo).arg(srcId).arg(dstId));
+                         .arg(slotNo).arg(srcId).arg(converted_id));
             _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
             if(!_registered_ms->contains(srcId))
                 _registered_ms->append(srcId);
+            QList<unsigned int> tg_list;
+            tg_list.append(converted_id);
+            updateSubscriptions(tg_list, srcId);
         }
-        else if((target_addr_cnts == 0) && 0) // FIXME: this doesn't work on Hytera??
+        else if((target_addr_cnts == 0))
         {
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 to syscode %3")
                          .arg(slotNo).arg(srcId).arg(dstId));
@@ -1096,7 +1104,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
                     _registered_ms->append(srcId);
             }
         }
-        else if((target_addr_cnts == 2) || (target_addr_cnts == 0)) // Hytera bug? TG attachment list request should set this to 2
+        else if((target_addr_cnts == 2))
         {
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with TG subscription list")
                          .arg(slotNo).arg(srcId));
