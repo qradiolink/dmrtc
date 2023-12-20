@@ -349,12 +349,11 @@ void Controller::announceSystemMessage()
 
 void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
 {
-    unsigned int msg_size = message.size();
-    if(msg_size < 1)
+    if(message.size() < 1)
         return;
-    if(msg_size > 46)
+    if(message.size() > 46)
         message = message.chopped(46);
-
+    unsigned int msg_size = message.size();
     unsigned int blocks = msg_size / 12 + 1;
     unsigned int pad_nibble = (10 - (msg_size % 12)) * 2;
 
