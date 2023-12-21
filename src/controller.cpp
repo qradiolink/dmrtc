@@ -347,6 +347,7 @@ void Controller::announceSystemMessage()
     sendUDTShortMessage(message, dstId);
 }
 
+
 void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
 {
     if(message.size() < 1)
@@ -373,36 +374,8 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     {
         srcId = StandardAddreses::SDMI;
     }
-    CDMRDataHeader header;
-    header.setA(false);
-    header.setGI(false);
-    header.setRSVD(0x00);
-    header.setFormat(0x00);
-    header.setSAP(0x00);
-    header.setUDTFormat(0x04); // Only ISO8 supported;
-    header.setDstId(dstId);
-    header.setSrcId(srcId);
-    header.setSF(false);
-    header.setPF(false);
-    header.setBlocks(blocks);
-    header.setPadNibble(pad_nibble);
-    header.setOpcode(UDTOpcode::C_UDTHD);
-    header.construct();
-    unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
-    header.get(header_data);
-    CDMRSlotType slotType;
-    slotType.setColorCode(1);
-    slotType.setDataType(DT_DATA_HEADER);
-    slotType.getData(header_data);
-    CSync::addDMRDataSync(header_data, true);
-    CDMRData dmr_data_header;
-    dmr_data_header.setSeqNo(0);
-    dmr_data_header.setN(0);
-    dmr_data_header.setDataType(DT_DATA_HEADER);
-    dmr_data_header.setSlotNo(_control_channel->getSlot());
-    dmr_data_header.setDstId(header.getDstId());
-    dmr_data_header.setSrcId(header.getSrcId());
-    dmr_data_header.setData(header_data);
+
+    CDMRData dmr_data_header = _signalling_generator->createUDTHeader(srcId, dstId, _control_channel->getSlot(), blocks, pad_nibble);
     _control_channel->putRFQueue(dmr_data_header);
 
 
@@ -430,8 +403,8 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         dmr_data.setN(0);
         dmr_data.setDataType(DT_RATE_12_DATA);
         dmr_data.setSlotNo(_control_channel->getSlot());
-        dmr_data.setDstId(header.getDstId());
-        dmr_data.setSrcId(header.getSrcId());
+        dmr_data.setDstId(dmr_data_header.getDstId());
+        dmr_data.setSrcId(dmr_data_header.getSrcId());
         dmr_data.setData(payload_data[i]);
         _control_channel->putRFQueue(dmr_data);
     }
@@ -453,8 +426,8 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     dmr_data3.setN(0);
     dmr_data3.setDataType(DT_RATE_12_DATA);
     dmr_data3.setSlotNo(_control_channel->getSlot());
-    dmr_data3.setDstId(header.getDstId());
-    dmr_data3.setSrcId(header.getSrcId());
+    dmr_data3.setDstId(dmr_data_header.getDstId());
+    dmr_data3.setSrcId(dmr_data_header.getSrcId());
     dmr_data3.setData(payload_data[3]);
     _control_channel->putRFQueue(dmr_data3);
 }

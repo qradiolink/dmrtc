@@ -19,107 +19,51 @@
 Signalling::Signalling(Settings *settings)
 {
     _settings = settings;
-    _pad_nibbles_mapping[0] = 18;
-    _pad_nibbles_mapping[1] = 16;
-    _pad_nibbles_mapping[2] = 14;
-    _pad_nibbles_mapping[3] = 12;
-    _pad_nibbles_mapping[4] = 10;
-    _pad_nibbles_mapping[5] = 8;
-    _pad_nibbles_mapping[6] = 6;
-    _pad_nibbles_mapping[7] = 4;
-    _pad_nibbles_mapping[8] = 2;
-    _pad_nibbles_mapping[9] = 0;
-    _pad_nibbles_mapping[10] = 22;
-    _pad_nibbles_mapping[12] = 20;
-    _pad_nibbles_mapping[12] = 18;
-    _pad_nibbles_mapping[13] = 16;
-    _pad_nibbles_mapping[14] = 14;
-    _pad_nibbles_mapping[15] = 12;
-    _pad_nibbles_mapping[16] = 10;
-    _pad_nibbles_mapping[17] = 8;
-    _pad_nibbles_mapping[18] = 6;
-    _pad_nibbles_mapping[19] = 4;
-    _pad_nibbles_mapping[20] = 2;
-    _pad_nibbles_mapping[21] = 0;
-    _pad_nibbles_mapping[22] = 22;
-    _pad_nibbles_mapping[23] = 20;
-    _pad_nibbles_mapping[24] = 18;
-    _pad_nibbles_mapping[25] = 16;
-    _pad_nibbles_mapping[26] = 14;
-    _pad_nibbles_mapping[27] = 12;
-    _pad_nibbles_mapping[28] = 10;
-    _pad_nibbles_mapping[29] = 8;
-    _pad_nibbles_mapping[30] = 6;
-    _pad_nibbles_mapping[31] = 4;
-    _pad_nibbles_mapping[32] = 2;
-    _pad_nibbles_mapping[33] = 0;
-    _pad_nibbles_mapping[34] = 22;
-    _pad_nibbles_mapping[35] = 20;
-    _pad_nibbles_mapping[36] = 18;
-    _pad_nibbles_mapping[37] = 16;
-    _pad_nibbles_mapping[38] = 14;
-    _pad_nibbles_mapping[39] = 12;
-    _pad_nibbles_mapping[40] = 10;
-    _pad_nibbles_mapping[41] = 8;
-    _pad_nibbles_mapping[42] = 6;
-    _pad_nibbles_mapping[43] = 4;
-    _pad_nibbles_mapping[44] = 2;
-    _pad_nibbles_mapping[45] = 0;
-
-    _uab_mapping[0] = 1;
-    _uab_mapping[1] = 1;
-    _uab_mapping[2] = 1;
-    _uab_mapping[3] = 1;
-    _uab_mapping[4] = 1;
-    _uab_mapping[5] = 1;
-    _uab_mapping[6] = 1;
-    _uab_mapping[7] = 1;
-    _uab_mapping[8] = 1;
-    _uab_mapping[9] = 1;
-    _uab_mapping[10] = 2;
-    _uab_mapping[12] = 2;
-    _uab_mapping[12] = 2;
-    _uab_mapping[13] = 2;
-    _uab_mapping[14] = 2;
-    _uab_mapping[15] = 2;
-    _uab_mapping[16] = 2;
-    _uab_mapping[17] = 2;
-    _uab_mapping[18] = 2;
-    _uab_mapping[19] = 2;
-    _uab_mapping[20] = 2;
-    _uab_mapping[21] = 2;
-    _uab_mapping[22] = 3;
-    _uab_mapping[23] = 3;
-    _uab_mapping[24] = 3;
-    _uab_mapping[25] = 3;
-    _uab_mapping[26] = 3;
-    _uab_mapping[27] = 3;
-    _uab_mapping[28] = 3;
-    _uab_mapping[29] = 3;
-    _uab_mapping[30] = 3;
-    _uab_mapping[31] = 3;
-    _uab_mapping[32] = 3;
-    _uab_mapping[33] = 3;
-    _uab_mapping[34] = 4;
-    _uab_mapping[35] = 4;
-    _uab_mapping[36] = 4;
-    _uab_mapping[37] = 4;
-    _uab_mapping[38] = 4;
-    _uab_mapping[39] = 4;
-    _uab_mapping[40] = 4;
-    _uab_mapping[41] = 4;
-    _uab_mapping[42] = 4;
-    _uab_mapping[43] = 4;
-    _uab_mapping[44] = 4;
-    _uab_mapping[45] = 4;
 }
 
 void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsigned int &pad_nibble)
 {
     if(msg_size > 46)
         return;
-    pad_nibble = _pad_nibbles_mapping[msg_size - 1];
-    UAB = _uab_mapping[msg_size - 1];
+    UAB = _uab_pad_nibbles_mapping[0][msg_size - 1];
+    pad_nibble = _uab_pad_nibbles_mapping[1][msg_size - 1];
+}
+
+CDMRData Signalling::createUDTHeader(unsigned int srcId, unsigned int dstId,
+                                     unsigned int slotNo, unsigned int blocks, unsigned int pad_nibble)
+{
+    CDMRDataHeader header;
+    header.setA(false);
+    header.setGI(false);
+    header.setRSVD(0x00);
+    header.setFormat(0x00);
+    header.setSAP(0x00);
+    header.setUDTFormat(0x04); // Only ISO8 supported;
+    header.setDstId(dstId);
+    header.setSrcId(srcId);
+    header.setSF(false);
+    header.setPF(false);
+    header.setBlocks(blocks);
+    header.setPadNibble(pad_nibble);
+    header.setOpcode(UDTOpcode::C_UDTHD);
+    header.construct();
+    unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
+    header.get(header_data);
+    CDMRSlotType slotType;
+    slotType.setColorCode(1);
+    slotType.setDataType(DT_DATA_HEADER);
+    slotType.getData(header_data);
+    CSync::addDMRDataSync(header_data, true);
+    CDMRData dmr_data_header;
+    dmr_data_header.setSeqNo(0);
+    dmr_data_header.setN(0);
+    dmr_data_header.setDataType(DT_DATA_HEADER);
+    dmr_data_header.setSlotNo(slotNo);
+    dmr_data_header.setDstId(header.getDstId());
+    dmr_data_header.setSrcId(header.getSrcId());
+    dmr_data_header.setData(header_data);
+
+    return dmr_data_header;
 }
 
 void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk)

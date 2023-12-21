@@ -26,6 +26,8 @@
 #include "src/standard_PDU.h"
 #include "src/settings.h"
 #include "MMDVM/DMRCSBK.h"
+#include "MMDVM/DMRData.h"
+#include "MMDVM/DMRDataHeader.h"
 #include "MMDVM/DMRDefines.h"
 
 class Signalling
@@ -61,13 +63,24 @@ public:
     void createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
+    CDMRData createUDTHeader(unsigned int srcId, unsigned int dstId, unsigned int slotNo, unsigned int blocks, unsigned int pad_nibble);
 
 
 
 private:
     Settings *_settings;
-    uint8_t _pad_nibbles_mapping[45];
-    uint8_t _uab_mapping[45];
+    const uint8_t _uab_pad_nibbles_mapping[2][46] =
+    {
+        {1,1,1,1,1,1,1,1,1,1,
+         2,2,2,2,2,2,2,2,2,2,2,2,
+         3,3,3,3,3,3,3,3,3,3,3,3,
+         4,4,4,4,4,4,4,4,4,4,4,4},
+        {18, 16, 14, 12, 10, 8, 6, 4, 2, 0,
+         22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0,
+         22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0,
+         22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0, }
+    };
+
 
 
 };
