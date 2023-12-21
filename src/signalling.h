@@ -19,6 +19,7 @@
 
 #include <QObject>
 #include <QMap>
+#include <QList>
 #include <QDateTime>
 #include "src/logicalchannel.h"
 #include "src/utils.h"
@@ -32,6 +33,7 @@ class Signalling
 
 public:
     explicit Signalling(Settings *settings);
+    void getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsigned int &pad_nibble);
     void createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk);
     bool createAbsoluteParameters(CDMRCSBK &csbk1, CDMRCSBK &csbk2,
                                                    LogicalChannel *&logical_channel);
@@ -39,7 +41,7 @@ public:
     void createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel);
     void createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time);
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
-    void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId=StandardAddreses::SDMI, bool from_ts=true);
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
@@ -60,8 +62,13 @@ public:
     void createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
 
+
+
 private:
     Settings *_settings;
+    uint8_t _pad_nibbles_mapping[45];
+    uint8_t _uab_mapping[45];
+
 
 };
 

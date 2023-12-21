@@ -117,6 +117,7 @@ private:
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId);
+    void processTextServiceRequest(CDMRData &dmr_data);
     void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
 

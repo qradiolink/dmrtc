@@ -354,8 +354,9 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     if(message.size() > 46)
         message = message.chopped(46);
     unsigned int msg_size = message.size();
-    unsigned int blocks = msg_size / 12 + 1;
-    unsigned int pad_nibble = (10 - (msg_size % 12)) * 2;
+    unsigned int blocks = 0;
+    unsigned int pad_nibble = 0;
+    _signalling_generator->getUABPadNibble(msg_size, blocks, pad_nibble);
 
     if(dstId == 0)
     {
@@ -735,6 +736,32 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool
     }
 }
 
+void Controller::processTextServiceRequest(CDMRData &dmr_data)
+{
+    /// Used for testing and debug purposes
+    ///
+    unsigned int dstId = dmr_data.getDstId();
+    unsigned int srcId = dmr_data.getSrcId();
+    /// Location query ???
+    if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+    }
+    /// Signal report request
+    else if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+        int rssi = dmr_data.getRSSI() * -1;
+        float ber = float(dmr_data.getBER()) / 1.41f;
+        QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
+        sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
+    }
+}
+
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
     unsigned int srcId = dmr_data.getSrcId();
@@ -857,16 +884,16 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         processTalkgroupSubscriptionsMessage(srcId);
                     }
                     /// Text message
-                    else if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+                    else
                     {
-                        processTextMessage(dstId, srcId, false);
-                    }
-                    /// Location query (Hytera specific)
-                    else if(dstId == (unsigned int)_settings->service_ids.value("location", 2))
-                    {
-                        CDMRCSBK csbk;
-                        _signalling_generator->createReplyMessageAccepted(csbk, srcId);
-                        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+                        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+                        {
+                            processTextMessage(dstId, srcId, false);
+                        }
+                        if(_settings->service_ids.values().contains(dstId))
+                        {
+                            processTextServiceRequest(dmr_data);
+                        }
                     }
                 }
                 else
