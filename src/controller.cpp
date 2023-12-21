@@ -982,8 +982,10 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         logical_channel->startTimeoutTimer();
         if(update_gui && !_settings->headless_mode)
         {
+            int rssi = dmr_data.getRSSI() * -1;
+            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dstId, dmr_data.getFLCO() == FLCO_USER_USER);
+            emit updateCallLog(srcId, dstId, rssi, ber, dmr_data.getFLCO() == FLCO_USER_USER);
         }
         if(local_data)
         {
@@ -1047,7 +1049,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         }
         else
         {
-            handleGroupCallRequest(csbk_grant, logical_channel, dmr_data.getSlotNo(), srcId, dstId, channel_grant, false);
+            handleGroupCallRequest(dmr_data, csbk_grant, logical_channel, dmr_data.getSlotNo(), srcId, dstId, channel_grant, false);
 
             CDMRCSBK csbk2;
             bool valid = false;
@@ -1158,7 +1160,7 @@ void Controller::contactMSForCall(CDMRCSBK &csbk, unsigned int slotNo,
     return;
 }
 
-void Controller::handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                             unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
 {
     _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private call request from %2 to destination %3")
@@ -1202,15 +1204,17 @@ void Controller::handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logic
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
         if(!_settings->headless_mode)
         {
+            int rssi = dmr_data.getRSSI() * -1;
+            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dstId, true);
+            emit updateCallLog(srcId, dstId, rssi, ber, true);
         }
 
         return;
     }
 }
 
-void Controller::handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                         unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
 {
     unsigned int dmrDstId = (local) ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
@@ -1251,8 +1255,10 @@ void Controller::handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
         if(!_settings->headless_mode)
         {
+            int rssi = dmr_data.getRSSI() * -1;
+            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dmrDstId, false);
+            emit updateCallLog(srcId, dmrDstId, rssi, ber, false);
         }
         return;
     }
@@ -1392,7 +1398,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         bool broadcast_call = false;
         if(csbk.getBroadcast())
             broadcast_call = true;
-        handleGroupCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handleGroupCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
         if(broadcast_call)
             csbk.setCSBKO(CSBKO_BTV_GRANT);
         CDMRCSBK csbk2;
@@ -1430,7 +1436,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
+            handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
 
             CDMRCSBK csbk2;
             bool valid = false;
@@ -1460,7 +1466,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
 
         CDMRCSBK csbk2;
         bool valid = false;
@@ -1507,7 +1513,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
-        handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
 
         CDMRCSBK csbk2;
         bool valid = false;

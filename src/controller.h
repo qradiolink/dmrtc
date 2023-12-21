@@ -86,7 +86,7 @@ signals:
     void writeDMRData(CDMRData &dmr_data);
     void signalDMRConfig(QVector<unsigned char> data);
     void updateLogicalChannels(QVector<LogicalChannel*> *logical_channels);
-    void updateCallLog(unsigned int srcId, unsigned int dstId, bool private_call);
+    void updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call);
     void updateRegisteredMSList(QList<unsigned int>* registered_ms);
     void updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups);
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
@@ -106,9 +106,9 @@ private:
     void processVoice(CDMRData &dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway=false);
     bool handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigned int srcId,
                             unsigned int dstId, unsigned int &uab);
-    void handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+    void handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
-    void handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+    void handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
     void contactMSForCall(CDMRCSBK &csbk, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool local=false);

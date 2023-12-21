@@ -67,8 +67,8 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     ui->channelTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setVisible(true);
-    ui->privateCallsTableWidget->setColumnCount(3);
-    ui->groupCallsTableWidget->setColumnCount(3);
+    ui->privateCallsTableWidget->setColumnCount(5);
+    ui->groupCallsTableWidget->setColumnCount(5);
     ui->privateCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->groupCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->privateCallsTableWidget->horizontalHeader()->setStretchLastSection(true);
@@ -82,11 +82,15 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     header_private.append("Date and Time");
     header_private.append("Source Id");
     header_private.append("Destination Id");
+    header_private.append("RSSI");
+    header_private.append("BER");
     ui->privateCallsTableWidget->setHorizontalHeaderLabels(header_private);
     QStringList header_group;
     header_group.append("Date and Time");
     header_group.append("Source Id");
     header_group.append("Destination Id");
+    header_group.append("RSSI");
+    header_group.append("BER");
     ui->groupCallsTableWidget->setHorizontalHeaderLabels(header_group);
     QStringList header_messages;
     header_messages.append("Date and Time");
@@ -630,7 +634,7 @@ void MainWindow::sendMessageToRadio()
     emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
 }
 
-void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, bool private_call)
+void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
 {
     QDateTime datetime = QDateTime::currentDateTime();
     if(private_call)
@@ -641,11 +645,17 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, bool priv
                                                     .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
                                                     .arg(_id_lookup->lookup(dstId)));
+        QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
+                                                    .arg(rssi));
+        QTableWidgetItem *beritem = new QTableWidgetItem(QString("%1")
+                                                    .arg(ber));
         uint32_t rows = ui->privateCallsTableWidget->rowCount();
         ui->privateCallsTableWidget->setRowCount(rows + 1);
         ui->privateCallsTableWidget->setItem(rows, 0, dateitem);
         ui->privateCallsTableWidget->setItem(rows, 1, srcitem);
         ui->privateCallsTableWidget->setItem(rows, 2, dstitem);
+        ui->privateCallsTableWidget->setItem(rows, 3, rssiitem);
+        ui->privateCallsTableWidget->setItem(rows, 4, beritem);
     }
     else
     {
@@ -656,11 +666,17 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, bool priv
                                                     .arg(_id_lookup->lookup(srcId)));
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
                                                     .arg(dstId));
+        QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
+                                                    .arg(rssi));
+        QTableWidgetItem *beritem = new QTableWidgetItem(QString("%1")
+                                                    .arg(ber));
         uint32_t rows = ui->groupCallsTableWidget->rowCount();
         ui->groupCallsTableWidget->setRowCount(rows + 1);
         ui->groupCallsTableWidget->setItem(rows, 0, dateitem);
         ui->groupCallsTableWidget->setItem(rows, 1, srcitem);
         ui->groupCallsTableWidget->setItem(rows, 2, dstitem);
+        ui->groupCallsTableWidget->setItem(rows, 3, rssiitem);
+        ui->groupCallsTableWidget->setItem(rows, 4, beritem);
     }
 }
 

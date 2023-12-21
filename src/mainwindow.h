@@ -49,7 +49,7 @@ public slots:
     void requestRegistration();
     void sendSystemMessage();
     void sendMessageToRadio();
-    void updateCallLog(unsigned int srcId, unsigned int dstId, bool private_call);
+    void updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void saveConfig();
     void saveTalkgroupRouting();
