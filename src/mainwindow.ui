@@ -179,6 +179,9 @@
                <height>450</height>
               </size>
              </property>
+             <property name="toolTip">
+              <string>List of current registered radios</string>
+             </property>
              <property name="showDropIndicator" stdset="0">
               <bool>false</bool>
              </property>
@@ -217,6 +220,9 @@
            </item>
            <item>
             <widget class="QListWidget" name="listWidgetSubscribedTalkgroups">
+             <property name="toolTip">
+              <string>List of current talkgroup attachements</string>
+             </property>
              <property name="iconSize">
               <size>
                <width>32</width>
@@ -569,10 +575,37 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="pushButtonPingRadio">
+           <item row="0" column="3">
+            <spacer name="horizontalSpacer_8">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="2" column="0">
+            <widget class="QPushButton" name="pushButtonSendSystemMessage">
+             <property name="toolTip">
+              <string>Sends text message to all radios registered with this site</string>
+             </property>
              <property name="text">
-              <string>Ping radio</string>
+              <string>Send message to all</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/res/view-conversation-balloon.png</normalon>
+              </iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
              </property>
             </widget>
            </item>
@@ -613,18 +646,28 @@
              </layout>
             </widget>
            </item>
-           <item row="0" column="3">
-            <spacer name="horizontalSpacer_8">
+           <item row="5" column="0">
+            <spacer name="verticalSpacer_2">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>40</width>
-               <height>20</height>
+               <width>20</width>
+               <height>40</height>
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="pushButtonPingRadio">
+             <property name="toolTip">
+              <string>Will solicit an ACK from the radio and measure delay</string>
+             </property>
+             <property name="text">
+              <string>Ping radio</string>
+             </property>
+            </widget>
            </item>
            <item row="1" column="0">
             <widget class="QTextEdit" name="textEditSystemMessageOnce">
@@ -645,44 +688,11 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="pushButtonSendSystemMessage">
-             <property name="text">
-              <string>Send message to all</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/view-conversation-balloon.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QPushButton" name="pushButtonSendMessageToRadio">
-             <property name="text">
-              <string>Send message to radio</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normalon>:/res/preferences-desktop-user.png</normalon>
-              </iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
+           <item row="4" column="0">
             <widget class="QPushButton" name="requestRegistrationButton">
+             <property name="toolTip">
+              <string>Requests all radios registered here to re-register</string>
+             </property>
              <property name="text">
               <string>Request Mass Registration</string>
              </property>
@@ -700,17 +710,25 @@
             </widget>
            </item>
            <item row="3" column="0">
-            <spacer name="verticalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
+            <widget class="QPushButton" name="pushButtonSendMessageToRadio">
+             <property name="toolTip">
+              <string>Sends message to the radio selected in the dropdown</string>
              </property>
-             <property name="sizeHint" stdset="0">
+             <property name="text">
+              <string>Send message to radio</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normalon>:/res/preferences-desktop-user.png</normalon>
+              </iconset>
+             </property>
+             <property name="iconSize">
               <size>
-               <width>20</width>
-               <height>40</height>
+               <width>32</width>
+               <height>32</height>
               </size>
              </property>
-            </spacer>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -829,6 +847,9 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>14 bits, consists of Size, Area, Site</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="2" column="1">
@@ -845,6 +866,9 @@
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>Port of the first DMRGAteway instance'. Incremented by one for each ad</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="7" column="1">
@@ -854,6 +878,9 @@
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string>Set to 2 tp get a control channel alternate slot, 1 otherwise</string>
                     </property>
                     <property name="readOnly">
                      <bool>false</bool>
@@ -950,6 +977,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>IP address when MMDVMHost instances are located</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="0" column="4">
@@ -987,6 +1017,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>Number of used DMRGateway instances</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="0" column="2">
@@ -1017,6 +1050,12 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>Port of the first MMDVMHost instance'. Incremented by one for each additional instance</string>
+                    </property>
+                    <property name="whatsThis">
+                     <string/>
+                    </property>
                    </widget>
                   </item>
                   <item row="3" column="1">
@@ -1032,6 +1071,9 @@ message</string>
                       <width>100</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Port of the first DMRGAteway instance'. Incremented by one for each ad</string>
                     </property>
                    </widget>
                   </item>
@@ -1049,6 +1091,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>Which channel is the control channel. Starts from 0</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="4" column="1">
@@ -1064,6 +1109,9 @@ message</string>
                       <width>100</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Also number of MMDVMHost instances</string>
                     </property>
                    </widget>
                   </item>
@@ -1088,6 +1136,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>Port of the first MMDVMHost instance'. Incremented by one for each ad</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="0" column="3">
@@ -1103,6 +1154,9 @@ message</string>
                       <width>150</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>IP address on which this application should listen</string>
                     </property>
                    </widget>
                   </item>
@@ -1127,6 +1181,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>IP address where DMRGateway instances are located</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="12" column="1">
@@ -1142,6 +1199,9 @@ message</string>
                       <width>16777215</width>
                       <height>70</height>
                      </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Message broadcasted every 30 minutes</string>
                     </property>
                     <property name="acceptRichText">
                      <bool>false</bool>
@@ -1169,6 +1229,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>How soon should we drop an inactive timeslot</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="5" column="2">
@@ -1192,6 +1255,9 @@ message</string>
                       <height>16777215</height>
                      </size>
                     </property>
+                    <property name="toolTip">
+                     <string>How often should we broadcast system frequencies</string>
+                    </property>
                    </widget>
                   </item>
                   <item row="6" column="2">
@@ -1214,6 +1280,9 @@ message</string>
                       <width>100</width>
                       <height>16777215</height>
                      </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>How often are late entry announcements made</string>
                     </property>
                    </widget>
                   </item>
