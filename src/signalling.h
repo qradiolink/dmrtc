@@ -63,7 +63,7 @@ public:
     void createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
-    CDMRData createUDTHeader(unsigned int srcId, unsigned int dstId, unsigned int slotNo, unsigned int blocks, unsigned int pad_nibble);
+    CDMRData createUDTHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble);
 
 
 

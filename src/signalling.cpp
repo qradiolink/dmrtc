@@ -30,7 +30,7 @@ void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsig
 }
 
 CDMRData Signalling::createUDTHeader(unsigned int srcId, unsigned int dstId,
-                                     unsigned int slotNo, unsigned int blocks, unsigned int pad_nibble)
+                                     unsigned int blocks, unsigned int pad_nibble)
 {
     CDMRDataHeader header;
     header.setA(false);
@@ -58,7 +58,6 @@ CDMRData Signalling::createUDTHeader(unsigned int srcId, unsigned int dstId,
     dmr_data_header.setSeqNo(0);
     dmr_data_header.setN(0);
     dmr_data_header.setDataType(DT_DATA_HEADER);
-    dmr_data_header.setSlotNo(slotNo);
     dmr_data_header.setDstId(header.getDstId());
     dmr_data_header.setSrcId(header.getSrcId());
     dmr_data_header.setData(header_data);
