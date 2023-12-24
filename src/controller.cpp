@@ -641,7 +641,8 @@ void Controller::updateSubscriptions(QList<unsigned int> tg_list, unsigned int s
     }
     if(!_settings->headless_mode)
     {
-        emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+        QSet<unsigned int> *talkgroups = new QSet<unsigned int>(*_subscribed_talkgroups);
+        emit updateTalkgroupSubscriptionList(talkgroups);
     }
 }
 
@@ -656,7 +657,8 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
         _registered_ms->append(srcId);
     if(!_settings->headless_mode)
     {
-        emit updateRegisteredMSList(_registered_ms);
+        QList<unsigned int> *registered_ms = new QList<unsigned int>(*_registered_ms);
+        emit updateRegisteredMSList(registered_ms);
     }
     CDMRCSBK csbk;
     _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
@@ -1156,12 +1158,14 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
         }
         if(!_settings->headless_mode)
         {
-            emit updateTalkgroupSubscriptionList(_subscribed_talkgroups);
+            QSet<unsigned int> *talkgroups = new QSet<unsigned int>(*_subscribed_talkgroups);
+            emit updateTalkgroupSubscriptionList(talkgroups);
         }
     }
     if(!_settings->headless_mode)
     {
-        emit updateRegisteredMSList(_registered_ms);
+        QList<unsigned int> *registered_ms = new QList<unsigned int>(*_registered_ms);
+        emit updateRegisteredMSList(registered_ms);
     }
     return sub;
 }

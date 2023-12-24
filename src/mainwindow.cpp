@@ -570,6 +570,8 @@ void MainWindow::updateRegisteredMSList(QList<unsigned int>* registered_ms)
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
         ui->comboBoxRegisteredMS->addItem(icon, QString::number(registered_ms->at(i)));
     }
+    registered_ms->clear();
+    delete registered_ms;
 }
 
 void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int> *subscribed_talkgroups)
@@ -582,6 +584,8 @@ void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int> *subscribed_
         QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(it.next()));
         ui->listWidgetSubscribedTalkgroups->addItem(item);
     }
+    subscribed_talkgroups->clear();
+    delete subscribed_talkgroups;
 }
 
 void MainWindow::updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call)

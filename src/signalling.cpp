@@ -117,7 +117,7 @@ bool Signalling::createAbsoluteParameters(CDMRCSBK &csbk1, CDMRCSBK &csbk2,
     }
     // Continuation CSBK
     csbk2.setCSBKO(csbk1.getCSBKO());
-    csbk2.setFID((unsigned char)colour_code);
+    csbk2.setFID((unsigned char)colour_code & 0x0F);
     csbk2.setData1((params >> 56) & 0xFF);
     csbk2.setCBF((params >> 48) & 0xFF);
     csbk2.setDstId((params >> 24) & 0xFFFFFF);
