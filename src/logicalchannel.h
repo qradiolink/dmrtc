@@ -76,7 +76,6 @@ public:
     bool getRFQueue(CDMRData &dmr_data);
     void putNetQueue(CDMRData &dmr_data);
     bool getNetQueue(CDMRData &dmr_data);
-    void rewriteEmbeddedData(CDMRData &dmr_data);
     bool getChannelParams(uint64_t &params, uint8_t &colour_code);
 
 public slots:
@@ -88,6 +87,9 @@ signals:
     void internalStopTimer();
 
 private:
+    void rewriteEmbeddedData(CDMRData &dmr_data);
+    void updateStats(CDMRData &dmr_data);
+
     Settings *_settings;
     Logger *_logger;
     unsigned int _id;
@@ -118,6 +120,10 @@ private:
     uint64_t _tx_freq;
     uint64_t _colour_code;
     uint64_t _lcn;
+    unsigned int _stream_id;
+    unsigned int _data_frames;
+    float _rssi;
+    float _ber;
 
 };
 

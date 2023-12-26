@@ -676,6 +676,8 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
         tg |= msg[i] << 16;
         tg |= msg[i+1] << 8;
         tg |= msg[i+2];
+        if(tg == 0)
+            continue;
         unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
         tg_list.append(converted_id);
         _logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")

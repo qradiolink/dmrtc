@@ -38,6 +38,10 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     _tx_freq = 0;
     _colour_code = 1;
     _lcn = _physical_channel + 1;
+    _stream_id = 0;
+    _data_frames = 0;
+    _rssi = 0.0f;
+    _ber = 0.0f;
     t1_rf = std::chrono::high_resolution_clock::now();
     t1_net = std::chrono::high_resolution_clock::now();
     _timeout_timer.setInterval(_settings->payload_channel_idle_timeout * 1000);
@@ -125,6 +129,32 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
     startTimeoutTimer();
     _logger->log(Logger::LogLevelDebug, QString("Updated physical channel %1, slot %2 to destination %3 and source %4")
                  .arg(_physical_channel).arg(_slot).arg(dstId).arg(srcId));
+}
+
+void LogicalChannel::updateStats(CDMRData &dmr_data)
+{
+    unsigned int new_stream_id = dmr_data.getStreamId();
+    unsigned int old_stream_id = _stream_id;
+    float ber = 0.0f;
+    float rssi = 0.0f;
+    if(new_stream_id != old_stream_id)
+    {
+        _stream_id = new_stream_id;
+        if(old_stream_id != 0)
+        {
+            rssi = _rssi / float(_data_frames);
+            ber = _ber / float(_data_frames);
+        }
+        _rssi = float(dmr_data.getRSSI()) * -1.0f;
+        _ber = float(dmr_data.getBER()) / 1.41f;
+        _data_frames = 1;
+    }
+    else
+    {
+        _rssi += float(dmr_data.getRSSI()) * -1.0f;
+        _ber += float(dmr_data.getBER()) / 1.41f;
+        _data_frames++;
+    }
 }
 
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
