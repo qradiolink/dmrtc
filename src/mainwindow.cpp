@@ -35,6 +35,8 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSaveSettings, SIGNAL(clicked(bool)), this, SLOT(saveConfig()));
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
+    QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
+    QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
                      this, SLOT(deleteTalkgroupRow()));
     QObject::connect(ui->pushButtonAddTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -744,4 +746,14 @@ void MainWindow::displayPingResponse(unsigned int srcId, unsigned int msec)
     _ping_radio_timer.stop();
     ui->labelPingInformation->setStyleSheet("background-color:#009900;color:#FFFFFF");
     ui->labelPingInformation->setText(QString("Ping response from: %1, time: %2 ms").arg(srcId).arg(msec));
+}
+
+void MainWindow::sendLocalTimeBroadcast()
+{
+    emit broadcastLocalTime();
+}
+
+void MainWindow::sendFrequenciesBroadcast()
+{
+    emit broadcastFrequencies();
 }

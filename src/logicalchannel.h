@@ -97,6 +97,7 @@ private:
     unsigned int _slot;
     bool _control_channel;
     bool _busy;
+    bool _call_in_progress;
     bool _disabled;
     unsigned int _call_type;
     unsigned int _source_address;

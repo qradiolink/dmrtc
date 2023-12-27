@@ -28,6 +28,7 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     _slot = slot;
     _control_channel = control_channel;
     _busy = false;
+    _call_in_progress = false;
     _disabled = false;
     _state = CallState::CALL_STATE_NONE;
     _source_address = 0;
@@ -97,6 +98,8 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _destination_address = dstId;
     _call_type = call_type;
     _busy = true;
+    _call_in_progress = false;
+    _data_frames = 0;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
     _data_mutex.unlock();
@@ -109,6 +112,7 @@ void LogicalChannel::deallocateChannel()
 {
     _data_mutex.lock();
     _busy = false;
+    _call_in_progress = false;
     _state = CallState::CALL_STATE_NONE;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
@@ -123,6 +127,7 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
 {
     _data_mutex.lock();
     _source_address = srcId;
+    _call_in_progress = true;
     _destination_address = dstId;
     _call_type = call_type;
     _data_mutex.unlock();
@@ -166,6 +171,9 @@ void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
     else
         _rf_queue.append(dmr_data);
     _rf_queue_mutex.unlock();
+    _data_mutex.lock();
+    _call_in_progress = true;
+    _data_mutex.unlock();
 }
 
 bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
@@ -202,6 +210,9 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
 
 void LogicalChannel::putNetQueue(CDMRData &dmr_data)
 {
+    _data_mutex.lock();
+    _call_in_progress = true;
+    _data_mutex.unlock();
     rewriteEmbeddedData(dmr_data);
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);

@@ -67,6 +67,8 @@ public slots:
     void sendPing();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
     void pingTimeout();
+    void sendLocalTimeBroadcast();
+    void sendFrequenciesBroadcast();
 
 signals:
     void displayInitialized();
@@ -75,6 +77,8 @@ signals:
     void sendShortMessage(QString message, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
     void resetPing();
+    void broadcastLocalTime();
+    void broadcastFrequencies();
 
 private:
     Ui::MainWindow *ui;

@@ -166,6 +166,8 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
     QObject::connect(w, SIGNAL(sendShortMessage(QString,uint)), controller, SLOT(sendUDTShortMessage(QString,uint)));
     QObject::connect(w, SIGNAL(pingRadio(uint,bool)), controller, SLOT(pingRadio(uint,bool)));
     QObject::connect(w, SIGNAL(resetPing()), controller, SLOT(resetPing()));
+    QObject::connect(w, SIGNAL(broadcastLocalTime()), controller, SLOT(announceLocalTime()));
+    QObject::connect(w, SIGNAL(broadcastFrequencies()), controller, SLOT(announceSystemFreqs()));
 
 }
 

@@ -61,9 +61,7 @@ public:
     explicit Controller(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QObject *parent = nullptr);
     ~Controller();
     QVector<LogicalChannel*>* getLogicalChannels();
-    void announceSystemFreqs();
     void announceLateEntry();
-    void announceLocalTime();
     void announceSystemMessage();
 
     CDMRCSBK createRegistrationRequest();
@@ -80,6 +78,8 @@ public slots:
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void pingRadio(unsigned int target_id, bool group=false);
     void resetPing();
+    void announceLocalTime();
+    void announceSystemFreqs();
 
 signals:
     void finished();
