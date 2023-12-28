@@ -94,7 +94,7 @@ signals:
     void pingResponse(unsigned int srcId, unsigned int time);
 
 private:
-    LogicalChannel *findNextFreePayloadChannel(unsigned int dstId);
+    LogicalChannel *findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
     LogicalChannel* findChannelByPhysicalIdAndSlot(unsigned int physical_id, unsigned int slot);
     LogicalChannel* findCallChannel(unsigned int dstId, unsigned int srcId);
     LogicalChannel* getControlOrAlternateChannel();

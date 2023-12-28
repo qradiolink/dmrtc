@@ -467,7 +467,7 @@ void Controller::resetPing()
     }
 }
 
-LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId)
+LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
 {
     for(int i=0; i<_logical_channels.size(); i++)
     {
@@ -479,6 +479,8 @@ LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId)
         }
     }
     /// No free channels found, find lower priority call channels
+    /// FIXME: this code only works for teardown of network inbound calls,
+    ///  it will not work for local ones due to lack od reverse channel signalling
     for(int i=0; i<_logical_channels.size(); i++)
     {
         if(!(_logical_channels[i]->isControlChannel())
@@ -488,11 +490,26 @@ LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId)
             unsigned int incoming_priority = _settings->call_priorities.value(dstId, 0);
             if(incoming_priority > existing_call_priority)
             {
+                _logger->log(Logger::LogLevelInfo, QString("Tearing down existing call to %1 to prioritize call from %2 towards %3")
+                      .arg(_logical_channels[i]->getDestination())
+                      .arg(srcId)
+                      .arg(dstId));
                 _logical_channels[i]->setDestination(0);
                 _logical_channels[i]->clearNetQueue();
                 _logical_channels[i]->clearRFQueue();
+
+                if(local)
+                {
+                    CDMRCSBK csbk;
+                    _signalling_generator->createReplyWaitForSignalling(csbk, srcId);
+                    for(int i = 0;i<18;i++)
+                    {
+                        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+                    }
+                }
                 return _logical_channels[i];
             }
+
         }
     }
     return nullptr;
@@ -1055,7 +1072,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     }
     // Could not find an existing active channel
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel(dstId);
+    logical_channel = findNextFreePayloadChannel(dstId, srcId, local_data);
     if(logical_channel == nullptr)
     {
         if(!_rejected_calls->contains(dmr_data.getStreamId()))
@@ -1226,7 +1243,9 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
     }
 
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel(dstId);
+    unsigned int dest = (local) ? srcId : dstId;
+    unsigned int src = (local) ? dstId : srcId;
+    logical_channel = findNextFreePayloadChannel(dest, src, local);
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
@@ -1277,7 +1296,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
     }
 
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel(dmrDstId);
+    logical_channel = findNextFreePayloadChannel(dmrDstId, srcId, local);
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
