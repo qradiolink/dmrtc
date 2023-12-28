@@ -63,6 +63,7 @@ public:
     QMap<unsigned int, unsigned int> slot_rewrite_table;
     QList<QMap<QString, uint64_t>> logical_physical_channels;
     QMap<QString, unsigned int> service_ids;
+    QMap<unsigned int, unsigned int> call_priorities;
 
     int use_absolute_channel_grants;
     int gateway_enabled;

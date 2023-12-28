@@ -53,8 +53,11 @@ public slots:
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void saveConfig();
     void saveTalkgroupRouting();
+    void saveCallPriorities();
     void deleteTalkgroupRow();
     void addTalkgroupRow();
+    void deleteCallPriorityRow();
+    void addCallPriorityRow();
     void deleteSlotRewrite();
     void addSlotRewrite();
     void saveSlotRewrite();
@@ -89,6 +92,7 @@ private:
     QTimer _ping_radio_timer;
     void setConfig();
     void loadTalkgroupRouting();
+    void loadCallPriorities();
     void loadSlotRewrite();
     void loadLogicalPhysicalChannels();
     void loadServiceIds();

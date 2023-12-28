@@ -242,6 +242,20 @@ bool LogicalChannel::getNetQueue(CDMRData &dmr_data)
     return true;
 }
 
+void LogicalChannel::clearNetQueue()
+{
+    _net_queue_mutex.lock();
+    _net_queue.clear();
+    _net_queue_mutex.unlock();
+}
+
+void LogicalChannel::clearRFQueue()
+{
+    _rf_queue_mutex.lock();
+    _rf_queue.clear();
+    _rf_queue_mutex.unlock();
+}
+
 void LogicalChannel::startTimeoutTimer()
 {
     _timeout_timer.start();

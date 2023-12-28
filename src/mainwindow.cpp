@@ -41,6 +41,10 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
                      this, SLOT(deleteTalkgroupRow()));
     QObject::connect(ui->pushButtonAddTalkgroupRoute, SIGNAL(clicked(bool)),
                      this, SLOT(addTalkgroupRow()));
+    QObject::connect(ui->pushButtonRemoveCallPriority, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteCallPriorityRow()));
+    QObject::connect(ui->pushButtonAddCallPriority, SIGNAL(clicked(bool)),
+                     this, SLOT(addCallPriorityRow()));
     QObject::connect(ui->pushButtonRemoveSlotRoute, SIGNAL(clicked(bool)),
                      this, SLOT(deleteSlotRewrite()));
     QObject::connect(ui->pushButtonAddSlotRoute, SIGNAL(clicked(bool)),
@@ -169,6 +173,7 @@ void MainWindow::setConfig()
     ui->checkBoxReceiveAttachments->setChecked((bool)_settings->receive_tg_attach);
 
     loadTalkgroupRouting();
+    loadCallPriorities();
     loadSlotRewrite();
     loadLogicalPhysicalChannels();
     loadServiceIds();
@@ -200,6 +205,7 @@ void MainWindow::saveConfig()
     _settings->receive_tg_attach = (int)ui->checkBoxReceiveAttachments->isChecked();
 
     saveTalkgroupRouting();
+    saveCallPriorities();
     saveSlotRewrite();
     saveLogicalPhysicalChannels();
     saveServiceIds();
@@ -274,6 +280,77 @@ void MainWindow::deleteTalkgroupRow()
     for(int row : rows)
     {
         ui->tableWidgetTalkgroupRouting->removeRow(row);
+    }
+}
+
+void MainWindow::loadCallPriorities()
+{
+    QMapIterator<unsigned int, unsigned int> i(_settings->call_priorities);
+    QStringList header_call_priorities;
+    header_call_priorities.append("Id");
+    header_call_priorities.append("Priority");
+    ui->tableWidgetCallPriorities->setRowCount(_settings->call_priorities.size());
+    ui->tableWidgetCallPriorities->setColumnCount(2);
+    ui->tableWidgetCallPriorities->setHorizontalHeaderLabels(header_call_priorities);
+    ui->tableWidgetCallPriorities->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetCallPriorities->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+    while(i.hasNext())
+    {
+        i.next();
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem *priority = new QTableWidgetItem(QString::number(i.value()));
+
+        ui->tableWidgetCallPriorities->setItem(row, 0, id);
+        ui->tableWidgetCallPriorities->setItem(row, 1, priority);
+        row++;
+    }
+}
+
+void MainWindow::saveCallPriorities()
+{
+    _settings->call_priorities.clear();
+    int rows = ui->tableWidgetCallPriorities->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetCallPriorities->item(i, 0);
+        QTableWidgetItem *item2 = ui->tableWidgetCallPriorities->item(i, 1);
+        bool ok1, ok2 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0)
+        {
+            item1->text().toInt(&ok1);
+            item2->text().toInt(&ok2);
+        }
+        if(ok1 && ok2)
+        {
+            _settings->call_priorities.insert(item1->text().toInt(), item2->text().toInt());
+        }
+    }
+}
+
+void MainWindow::addCallPriorityRow()
+{
+    ui->tableWidgetCallPriorities->setRowCount(ui->tableWidgetCallPriorities->rowCount() + 1);
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *priority = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetCallPriorities->setItem(ui->tableWidgetCallPriorities->rowCount() - 1, 0, id);
+    ui->tableWidgetCallPriorities->setItem(ui->tableWidgetCallPriorities->rowCount() - 1, 1, priority);
+    ui->tableWidgetCallPriorities->scrollToBottom();
+}
+
+void MainWindow::deleteCallPriorityRow()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetCallPriorities->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetCallPriorities->removeRow(row);
     }
 }
 

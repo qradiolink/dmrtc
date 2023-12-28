@@ -467,7 +467,7 @@ void Controller::resetPing()
     }
 }
 
-LogicalChannel* Controller::findNextFreePayloadChannel()
+LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId)
 {
     for(int i=0; i<_logical_channels.size(); i++)
     {
@@ -476,6 +476,23 @@ LogicalChannel* Controller::findNextFreePayloadChannel()
                 && !(_logical_channels[i]->getBusy()))
         {
             return _logical_channels[i];
+        }
+    }
+    /// No free channels found, find lower priority call channels
+    for(int i=0; i<_logical_channels.size(); i++)
+    {
+        if(!(_logical_channels[i]->isControlChannel())
+                && !_logical_channels[i]->getDisabled())
+        {
+            unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
+            unsigned int incoming_priority = _settings->call_priorities.value(dstId, 0);
+            if(incoming_priority > existing_call_priority)
+            {
+                _logical_channels[i]->setDestination(0);
+                _logical_channels[i]->clearNetQueue();
+                _logical_channels[i]->clearRFQueue();
+                return _logical_channels[i];
+            }
         }
     }
     return nullptr;
@@ -1038,7 +1055,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     }
     // Could not find an existing active channel
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel();
+    logical_channel = findNextFreePayloadChannel(dstId);
     if(logical_channel == nullptr)
     {
         if(!_rejected_calls->contains(dmr_data.getStreamId()))
@@ -1209,7 +1226,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
     }
 
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel();
+    logical_channel = findNextFreePayloadChannel(dstId);
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
@@ -1260,7 +1277,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
     }
 
     // Next try to find a free payload channel to allocate
-    logical_channel = findNextFreePayloadChannel();
+    logical_channel = findNextFreePayloadChannel(dmrDstId);
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");

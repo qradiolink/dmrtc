@@ -76,6 +76,8 @@ public:
     bool getRFQueue(CDMRData &dmr_data);
     void putNetQueue(CDMRData &dmr_data);
     bool getNetQueue(CDMRData &dmr_data);
+    void clearRFQueue();
+    void clearNetQueue();
     bool getChannelParams(uint64_t &params, uint8_t &colour_code);
 
 public slots:

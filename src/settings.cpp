@@ -402,6 +402,24 @@ void Settings::readConfig()
     {
         service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
     }
+    try
+    {
+        const libconfig::Setting &call_prio = cfg.lookup("call_priorities");
+        for(int i = 0; i < call_prio.getLength(); ++i)
+        {
+          const libconfig::Setting &talkgroup = call_prio[i];
+          unsigned int id, priority;
+
+          if(!(talkgroup.lookupValue("id", id)
+               && talkgroup.lookupValue("priority", priority)))
+            continue;
+          call_priorities.insert(id, priority);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        call_priorities = {{112, 3}, {226, 2}, {9, 1}};
+    }
 
 }
 
@@ -476,6 +494,16 @@ void Settings::saveConfig()
         libconfig::Setting &service = service_ids_config.add(libconfig::Setting::TypeGroup);
         service.add("service_name", libconfig::Setting::TypeString) = it_services.key().toStdString();
         service.add("id", libconfig::Setting::TypeInt) = (int)it_services.value();
+    }
+    root.add("call_priorities",libconfig::Setting::TypeList);
+    libconfig::Setting &call_prio = root["call_priorities"];
+    QMapIterator<unsigned int, unsigned int> it_prio(call_priorities);
+    while(it_prio.hasNext())
+    {
+        it_prio.next();
+        libconfig::Setting &id = call_prio.add(libconfig::Setting::TypeGroup);
+        id.add("id", libconfig::Setting::TypeInt) = (int)it_prio.key();
+        id.add("priority", libconfig::Setting::TypeInt) = (int)it_prio.value();
     }
 
     /// Write to file
