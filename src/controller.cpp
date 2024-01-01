@@ -379,7 +379,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     }
     LogicalChannel *channel = getControlOrAlternateChannel();
 
-    CDMRData dmr_data_header = _signalling_generator->createUDTHeader(srcId, dstId, blocks, pad_nibble);
+    CDMRData dmr_data_header = _signalling_generator->createUDTMessageHeader(srcId, dstId, blocks, pad_nibble);
     dmr_data_header.setSlotNo(channel->getSlot());
     channel->putRFQueue(dmr_data_header);
 
@@ -417,6 +417,84 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     memcpy(final_block, data + i*12U, 10U);
     final_block[10U] = data[msg_size + pad_nibble / 2];
     final_block[11U] = data[msg_size + pad_nibble / 2 + 1U];
+    CBPTC19696 bptc3;
+    bptc3.encode(final_block, payload_data[3]);
+    CDMRSlotType slotType3;
+    slotType3.putData(payload_data[3]);
+    slotType3.setColorCode(1);
+    slotType3.setDataType(DT_RATE_12_DATA);
+    slotType3.getData(payload_data[3]);
+    CSync::addDMRDataSync(payload_data[3], true);
+    CDMRData dmr_data3;
+    dmr_data3.setSeqNo(0);
+    dmr_data3.setN(0);
+    dmr_data3.setDataType(DT_RATE_12_DATA);
+    dmr_data3.setSlotNo(channel->getSlot());
+    dmr_data3.setDstId(dmr_data_header.getDstId());
+    dmr_data3.setSrcId(dmr_data_header.getSrcId());
+    dmr_data3.setData(payload_data[3]);
+    channel->putRFQueue(dmr_data3);
+}
+
+void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
+{
+    if(dgids.size() < 1)
+        return;
+    unsigned char data[48];
+    memset(data, 0U, 48U);
+    QList<QString> tgids = dgids.split(" ");
+    if(tgids.size() > 15)
+        tgids = tgids.mid(0,15);
+    data[0] = 0x01;
+    for(int i=0,k=1;i<tgids.size();i++,k=k+3)
+    {
+        unsigned int id = (tgids.at(i).toInt());
+        data[k] = (id >> 16) & 0xFF;
+        data[k+1] = (id >> 8) & 0xFF;
+        data[k+2] = id & 0xFF;
+    }
+    unsigned int blocks = 4;
+
+    // expect ACKU from target
+    _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+    _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
+
+    LogicalChannel *channel = getControlOrAlternateChannel();
+
+    CDMRData dmr_data_header = _signalling_generator->createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
+    dmr_data_header.setSlotNo(channel->getSlot());
+    channel->putRFQueue(dmr_data_header);
+
+    unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
+    CCRC::addCCITT162(data, 48U);
+    unsigned int i;
+    for(i=0;i<blocks - 1;i++)
+    {
+        unsigned char payload[12];
+        memcpy(payload, data + i*12U, 12U);
+        CBPTC19696 bptc1;
+        bptc1.encode(payload, payload_data[i]);
+        CDMRSlotType slotType1;
+        slotType1.putData(payload_data[i]);
+        slotType1.setDataType(DT_RATE_12_DATA);
+        slotType1.setColorCode(1);
+        slotType1.getData(payload_data[i]);
+        CSync::addDMRDataSync(payload_data[i], true);
+        CDMRData dmr_data;
+        dmr_data.setSeqNo(0);
+        dmr_data.setN(0);
+        dmr_data.setDataType(DT_RATE_12_DATA);
+        dmr_data.setSlotNo(channel->getSlot());
+        dmr_data.setDstId(dmr_data_header.getDstId());
+        dmr_data.setSrcId(dmr_data_header.getSrcId());
+        dmr_data.setData(payload_data[i]);
+        channel->putRFQueue(dmr_data);
+    }
+    unsigned char final_block[12U];
+    memset(final_block, 0, 12U);
+    memcpy(final_block, data + i*12U, 10U);
+    final_block[10U] = data[46];
+    final_block[11U] = data[47];
     CBPTC19696 bptc3;
     bptc3.encode(final_block, payload_data[3]);
     CDMRSlotType slotType3;

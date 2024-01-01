@@ -29,7 +29,7 @@ void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsig
     pad_nibble = _uab_pad_nibbles_mapping[1][msg_size - 1];
 }
 
-CDMRData Signalling::createUDTHeader(unsigned int srcId, unsigned int dstId,
+CDMRData Signalling::createUDTMessageHeader(unsigned int srcId, unsigned int dstId,
                                      unsigned int blocks, unsigned int pad_nibble)
 {
     CDMRDataHeader header;
@@ -46,6 +46,42 @@ CDMRData Signalling::createUDTHeader(unsigned int srcId, unsigned int dstId,
     header.setBlocks(blocks);
     header.setPadNibble(pad_nibble);
     header.setOpcode(UDTOpcode::C_UDTHD);
+    header.construct();
+    unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
+    header.get(header_data);
+    CDMRSlotType slotType;
+    slotType.setColorCode(1);
+    slotType.setDataType(DT_DATA_HEADER);
+    slotType.getData(header_data);
+    CSync::addDMRDataSync(header_data, true);
+    CDMRData dmr_data_header;
+    dmr_data_header.setSeqNo(0);
+    dmr_data_header.setN(0);
+    dmr_data_header.setDataType(DT_DATA_HEADER);
+    dmr_data_header.setDstId(header.getDstId());
+    dmr_data_header.setSrcId(header.getSrcId());
+    dmr_data_header.setData(header_data);
+
+    return dmr_data_header;
+}
+
+CDMRData Signalling::createUDTDGNAHeader(unsigned int srcId, unsigned int dstId,
+                                     unsigned int blocks)
+{
+    CDMRDataHeader header;
+    header.setA(true);
+    header.setGI(false);
+    header.setRSVD(0x00);
+    header.setFormat(0x00);
+    header.setSAP(0x00);
+    header.setUDTFormat(0x01); // Only ISO8 supported;
+    header.setDstId(dstId);
+    header.setSrcId(srcId);
+    header.setSF(false);
+    header.setPF(false);
+    header.setBlocks(blocks);
+    header.setPadNibble(0);
+    header.setOpcode(UDTOpcode::C_DGNAHD);
     header.construct();
     unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
     header.get(header_data);

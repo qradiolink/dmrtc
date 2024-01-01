@@ -27,6 +27,7 @@ enum StandardAddreses
     ALLMSID = 0xFFFFFF,
     SDMI = 0xFFFEC5,
     TATTSI = 0xFFFED7,
+    DGNAI = 0xFFFED6,
 };
 
 enum ServiceKind

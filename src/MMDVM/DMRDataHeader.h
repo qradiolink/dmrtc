@@ -23,6 +23,7 @@
 enum UDTOpcode {
     C_UDTHD = 0x1A,
     C_UDTHU = 0x1B,
+    C_DGNAHD = 0x24,
 };
 
 class CDMRDataHeader
