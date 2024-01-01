@@ -448,7 +448,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
     data[0] = 0x01;
     for(int i=0,k=1;i<tgids.size();i++,k=k+3)
     {
-        unsigned int id = (tgids.at(i).toInt());
+        unsigned int id = (Utils::convertBase10ToBase11GroupNumber(tgids.at(i).toInt()));
         data[k] = (id >> 16) & 0xFF;
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
