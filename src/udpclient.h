@@ -56,6 +56,7 @@ public slots:
     void writeDataToNetwork(unsigned char *data, int size);
     void writeDMRData(CDMRData &data);
     void writeDMRConfig(QVector<unsigned char> &config);
+    void writeDMRTrunkingParams(bool channel_enable, unsigned int slotNo);
     void handleStateChange(QAbstractSocket::SocketState state);
 
 

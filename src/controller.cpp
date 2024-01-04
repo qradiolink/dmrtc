@@ -124,6 +124,16 @@ void Controller::run()
         QObject::connect(client, SIGNAL(dmrData(unsigned char*,int, bool)), this, SLOT(processDMRPayload(unsigned char*,int, bool)), Qt::DirectConnection);
         QObject::connect(client, SIGNAL(newMMDVMConfig(unsigned char*,int)),
                          this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
+        if(i == 0)
+        {
+            client->writeDMRTrunkingParams(true, 1);
+            client->writeDMRTrunkingParams(false, 2);
+        }
+        else
+        {
+            client->writeDMRTrunkingParams(false, 1);
+            client->writeDMRTrunkingParams(false, 2);
+        }
     }
     for(int i=0;i<_settings->gateway_number;i++)
     {
@@ -436,7 +446,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     channel->putRFQueue(dmr_data3);
 }
 
-void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
+void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
 {
     if(dgids.size() < 1)
         return;
@@ -445,7 +455,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
     QList<QString> tgids = dgids.split(" ");
     if(tgids.size() > 15)
         tgids = tgids.mid(0,15);
-    data[0] = 0x01;
+    data[0] = attach ? 0x01 : 0x00;
     for(int i=0,k=1;i<tgids.size();i++,k=k+3)
     {
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(tgids.at(i).toInt()));
@@ -1340,6 +1350,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dstId);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
+        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(true, logical_channel->getSlot());
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1391,6 +1402,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dmrDstId);
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
+        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(true, logical_channel->getSlot());
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1423,6 +1435,8 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
             logical_channel->deallocateChannel();
             updateLogicalChannels(&_logical_channels);
         }
+        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(false, logical_channel->getSlot());
+
     }
 
 }
@@ -1446,6 +1460,7 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
                      _logical_channels[channel_id]->getPhysicalChannel(), false);
     transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
                      _logical_channels[channel_id]->getPhysicalChannel(), false);
+    _udp_channels.at(_logical_channels[channel_id]->getPhysicalChannel())->writeDMRTrunkingParams(false, _logical_channels[channel_id]->getSlot());
     if(!_settings->headless_mode)
     {
         emit updateLogicalChannels(&_logical_channels);

@@ -251,3 +251,18 @@ void UDPClient::writeDMRConfig(QVector<unsigned char> &config)
     }
     writeDataToNetwork(buffer, config.size() + 7U);
 }
+
+void UDPClient::writeDMRTrunkingParams(bool channel_enable, unsigned int slotNo)
+{
+    unsigned char buffer[8U];
+    ::memset(buffer, 0x00U, 8U);
+
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = slotNo == 1U ? 0x00U : 0x80U;
+    buffer[4U]  |= (channel_enable) ? 0x01 : 0x00;
+    writeDataToNetwork(buffer, 8U);
+}
+
