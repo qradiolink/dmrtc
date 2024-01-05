@@ -436,7 +436,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     channel->putRFQueue(dmr_data3);
 }
 
-void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
+void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
 {
     if(dgids.size() < 1)
         return;
@@ -445,7 +445,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
     QList<QString> tgids = dgids.split(" ");
     if(tgids.size() > 15)
         tgids = tgids.mid(0,15);
-    data[0] = 0x01;
+    data[0] = (attach) ? 0x01 : 0x00;
     for(int i=0,k=1;i<tgids.size();i++,k=k+3)
     {
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(tgids.at(i).toInt()));
@@ -456,7 +456,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId)
     unsigned int blocks = 4;
 
     // expect ACKU from target
-    _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+    _uplink_acks->insert(dstId, ServiceAction::ActionDGNARequest);
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
     LogicalChannel *channel = getControlOrAlternateChannel();
@@ -1713,6 +1713,19 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _logger->log(Logger::LogLevelInfo, QString("Received read receipt for message request from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// MS acknowledgement of DGNA request
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionDGNARequest)
+    {
+        _uplink_acks->remove(srcId);
+        csbk.setCSBKO(CSBKO_ACKD);
+        csbk.setDstId(dstId);
+        csbk.setSrcId(srcId);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received ACK for DGNA request from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Short data service MS to MS
