@@ -22,7 +22,8 @@ DMR tier III services partly or completely implemented
 7. System frequencies and local time broadcasts
 8. Network voice services
 9. Talkgroup attachment on registration
-10. Radio presence check
+10. Dynamic Group Numbering Assignment service
+11. Radio presence check
 
 
 DMR tier III services NOT implemented
