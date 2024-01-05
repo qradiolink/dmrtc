@@ -35,6 +35,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSaveSettings, SIGNAL(clicked(bool)), this, SLOT(saveConfig()));
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
+    QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -715,6 +716,12 @@ void MainWindow::sendMessageToRadio()
 {
     unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
     emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::addDGNA()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
 }
 
 void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)

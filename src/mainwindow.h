@@ -49,6 +49,7 @@ public slots:
     void requestRegistration();
     void sendSystemMessage();
     void sendMessageToRadio();
+    void addDGNA();
     void updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void saveConfig();
@@ -78,6 +79,7 @@ signals:
     void channelEnable(unsigned int channel_index, bool state);
     void registrationRequested();
     void sendShortMessage(QString message, unsigned int target);
+    void sendDGNA(QString tgids, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
     void resetPing();
     void broadcastLocalTime();
