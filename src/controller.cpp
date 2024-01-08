@@ -557,37 +557,48 @@ LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsig
         }
     }
     /// No free channels found, find lower priority call channels
-    /// FIXME: this code only works for teardown of network inbound calls,
-    ///  it will not work for local ones due to lack od reverse channel signalling
-    for(int i=0; i<_logical_channels.size(); i++)
+    LogicalChannel* logical_channel = findLowerPriorityChannel(dstId, srcId, local);
+    return logical_channel;
+}
+
+LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigned int srcId, bool local)
+{
+    /// FIXME: this code only works for teardown of existing network inbound calls,
+    ///  it will not work for local ones due to lack of reverse channel signalling
+    unsigned int incoming_priority = _settings->call_priorities.value(dstId, 0);
+    if(incoming_priority == 0)
+        return nullptr;
+    for(unsigned int priority=0;priority<3;priority++)
     {
-        if(!(_logical_channels[i]->isControlChannel())
-                && !_logical_channels[i]->getDisabled())
+        for(int i=0; i<_logical_channels.size(); i++)
         {
-            unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
-            unsigned int incoming_priority = _settings->call_priorities.value(dstId, 0);
-            if(incoming_priority > existing_call_priority)
+            if(!(_logical_channels[i]->isControlChannel())
+                    && !_logical_channels[i]->getDisabled())
             {
-                _logger->log(Logger::LogLevelInfo, QString("Tearing down existing call to %1 to prioritize call from %2 towards %3")
-                      .arg(_logical_channels[i]->getDestination())
-                      .arg(srcId)
-                      .arg(dstId));
-                _logical_channels[i]->setDestination(0);
-                _logical_channels[i]->clearNetQueue();
-                _logical_channels[i]->clearRFQueue();
-
-                if(local)
+                unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
+                if((existing_call_priority == priority) && (incoming_priority > existing_call_priority))
                 {
-                    CDMRCSBK csbk;
-                    _signalling_generator->createReplyWaitForSignalling(csbk, srcId);
-                    for(int i = 0;i<18;i++)
-                    {
-                        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
-                    }
-                }
-                return _logical_channels[i];
-            }
+                    _logger->log(Logger::LogLevelInfo, QString("Tearing down existing call to %1 to prioritize call from %2 towards %3")
+                          .arg(_logical_channels[i]->getDestination())
+                          .arg(srcId)
+                          .arg(dstId));
+                    _logical_channels[i]->setDestination(0);
+                    _logical_channels[i]->clearNetQueue();
+                    _logical_channels[i]->clearRFQueue();
 
+                    if(local)
+                    {
+                        CDMRCSBK csbk;
+                        _signalling_generator->createReplyWaitForSignalling(csbk, srcId);
+                        for(int i = 0;i<18;i++)
+                        {
+                            transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+                        }
+                    }
+                    return _logical_channels[i];
+                }
+
+            }
         }
     }
     return nullptr;
