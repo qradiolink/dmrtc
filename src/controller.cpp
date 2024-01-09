@@ -809,6 +809,39 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     updateSubscriptions(tg_list, srcId);
 }
 
+void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id)
+{
+    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned char msg[size];
+    memcpy(msg, _data_message, size);
+    _uplink_acks->remove(srcId);
+
+    unsigned int id = 0;
+    id |= msg[1] << 16;
+    id |= msg[2] << 8;
+    id |= msg[3];
+    if(id == 0)
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+        transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received call divert with target 0, ignoring"));
+        return;
+    }
+
+    CDMRCSBK csbk;
+    _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
+    transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+    _logger->log(Logger::LogLevelInfo, QString("Received call divert data from %1: %2")
+                 .arg(srcId).arg(id));
+    if(_settings->announce_system_message)
+    {
+        QString message = QString("Calls to %1 are now diverted to %2").arg(_id_lookup->getCallsign(srcId)).arg(id);
+        sendUDTShortMessage(message, srcId);
+    }
+    // TODO: poke in call divert logic
+}
+
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
 {
     if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
@@ -999,6 +1032,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             (_udt_format==1))
                     {
                         processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
+                    }
+                    /// Talkgroup attachment list
+                    else if(_uplink_acks->contains(srcId) &&
+                            (_uplink_acks->value(srcId) == ServiceAction::CallDivert) &&
+                            (_udt_format==1))
+                    {
+                        processCallDivertMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
                     }
                     /// Text message
                     else
@@ -1757,6 +1797,29 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _short_data_messages.insert(srcId, number_of_blocks);
         _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// Call diversion request
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallDiversion))
+    {
+        unsigned int service_options = csbk.getServiceOptions();
+        bool divert = ((service_options >> 4) & 0x01) == 1;
+        if(divert)
+        {
+            unsigned int number_of_blocks = _signalling_generator->createRequestToUploadDivertInfo(csbk, csbk.getSrcId());
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _short_data_messages.insert(srcId, number_of_blocks);
+            _uplink_acks->insert(srcId, ServiceAction::CallDivert);
+            _logger->log(Logger::LogLevelInfo, QString("Received call diversion request request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
+        else
+        {
+            // TODO: poke in call divert logic
+            _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
+            transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received cancel call diversion request request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
     }
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {
