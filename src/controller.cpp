@@ -816,11 +816,11 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     memcpy(msg, _data_message, size);
     _uplink_acks->remove(srcId);
 
-    unsigned int id = 0;
-    id |= msg[1] << 16;
-    id |= msg[2] << 8;
-    id |= msg[3];
-    if(id == 0)
+    unsigned int divert_id = 0;
+    divert_id |= msg[1] << 16;
+    divert_id |= msg[2] << 8;
+    divert_id |= msg[3];
+    if(divert_id == 0)
     {
         CDMRCSBK csbk;
         _signalling_generator->createReplyUDTCRCError(csbk, srcId);
@@ -833,13 +833,13 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
     transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
     _logger->log(Logger::LogLevelInfo, QString("Received call divert data from %1: %2")
-                 .arg(srcId).arg(id));
+                 .arg(srcId).arg(divert_id));
     if(_settings->announce_system_message)
     {
-        QString message = QString("Calls to %1 are now diverted to %2").arg(_id_lookup->getCallsign(srcId)).arg(id);
+        QString message = QString("Calls to %1 are now diverted to %2").arg(_id_lookup->getCallsign(srcId)).arg(divert_id);
         sendUDTShortMessage(message, srcId);
     }
-    // TODO: poke in call divert logic
+    _call_diverts.insert(srcId, divert_id);
 }
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
@@ -1222,6 +1222,10 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         bool priority = false;
         if(call_type == CallType::CALL_TYPE_MS)
         {
+            if(_call_diverts.contains(dstId))
+            {
+                dstId = _call_diverts.value(dstId);
+            }
             if(_registered_ms->contains(dstId) && !_private_calls.contains(dstId))
             {
                 channel_grant = false;
@@ -1613,6 +1617,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Direct MS to MS call request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
+        if(_call_diverts.contains(dstId))
+        {
+            dstId = _call_diverts.value(dstId);
+        }
         if(_registered_ms->contains(dstId))
         {
             /** FIXME: The standard call procedure does not include a wait notification
@@ -1814,7 +1822,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            // TODO: poke in call divert logic
+            _call_diverts.remove(srcId);
             _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
             transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
             _logger->log(Logger::LogLevelInfo, QString("Received cancel call diversion request request from %1, slot %2 to destination %3")
