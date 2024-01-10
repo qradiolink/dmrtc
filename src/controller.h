@@ -54,6 +54,7 @@ enum ServiceAction {
     ActionPrivateCallRequest,
     RegistrationWithAttachment,
     CallDivert,
+    UDTPoll,
 };
 
 class Controller : public QObject
@@ -80,6 +81,7 @@ public slots:
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void pingRadio(unsigned int target_id, bool group=false);
+    void pollData(unsigned int target_id);
     void resetPing();
     void announceLocalTime();
     void announceSystemFreqs();

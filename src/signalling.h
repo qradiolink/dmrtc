@@ -58,6 +58,7 @@ public:
     void createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool group_call);
     unsigned int createRequestToUploadMessage(CDMRCSBK &csbk, unsigned int dstId);
     unsigned int createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId);
+    void createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId);
     void createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId);

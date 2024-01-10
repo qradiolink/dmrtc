@@ -30,6 +30,7 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     _busy = false;
     _call_in_progress = false;
     _disabled = false;
+    _local_call = false;
     _state = CallState::CALL_STATE_NONE;
     _source_address = 0;
     _destination_address = 0;
@@ -91,7 +92,7 @@ bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
     return true;
 }
 
-void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type)
+void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type, bool local)
 {
     _data_mutex.lock();
     _source_address = srcId;
@@ -99,6 +100,7 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _call_type = call_type;
     _busy = true;
     _call_in_progress = false;
+    _local_call = local;
     _data_frames = 0;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
@@ -349,6 +351,21 @@ void LogicalChannel::setBusy(bool busy)
     _data_mutex.lock();
     _busy = busy;
     _data_mutex.unlock();
+}
+
+void LogicalChannel::setLocalCall(bool local)
+{
+    _data_mutex.lock();
+    _local_call = local;
+    _data_mutex.unlock();
+}
+
+bool LogicalChannel::getLocalCall()
+{
+    _data_mutex.lock();
+    bool local = _local_call;
+    _data_mutex.unlock();
+    return local;
 }
 
 void LogicalChannel::setDestination(unsigned int destination)

@@ -36,6 +36,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
+    QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -701,29 +702,6 @@ void MainWindow::deleteSubscribedTalkgroupList()
     ui->listWidgetSubscribedTalkgroups->clear();
 }
 
-void MainWindow::requestRegistration()
-{
-    deleteRegisteredMSList();
-    emit registrationRequested();
-}
-
-void MainWindow::sendSystemMessage()
-{
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
-}
-
-void MainWindow::sendMessageToRadio()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
-}
-
-void MainWindow::addDGNA()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
-}
-
 void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
 {
     QDateTime datetime = QDateTime::currentDateTime();
@@ -808,6 +786,35 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         ui->tableWidgetMessages->setItem(rows, 2, dstitem);
         ui->tableWidgetMessages->setItem(rows, 3, msg);
     }
+}
+
+void MainWindow::requestRegistration()
+{
+    deleteRegisteredMSList();
+    emit registrationRequested();
+}
+
+void MainWindow::sendSystemMessage()
+{
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
+}
+
+void MainWindow::sendMessageToRadio()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::addDGNA()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::sendUDTPoll()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit pollData(radio);
 }
 
 void MainWindow::sendPing()

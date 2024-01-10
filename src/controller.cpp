@@ -545,6 +545,17 @@ void Controller::resetPing()
     }
 }
 
+void Controller::pollData(unsigned int target_id)
+{
+    if(target_id == 0)
+        return;
+    _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
+    _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
+    CDMRCSBK csbk;
+    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+}
+
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
 {
     for(int i=0; i<_logical_channels.size(); i++)
@@ -1165,6 +1176,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         }
         dmr_data.setSlotNo(logical_channel->getSlot());
         logical_channel->startTimeoutTimer();
+        logical_channel->setLocalCall(local_data);
         if(update_gui && !_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1393,7 +1405,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
     {
         _signalling_generator->createPrivateVoiceGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
-        logical_channel->allocateChannel(srcId, dstId);
+        logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
         if(!_settings->headless_mode)
         {
@@ -1444,7 +1456,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
     {
         _signalling_generator->createGroupVoiceGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
-        logical_channel->allocateChannel(srcId, dmrDstId);
+        logical_channel->allocateChannel(srcId, dmrDstId, CallType::CALL_TYPE_GROUP, local);
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
         if(!_settings->headless_mode)
         {

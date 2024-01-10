@@ -69,6 +69,7 @@ public slots:
     void deleteServiceId();
     void addServiceId();
     void sendPing();
+    void sendUDTPoll();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
     void pingTimeout();
     void sendLocalTimeBroadcast();
@@ -81,6 +82,7 @@ signals:
     void sendShortMessage(QString message, unsigned int target);
     void sendDGNA(QString tgids, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
+    void pollData(unsigned int target_id);
     void resetPing();
     void broadcastLocalTime();
     void broadcastFrequencies();
