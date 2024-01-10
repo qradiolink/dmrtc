@@ -53,6 +53,8 @@ enum ServiceAction {
     ActionDGNARequest,
     ActionPrivateCallRequest,
     RegistrationWithAttachment,
+    CallDivert,
+    UDTPoll,
 };
 
 class Controller : public QObject
@@ -79,6 +81,7 @@ public slots:
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void pingRadio(unsigned int target_id, bool group=false);
+    void pollData(unsigned int target_id);
     void resetPing();
     void announceLocalTime();
     void announceSystemFreqs();
@@ -121,6 +124,7 @@ private:
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
+    void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
     void processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
@@ -140,6 +144,7 @@ private:
     QVector<LogicalChannel*> _logical_channels;
     QMap<unsigned int, unsigned int> _private_calls;
     QMap<unsigned int, unsigned int> _short_data_messages;
+    QMap<unsigned int, unsigned int> _call_diverts;
     QList<unsigned int> *_registered_ms;
     QMap<unsigned int, QList<unsigned int>> *_talkgroup_attachments;
     QMap<unsigned int, unsigned int> *_uplink_acks;

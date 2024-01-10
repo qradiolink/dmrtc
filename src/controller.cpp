@@ -545,6 +545,17 @@ void Controller::resetPing()
     }
 }
 
+void Controller::pollData(unsigned int target_id)
+{
+    if(target_id == 0)
+        return;
+    _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
+    _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
+    CDMRCSBK csbk;
+    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+}
+
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
 {
     for(int i=0; i<_logical_channels.size(); i++)
@@ -573,7 +584,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
         for(int i=0; i<_logical_channels.size(); i++)
         {
             if(!(_logical_channels[i]->isControlChannel())
-                    && !_logical_channels[i]->getDisabled())
+                    && !_logical_channels[i]->getDisabled() && !_logical_channels[i]->getLocalCall())
             {
                 unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
                 if((existing_call_priority == priority) && (incoming_priority > existing_call_priority))
@@ -809,6 +820,39 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     updateSubscriptions(tg_list, srcId);
 }
 
+void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id)
+{
+    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned char msg[size];
+    memcpy(msg, _data_message, size);
+    _uplink_acks->remove(srcId);
+
+    unsigned int divert_id = 0;
+    divert_id |= msg[1] << 16;
+    divert_id |= msg[2] << 8;
+    divert_id |= msg[3];
+    if(divert_id == 0)
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+        transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received call divert with target 0, ignoring"));
+        return;
+    }
+
+    CDMRCSBK csbk;
+    _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
+    transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+    _logger->log(Logger::LogLevelInfo, QString("Received call divert data from %1: %2")
+                 .arg(srcId).arg(divert_id));
+    if(_settings->announce_system_message)
+    {
+        QString message = QString("Calls to %1 are now diverted to %2").arg(_id_lookup->getCallsign(srcId)).arg(divert_id);
+        sendUDTShortMessage(message, srcId);
+    }
+    _call_diverts.insert(srcId, divert_id);
+}
+
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
 {
     if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
@@ -1000,6 +1044,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     {
                         processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
                     }
+                    /// Talkgroup attachment list
+                    else if(_uplink_acks->contains(srcId) &&
+                            (_uplink_acks->value(srcId) == ServiceAction::CallDivert) &&
+                            (_udt_format==1))
+                    {
+                        processCallDivertMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
+                    }
                     /// Text message
                     else
                     {
@@ -1113,6 +1164,11 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     if(logical_channel != nullptr)
     {
         bool update_gui = false;
+        if(logical_channel->getLocalCall() != local_data)
+        {
+            logical_channel->setLocalCall(local_data);
+            update_gui = true;
+        }
         if(logical_channel->getSource() != srcId)
         {
             logical_channel->setSource(srcId);
@@ -1125,6 +1181,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         }
         dmr_data.setSlotNo(logical_channel->getSlot());
         logical_channel->startTimeoutTimer();
+
         if(update_gui && !_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1182,6 +1239,10 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         bool priority = false;
         if(call_type == CallType::CALL_TYPE_MS)
         {
+            if(_call_diverts.contains(dstId))
+            {
+                dstId = _call_diverts.value(dstId);
+            }
             if(_registered_ms->contains(dstId) && !_private_calls.contains(dstId))
             {
                 channel_grant = false;
@@ -1349,7 +1410,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
     {
         _signalling_generator->createPrivateVoiceGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
-        logical_channel->allocateChannel(srcId, dstId);
+        logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
         if(!_settings->headless_mode)
         {
@@ -1400,7 +1461,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
     {
         _signalling_generator->createGroupVoiceGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
-        logical_channel->allocateChannel(srcId, dmrDstId);
+        logical_channel->allocateChannel(srcId, dmrDstId, CallType::CALL_TYPE_GROUP, local);
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
         if(!_settings->headless_mode)
         {
@@ -1573,6 +1634,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Direct MS to MS call request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
+        if(_call_diverts.contains(dstId))
+        {
+            dstId = _call_diverts.value(dstId);
+        }
         if(_registered_ms->contains(dstId))
         {
             /** FIXME: The standard call procedure does not include a wait notification
@@ -1757,6 +1822,29 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _short_data_messages.insert(srcId, number_of_blocks);
         _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// Call diversion request
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallDiversion))
+    {
+        unsigned int service_options = csbk.getServiceOptions();
+        bool divert = ((service_options >> 4) & 0x01) == 1;
+        if(divert)
+        {
+            unsigned int number_of_blocks = _signalling_generator->createRequestToUploadDivertInfo(csbk, csbk.getSrcId());
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _short_data_messages.insert(srcId, number_of_blocks);
+            _uplink_acks->insert(srcId, ServiceAction::CallDivert);
+            _logger->log(Logger::LogLevelInfo, QString("Received call diversion request request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
+        else
+        {
+            _call_diverts.remove(srcId);
+            _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
+            transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received cancel call diversion request request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
     }
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {

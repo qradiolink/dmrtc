@@ -36,6 +36,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
+    QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -604,7 +605,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
                                             .arg(usage1));
-            QString color1 = (logical_channels->at(j)->getBusy() ? "#004d99" : "#9cffab");
+            QString color1 = (logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
             _logical_channel_model->setColor(index1, color1);
@@ -619,7 +620,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
                                             .arg(usage2));
-            QString color2 = (logical_channels->at(j + 1)->getBusy() ? "#004d99" : "#9cffab");
+            QString color2 = (logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
             _logical_channel_model->setColor(index2, color2);
             int state2 = logical_channels->at(j + 1)->getBusy() ?
@@ -699,29 +700,6 @@ void MainWindow::deleteSubscribedTalkgroupList()
         delete item;
     }
     ui->listWidgetSubscribedTalkgroups->clear();
-}
-
-void MainWindow::requestRegistration()
-{
-    deleteRegisteredMSList();
-    emit registrationRequested();
-}
-
-void MainWindow::sendSystemMessage()
-{
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
-}
-
-void MainWindow::sendMessageToRadio()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
-}
-
-void MainWindow::addDGNA()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
 }
 
 void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
@@ -808,6 +786,35 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         ui->tableWidgetMessages->setItem(rows, 2, dstitem);
         ui->tableWidgetMessages->setItem(rows, 3, msg);
     }
+}
+
+void MainWindow::requestRegistration()
+{
+    deleteRegisteredMSList();
+    emit registrationRequested();
+}
+
+void MainWindow::sendSystemMessage()
+{
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
+}
+
+void MainWindow::sendMessageToRadio()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::addDGNA()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::sendUDTPoll()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit pollData(radio);
 }
 
 void MainWindow::sendPing()

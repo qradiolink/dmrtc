@@ -28,6 +28,11 @@ enum StandardAddreses
     SDMI = 0xFFFEC5,
     TATTSI = 0xFFFED7,
     DGNAI = 0xFFFED6,
+    DIVERTI = 0xFFFEC9,
+    MSI = 0xFFFEC7,
+    GPI = 0xFFFECE,
+    AUTHI = 0xFFFECD,
+    SUPLI = 0xFFFEC4,
 };
 
 enum ServiceKind

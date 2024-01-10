@@ -306,6 +306,15 @@ void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int ds
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
+void Signalling::createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    csbk.setData1(0x00); // 0x60
+    csbk.setCBF(0xC0);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::DIVERTI);
+}
+
 void Signalling::createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
@@ -450,6 +459,31 @@ unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK &csbk, unsigned i
     csbk.setDstId(dstId);
     csbk.setSrcId(StandardAddreses::SDMI);
     return number_of_blocks;
+}
+
+unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId)
+{
+    unsigned int number_of_blocks = csbk.getCBF() >> 4;
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned int data2 = (number_of_blocks << 4) | csbk.getServiceKind();
+    csbk.setData1(0x00);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::DIVERTI);
+    return number_of_blocks;
+}
+
+void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId)
+{
+    unsigned int number_of_blocks = 0;
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned int data2 = (number_of_blocks << 4) | ServiceKind::UDTDataPolling;
+    csbk.setData1(0x00);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::SDMI);
 }
 
 void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId)

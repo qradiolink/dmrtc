@@ -52,7 +52,7 @@ public:
     LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
                    unsigned int physical_channel, unsigned int slot, bool control_channel=false, QObject *parent=0);
 
-    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
+    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP, bool local=false);
     void deallocateChannel();
     void updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
     void startTimeoutTimer();
@@ -62,6 +62,8 @@ public:
     void setDestination(unsigned int destination);
     void setSource(unsigned int source);
     void setCallType(unsigned int call_type);
+    void setLocalCall(bool local);
+    bool getLocalCall();
     bool isControlChannel();
     unsigned int getPhysicalChannel();
     unsigned int getSlot();
@@ -101,6 +103,7 @@ private:
     bool _busy;
     bool _call_in_progress;
     bool _disabled;
+    bool _local_call;
     unsigned int _call_type;
     unsigned int _source_address;
     unsigned int _destination_address;
