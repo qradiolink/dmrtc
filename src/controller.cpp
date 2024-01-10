@@ -584,7 +584,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
         for(int i=0; i<_logical_channels.size(); i++)
         {
             if(!(_logical_channels[i]->isControlChannel())
-                    && !_logical_channels[i]->getDisabled())
+                    && !_logical_channels[i]->getDisabled() && !_logical_channels[i]->getLocalCall())
             {
                 unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
                 if((existing_call_priority == priority) && (incoming_priority > existing_call_priority))
@@ -1164,6 +1164,11 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     if(logical_channel != nullptr)
     {
         bool update_gui = false;
+        if(logical_channel->getLocalCall() != local_data)
+        {
+            logical_channel->setLocalCall(local_data);
+            update_gui = true;
+        }
         if(logical_channel->getSource() != srcId)
         {
             logical_channel->setSource(srcId);
@@ -1176,7 +1181,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         }
         dmr_data.setSlotNo(logical_channel->getSlot());
         logical_channel->startTimeoutTimer();
-        logical_channel->setLocalCall(local_data);
+
         if(update_gui && !_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;

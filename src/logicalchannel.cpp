@@ -115,6 +115,7 @@ void LogicalChannel::deallocateChannel()
     _data_mutex.lock();
     _busy = false;
     _call_in_progress = false;
+    _local_call = false;
     _state = CallState::CALL_STATE_NONE;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
