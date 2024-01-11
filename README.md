@@ -24,6 +24,7 @@ DMR tier III services partly or completely implemented
 9. Talkgroup attachment on registration
 10. Dynamic Group Numbering Assignment service
 11. Radio presence check
+12. Private voice / UDT short data call diversion service
 
 
 DMR tier III services NOT implemented
@@ -43,7 +44,7 @@ DMR tier III services NOT implemented
 12. MS stun, kill and revive
 13. Full duplex voice call service
 14. PABX/PSTN call service
-15. Call diversion service
+15. Call diversion service to PSTN/PABX/Gateway
 
 
 Radio compatibility matrix

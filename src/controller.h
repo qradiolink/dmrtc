@@ -80,6 +80,7 @@ public slots:
     void setChannelEnabled(unsigned int index, bool state);
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
+    void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
     void pollData(unsigned int target_id);
     void resetPing();

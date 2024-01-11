@@ -599,7 +599,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
         {
             QModelIndex index1 = _logical_channel_model->index(i, 0);
             QModelIndex index2 = _logical_channel_model->index(i, 1);
-            QString usage1 = logical_channels->at(j)->getBusy() ? "Call " : "Free ";
+            QString usage1 = logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage1 = logical_channels->at(j)->getDisabled() ? "Disabled " : usage1;
             _logical_channel_model->setData(index1, QString("%3 %1   -->   %2")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
@@ -614,7 +614,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             state1 = logical_channels->at(j)->isControlChannel() ? ChannelState::ChannelControl : state1;
             _logical_channel_model->setState(index1, state1, 0);
 
-            QString usage2 = logical_channels->at(j + 1)->getBusy() ? "Call " : "Free ";
+            QString usage2 = logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
             _logical_channel_model->setData(index2, QString("%3 %1   -->   %2")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
