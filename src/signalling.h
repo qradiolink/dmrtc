@@ -68,6 +68,7 @@ public:
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
     CDMRData createUDTMessageHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble);
     CDMRData createUDTDGNAHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks);
+    CDMRData createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int sap=0);
 
 
 

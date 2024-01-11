@@ -514,6 +514,47 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     channel->putRFQueue(dmr_data3);
 }
 
+void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap)
+{
+    unsigned char data[12];
+    memset(data, 0U, 12U);
+    data[0] = 0x00;
+    data[1] = (dstId >> 16) & 0xFF;
+    data[2] = (dstId >> 8) & 0xFF;
+    data[3] = dstId & 0xFF;
+
+    unsigned int blocks = 1;
+
+    // don't expect ACKU from target
+    _logger->log(Logger::LogLevelDebug, QString("Sending call divert information for radio: %1 to radio: %2").arg(dstId).arg(srcId));
+
+    CDMRData dmr_data_header = _signalling_generator->createUDTCallDivertHeader(StandardAddreses::MSI, srcId, blocks, sap);
+    dmr_data_header.setSlotNo(_control_channel->getSlot());
+    _control_channel->putRFQueue(dmr_data_header);
+    // TODO: handle case where address is 2 blocks
+    unsigned char payload_data[1][DMR_FRAME_LENGTH_BYTES];
+    CCRC::addCCITT162(data, 12U);
+    unsigned char payload[12];
+    memcpy(payload, data, 12U);
+    CBPTC19696 bptc1;
+    bptc1.encode(payload, payload_data[0]);
+    CDMRSlotType slotType1;
+    slotType1.putData(payload_data[0]);
+    slotType1.setDataType(DT_RATE_12_DATA);
+    slotType1.setColorCode(1);
+    slotType1.getData(payload_data[0]);
+    CSync::addDMRDataSync(payload_data[0], true);
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(DT_RATE_12_DATA);
+    dmr_data.setSlotNo(_control_channel->getSlot());
+    dmr_data.setDstId(dmr_data_header.getDstId());
+    dmr_data.setSrcId(dmr_data_header.getSrcId());
+    dmr_data.setData(payload_data[0]);
+    _control_channel->putRFQueue(dmr_data);
+}
+
 void Controller::pingRadio(unsigned int target_id, bool group)
 {
     if(target_id == 0)
@@ -1094,9 +1135,16 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     if(from_gateway)
     {
         if(dmr_data.getFLCO() == FLCO_GROUP)
+        {
             dstId = Utils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
+        }
         else
-            dstId = dmr_data.getDstId();
+        {
+            if(_call_diverts.contains(dstId))
+            {
+                dstId = _call_diverts.value(dstId);
+            }
+        }
         LogicalChannel *channel = getControlOrAlternateChannel();
         dmr_data.setDstId(dstId);
         dmr_data.setSlotNo(channel->getSlot());
@@ -1105,9 +1153,16 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     else if(!from_gateway)
     {
         if(dmr_data.getFLCO() == FLCO_GROUP)
+        {
             dstId = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+        }
         else
-            dstId = dmr_data.getDstId();
+        {
+            if(_call_diverts.contains(dstId))
+            {
+                dstId = _call_diverts.value(dstId);
+            }
+        }
         dmr_data.setDstId(dstId);
         if((dmr_data.getFLCO() == FLCO_GROUP) || !_registered_ms->contains(dstId))
         {
@@ -1636,7 +1691,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         if(_call_diverts.contains(dstId))
         {
-            dstId = _call_diverts.value(dstId);
+            sendUDTCallDivertInfo(srcId, _call_diverts.value(dstId), 0);
+            _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+            return;
         }
         if(_registered_ms->contains(dstId))
         {
@@ -1647,6 +1705,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             */
             contactMSForCall(csbk, slotNo, srcId, dstId, true);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call request from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
         }
         else
         {
@@ -1665,6 +1725,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             {
                 transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             }
+            _logger->log(Logger::LogLevelInfo, QString("Received radio OACSU call request (not registered radio)"
+                                                        " from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
         }
     }
     /// MS acknowledgement of OACSU call
@@ -1807,6 +1870,11 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Short data service MS to MS
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivUDTDataCall))
     {
+        if(_call_diverts.contains(dstId))
+        {
+            sendUDTCallDivertInfo(srcId, _call_diverts.value(dstId), 4); // FIXME: SAP 0100 for UDT causes radio to transmit with ID set to 0???
+            return;
+        }
         _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
