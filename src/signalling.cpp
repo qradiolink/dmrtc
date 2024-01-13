@@ -315,6 +315,18 @@ void Signalling::createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id,
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
+void Signalling::createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options)
+{
+    unsigned char data1 = options << 1;
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    csbk.setData1(data1);
+    unsigned char data2 = ServiceKind::RegiAuthMSCheck;
+    csbk.setCBF(data2);
+    csbk.setDstId(target_id & 0xFFFFFF);
+    csbk.setSrcId(challenge & 0xFFFFFF);
+}
+
 void Signalling::createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId, bool from_ts)
 {
     csbk.setCSBKO(CSBKO_ACKD);

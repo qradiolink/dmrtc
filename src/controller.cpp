@@ -40,6 +40,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _data_msg_size = 0;
     _data_pad_nibble = 0;
     _udt_format = 0;
+    _auth_reply = 0;
     memset(_data_message, 0, 48U);
 }
 
@@ -603,6 +604,25 @@ void Controller::pollData(unsigned int target_id)
     _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
     CDMRCSBK csbk;
     _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+}
+
+void Controller::sendAuthCheck(unsigned int target_id)
+{
+    if(target_id == 0 || !_settings->auth_keys.contains(target_id))
+    {
+        _logger->log(Logger::LogLevelInfo, QString("No valid authentication key stored for radio: %1").arg(target_id));
+        return;
+    }
+    _logger->log(Logger::LogLevelInfo, QString("Sending AUTH check to radio: %1").arg(target_id));
+    _uplink_acks->insert(target_id, ServiceAction::ActionAuthCheck);
+    CDMRCSBK csbk;
+    QString key = _settings->auth_keys.value(target_id);
+    QByteArray ba_k = QByteArray::fromHex(key.toLatin1());
+    unsigned char *k = (unsigned char*)ba_k.constData();
+    unsigned int random_number = 0;
+    arc4_get_challenge_response((unsigned char*)(k), ba_k.size(), random_number, _auth_reply);
+    _signalling_generator->createAuthCheckAhoy(csbk, target_id, random_number);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
@@ -2034,6 +2054,28 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                                                         " from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
+    }
+    /// MS acknowledgement of short data message
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
+    {
+        _uplink_acks->remove(srcId);
+        if(dstId == _auth_reply)
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
+                         .arg(srcId).arg(slotNo));
+            if(!_settings->headless_mode)
+                emit authSuccess(true);
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (FAILED) from %1, slot %2")
+                         .arg(srcId).arg(slotNo));
+            if(!_settings->headless_mode)
+                emit authSuccess(false);
+        }
+        _auth_reply = 0;
     }
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {

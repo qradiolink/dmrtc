@@ -550,7 +550,12 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     if(size >= _ta_dl)
                     {
                         // TODO: handle ISO 7 bit
-                        if(_ta_df == 1 || _ta_df == 2)
+                        if(_ta_df == 1)
+                        {
+                            QString txt = QString::fromLatin1(_ta_data);
+                            setText(txt);
+                        }
+                        else if(_ta_df == 2)
                         {
                             QString txt = QString::fromUtf8(_ta_data);
                             setText(txt);
@@ -578,7 +583,12 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     if(size >= _ta_dl)
                     {
                         // TODO: handle ISO 7 bit
-                        if(_ta_df == 1 || _ta_df == 2)
+                        if(_ta_df == 1)
+                        {
+                            QString txt = QString::fromLatin1(_ta_data);
+                            setText(txt);
+                        }
+                        else if(_ta_df == 2)
                         {
                             QString txt = QString::fromUtf8(_ta_data);
                             setText(txt);
@@ -606,7 +616,12 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     if(size >= _ta_dl)
                     {
                         // TODO: handle ISO 7 bit
-                        if(_ta_df == 1 || _ta_df == 2)
+                        if(_ta_df == 1)
+                        {
+                            QString txt = QString::fromLatin1(_ta_data);
+                            setText(txt);
+                        }
+                        else if(_ta_df == 2)
                         {
                             QString txt = QString::fromUtf8(_ta_data);
                             setText(txt);
@@ -634,7 +649,12 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     if(size >= _ta_dl)
                     {
                         // TODO: handle ISO 7 bit
-                        if(_ta_df == 1 || _ta_df == 2)
+                        if(_ta_df == 1)
+                        {
+                            QString txt = QString::fromLatin1(_ta_data);
+                            setText(txt);
+                        }
+                        else if(_ta_df == 2)
                         {
                             QString txt = QString::fromUtf8(_ta_data);
                             setText(txt);

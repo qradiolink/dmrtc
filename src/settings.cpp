@@ -437,6 +437,24 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
     }
+    try
+    {
+        const libconfig::Setting &auth_k = cfg.lookup("auth_keys");
+        for(int i = 0; i < auth_k.getLength(); ++i)
+        {
+          const libconfig::Setting &ak = auth_k[i];
+          unsigned int id;
+          std::string key;
+
+          if(!(ak.lookupValue("id", id)
+               && ak.lookupValue("key", key)))
+            continue;
+          auth_keys.insert(id, QString::fromStdString(key));
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
 
 }
 
@@ -539,6 +557,18 @@ void Settings::saveConfig()
         libconfig::Setting &id = call_div.add(libconfig::Setting::TypeGroup);
         id.add("id", libconfig::Setting::TypeInt) = (int)it_div.key();
         id.add("divert", libconfig::Setting::TypeInt) = (int)it_div.value();
+    }
+
+    /// Auth keys
+    root.add("auth_keys",libconfig::Setting::TypeList);
+    libconfig::Setting &auth_k = root["auth_keys"];
+    QMapIterator<unsigned int, QString> it_k(auth_keys);
+    while(it_k.hasNext())
+    {
+        it_k.next();
+        libconfig::Setting &id = auth_k.add(libconfig::Setting::TypeGroup);
+        id.add("id", libconfig::Setting::TypeInt) = (int)it_k.key();
+        id.add("key", libconfig::Setting::TypeString) = it_k.value().toStdString();
     }
 
     /// Write to file

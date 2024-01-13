@@ -43,6 +43,7 @@ public:
     void createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel);
     void createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time);
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
+    void createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options=0x00);
     void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId=StandardAddreses::SDMI, bool from_ts=true);
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
