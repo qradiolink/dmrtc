@@ -47,9 +47,11 @@ public:
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId);
-    void createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
+    void createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
+    void createPrivatePacketCallRequest(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
     void createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
+    void createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int dstId, bool group_call);
     void createChannelIdleDeallocation(CDMRCSBK &csbk, unsigned int call_type);
     void createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int dstId, unsigned int UAB);

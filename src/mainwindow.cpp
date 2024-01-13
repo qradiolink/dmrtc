@@ -601,10 +601,12 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             QModelIndex index2 = _logical_channel_model->index(i, 1);
             QString usage1 = logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage1 = logical_channels->at(j)->getDisabled() ? "Disabled " : usage1;
-            _logical_channel_model->setData(index1, QString("%3 %1   -->   %2")
+            _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
-                                            .arg(usage1));
+                                            .arg(usage1)
+                                            .arg(logical_channels->at(j)->getText())
+                                            .arg(logical_channels->at(j)->getGPSInfo()));
             QString color1 = (logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
@@ -616,10 +618,12 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
 
             QString usage2 = logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
-            _logical_channel_model->setData(index2, QString("%3 %1   -->   %2")
+            _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
-                                            .arg(usage2));
+                                            .arg(usage2)
+                                            .arg(logical_channels->at(j + 1)->getText())
+                                            .arg(logical_channels->at(j + 1)->getGPSInfo()));
             QString color2 = (logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
             _logical_channel_model->setColor(index2, color2);
