@@ -304,8 +304,7 @@ void Controller::requestMassRegistration()
     _logger->log(Logger::LogLevelInfo, QString("Requesting mass registration"));
     CDMRCSBK csbk;
     _signalling_generator->createRegistrationRequest(csbk);
-    LogicalChannel *channel = getControlOrAlternateChannel();
-    transmitCSBK(csbk, nullptr, channel->getSlot(), channel->getPhysicalChannel(), false, true);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
     _startup_completed = true;
     _registered_ms->clear();
 }
@@ -326,9 +325,8 @@ void Controller::announceSystemFreqs()
         QMap<QString, uint64_t> channel = _settings->logical_physical_channels[i];
         CDMRCSBK csbk, csbk_cont;
         _signalling_generator->createLogicalPhysicalChannelsAnnouncement(csbk, csbk_cont, channel);
-        LogicalChannel *controlchannel = getControlOrAlternateChannel();
-        transmitCSBK(csbk, nullptr, controlchannel->getSlot(), controlchannel->getPhysicalChannel(), false);
-        transmitCSBK(csbk_cont, nullptr, controlchannel->getSlot(), controlchannel->getPhysicalChannel(), false);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
+        transmitCSBK(csbk_cont, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
         if(_stop_thread)
             return;
     }
@@ -345,8 +343,7 @@ void Controller::announceLocalTime()
                  .arg(QDateTime::currentDateTime().toString()));
     CDMRCSBK csbk;
     _signalling_generator->createLocalTimeAnnouncement(csbk, date_time);
-    LogicalChannel *channel = getControlOrAlternateChannel();
-    transmitCSBK(csbk, nullptr, channel->getSlot(), channel->getPhysicalChannel(), false);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
 }
 
 void Controller::announceSystemMessage()
@@ -387,11 +384,10 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     {
         srcId = StandardAddreses::SDMI;
     }
-    LogicalChannel *channel = getControlOrAlternateChannel();
 
     CDMRData dmr_data_header = _signalling_generator->createUDTMessageHeader(srcId, dstId, blocks, pad_nibble);
-    dmr_data_header.setSlotNo(channel->getSlot());
-    channel->putRFQueue(dmr_data_header);
+    dmr_data_header.setSlotNo(_control_channel->getSlot());
+    _control_channel->putRFQueue(dmr_data_header);
 
     unsigned char *data_message = (unsigned char*)(message.toLocal8Bit().constData());
     unsigned char data[msg_size + pad_nibble / 2 + 2U];
@@ -416,11 +412,11 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         dmr_data.setSeqNo(0);
         dmr_data.setN(0);
         dmr_data.setDataType(DT_RATE_12_DATA);
-        dmr_data.setSlotNo(channel->getSlot());
+        dmr_data.setSlotNo(_control_channel->getSlot());
         dmr_data.setDstId(dmr_data_header.getDstId());
         dmr_data.setSrcId(dmr_data_header.getSrcId());
         dmr_data.setData(payload_data[i]);
-        channel->putRFQueue(dmr_data);
+        _control_channel->putRFQueue(dmr_data);
     }
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
@@ -439,11 +435,11 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     dmr_data3.setSeqNo(0);
     dmr_data3.setN(0);
     dmr_data3.setDataType(DT_RATE_12_DATA);
-    dmr_data3.setSlotNo(channel->getSlot());
+    dmr_data3.setSlotNo(_control_channel->getSlot());
     dmr_data3.setDstId(dmr_data_header.getDstId());
     dmr_data3.setSrcId(dmr_data_header.getSrcId());
     dmr_data3.setData(payload_data[3]);
-    channel->putRFQueue(dmr_data3);
+    _control_channel->putRFQueue(dmr_data3);
 }
 
 void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
@@ -469,11 +465,9 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     _uplink_acks->insert(dstId, ServiceAction::ActionDGNARequest);
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
-    LogicalChannel *channel = getControlOrAlternateChannel();
-
     CDMRData dmr_data_header = _signalling_generator->createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
-    dmr_data_header.setSlotNo(channel->getSlot());
-    channel->putRFQueue(dmr_data_header);
+    dmr_data_header.setSlotNo(_control_channel->getSlot());
+    _control_channel->putRFQueue(dmr_data_header);
 
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
     CCRC::addCCITT162(data, 48U);
@@ -494,11 +488,11 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         dmr_data.setSeqNo(0);
         dmr_data.setN(0);
         dmr_data.setDataType(DT_RATE_12_DATA);
-        dmr_data.setSlotNo(channel->getSlot());
+        dmr_data.setSlotNo(_control_channel->getSlot());
         dmr_data.setDstId(dmr_data_header.getDstId());
         dmr_data.setSrcId(dmr_data_header.getSrcId());
         dmr_data.setData(payload_data[i]);
-        channel->putRFQueue(dmr_data);
+        _control_channel->putRFQueue(dmr_data);
     }
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
@@ -517,11 +511,11 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     dmr_data3.setSeqNo(0);
     dmr_data3.setN(0);
     dmr_data3.setDataType(DT_RATE_12_DATA);
-    dmr_data3.setSlotNo(channel->getSlot());
+    dmr_data3.setSlotNo(_control_channel->getSlot());
     dmr_data3.setDstId(dmr_data_header.getDstId());
     dmr_data3.setSrcId(dmr_data_header.getSrcId());
     dmr_data3.setData(payload_data[3]);
-    channel->putRFQueue(dmr_data3);
+    _control_channel->putRFQueue(dmr_data3);
 }
 
 void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap)
@@ -574,8 +568,7 @@ void Controller::pingRadio(unsigned int target_id, bool group)
     _uplink_acks->insert(target_id, ServiceAction::ActionPingRequest);
     CDMRCSBK csbk;
     _signalling_generator->createPresenceCheckAhoy(csbk, target_id, group);
-    LogicalChannel *channel = getControlOrAlternateChannel();
-    transmitCSBK(csbk, nullptr, channel->getSlot(), channel->getPhysicalChannel(), false, true);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
 void Controller::resetPing()
@@ -1174,10 +1167,9 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 dstId = _settings->call_diverts.value(dstId);
             }
         }
-        LogicalChannel *channel = getControlOrAlternateChannel();
         dmr_data.setDstId(dstId);
-        dmr_data.setSlotNo(channel->getSlot());
-        channel->putRFQueue(dmr_data);
+        dmr_data.setSlotNo(_control_channel->getSlot());
+        _control_channel->putRFQueue(dmr_data);
     }
     else if(!from_gateway)
     {
