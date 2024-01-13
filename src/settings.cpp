@@ -420,6 +420,23 @@ void Settings::readConfig()
     {
         call_priorities = {{112, 3}, {226, 2}, {9, 1}};
     }
+    try
+    {
+        const libconfig::Setting &call_div = cfg.lookup("call_diverts");
+        for(int i = 0; i < call_div.getLength(); ++i)
+        {
+          const libconfig::Setting &div = call_div[i];
+          unsigned int id, divert;
+
+          if(!(div.lookupValue("id", id)
+               && div.lookupValue("divert", divert)))
+            continue;
+          call_diverts.insert(id, divert);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
 
 }
 
@@ -453,6 +470,7 @@ void Settings::saveConfig()
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;
+    /// Talkgroup routing
     root.add("talkgroup_routing",libconfig::Setting::TypeList);
     libconfig::Setting &talkgroup_routing = root["talkgroup_routing"];
     QMapIterator<unsigned int, unsigned int> i(talkgroup_routing_table);
@@ -463,6 +481,7 @@ void Settings::saveConfig()
         talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)i.key();
         talkgroup.add("gateway_id", libconfig::Setting::TypeInt) = (int)i.value();
     }
+    /// SLot rewrites
     root.add("slot_rewrite",libconfig::Setting::TypeList);
     libconfig::Setting &slot_rewrite = root["slot_rewrite"];
     QMapIterator<unsigned int, unsigned int> it_slot(slot_rewrite_table);
@@ -473,6 +492,7 @@ void Settings::saveConfig()
         talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)it_slot.key();
         talkgroup.add("slot_no", libconfig::Setting::TypeInt) = (int)it_slot.value();
     }
+    /// Logical physical channels
     root.add("logical_physical_channels",libconfig::Setting::TypeList);
     libconfig::Setting &lpc = root["logical_physical_channels"];
     QListIterator<QMap<QString, uint64_t>> it_lpc(logical_physical_channels);
@@ -485,6 +505,8 @@ void Settings::saveConfig()
         channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");
         channel.add("colour_code", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("colour_code");
     }
+
+    /// Service ids
     root.add("service_ids",libconfig::Setting::TypeList);
     libconfig::Setting &service_ids_config = root["service_ids"];
     QMapIterator<QString, unsigned int> it_services(service_ids);
@@ -495,6 +517,7 @@ void Settings::saveConfig()
         service.add("service_name", libconfig::Setting::TypeString) = it_services.key().toStdString();
         service.add("id", libconfig::Setting::TypeInt) = (int)it_services.value();
     }
+    /// Call priorities
     root.add("call_priorities",libconfig::Setting::TypeList);
     libconfig::Setting &call_prio = root["call_priorities"];
     QMapIterator<unsigned int, unsigned int> it_prio(call_priorities);
@@ -504,6 +527,18 @@ void Settings::saveConfig()
         libconfig::Setting &id = call_prio.add(libconfig::Setting::TypeGroup);
         id.add("id", libconfig::Setting::TypeInt) = (int)it_prio.key();
         id.add("priority", libconfig::Setting::TypeInt) = (int)it_prio.value();
+    }
+
+    /// Call diverts
+    root.add("call_diverts",libconfig::Setting::TypeList);
+    libconfig::Setting &call_div = root["call_diverts"];
+    QMapIterator<unsigned int, unsigned int> it_div(call_diverts);
+    while(it_div.hasNext())
+    {
+        it_div.next();
+        libconfig::Setting &id = call_div.add(libconfig::Setting::TypeGroup);
+        id.add("id", libconfig::Setting::TypeInt) = (int)it_div.key();
+        id.add("divert", libconfig::Setting::TypeInt) = (int)it_div.value();
     }
 
     /// Write to file

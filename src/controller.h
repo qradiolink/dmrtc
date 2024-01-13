@@ -151,7 +151,6 @@ private:
     QVector<LogicalChannel*> _logical_channels;
     QMap<unsigned int, unsigned int> _private_calls;
     QMap<unsigned int, unsigned int> _short_data_messages;
-    QMap<unsigned int, unsigned int> _call_diverts;
     QList<unsigned int> *_registered_ms;
     QMap<unsigned int, QList<unsigned int>> *_talkgroup_attachments;
     QMap<unsigned int, unsigned int> *_uplink_acks;
