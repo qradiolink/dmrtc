@@ -900,7 +900,7 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
         QString message = QString("Calls to %1 are now diverted to %2").arg(_id_lookup->getCallsign(srcId)).arg(divert_id);
         sendUDTShortMessage(message, srcId);
     }
-    _call_diverts.insert(srcId, divert_id);
+    _settings->call_diverts.insert(srcId, divert_id);
 }
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
@@ -1149,9 +1149,9 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
         }
         else
         {
-            if(_call_diverts.contains(dstId))
+            if(_settings->call_diverts.contains(dstId))
             {
-                dstId = _call_diverts.value(dstId);
+                dstId = _settings->call_diverts.value(dstId);
             }
         }
         LogicalChannel *channel = getControlOrAlternateChannel();
@@ -1167,9 +1167,9 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
         }
         else
         {
-            if(_call_diverts.contains(dstId))
+            if(_settings->call_diverts.contains(dstId))
             {
-                dstId = _call_diverts.value(dstId);
+                dstId = _settings->call_diverts.value(dstId);
             }
         }
         dmr_data.setDstId(dstId);
@@ -1303,9 +1303,9 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         bool priority = false;
         if(call_type == CallType::CALL_TYPE_MS)
         {
-            if(_call_diverts.contains(dstId))
+            if(_settings->call_diverts.contains(dstId))
             {
-                dstId = _call_diverts.value(dstId);
+                dstId = _settings->call_diverts.value(dstId);
             }
             if(_registered_ms->contains(dstId) && !_private_calls.contains(dstId))
             {
@@ -1766,9 +1766,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Direct MS to MS call request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
-        if(_call_diverts.contains(dstId))
+        if(_settings->call_diverts.contains(dstId))
         {
-            sendUDTCallDivertInfo(srcId, _call_diverts.value(dstId), 0);
+            sendUDTCallDivertInfo(srcId, _settings->call_diverts.value(dstId), 0);
             _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call request (diverted) from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
             return;
@@ -1952,9 +1952,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Short data service MS to MS
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivUDTDataCall))
     {
-        if(_call_diverts.contains(dstId))
+        if(_settings->call_diverts.contains(dstId))
         {
-            sendUDTCallDivertInfo(srcId, _call_diverts.value(dstId), 4); // FIXME: SAP 0100 for UDT causes radio to transmit with ID set to 0???
+            sendUDTCallDivertInfo(srcId, _settings->call_diverts.value(dstId), 4); // FIXME: SAP 0100 for UDT causes radio to transmit with ID set to 0???
             return;
         }
         _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
@@ -1989,7 +1989,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            _call_diverts.remove(srcId);
+            _settings->call_diverts.remove(srcId);
             _signalling_generator->createReplyCallDivertAccepted(csbk, srcId);
             transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
             _logger->log(Logger::LogLevelInfo, QString("Received cancel call diversion request request from %1, slot %2 to destination %3")
@@ -1999,9 +1999,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Individual packet data call
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivPacketDataCall))
     {
-        if(_call_diverts.contains(dstId))
+        if(_settings->call_diverts.contains(dstId))
         {
-            sendUDTCallDivertInfo(srcId, _call_diverts.value(dstId), 0);
+            sendUDTCallDivertInfo(srcId, _settings->call_diverts.value(dstId), 0);
             _logger->log(Logger::LogLevelInfo, QString("Received radio packet data call request (diverted) from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
             return;
