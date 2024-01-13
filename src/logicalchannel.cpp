@@ -475,7 +475,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         slotType.setDataType(dataType);
         slotType.getData(data);
         CSync::addDMRDataSync(data, true);
-        setText("");
         _data_mutex.lock();
         _gps_info = "";
         _talker_alias_received = false;
@@ -518,7 +517,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         if (ret)
         {
             FLCO flco = _embedded_data[_emb_write].getFLCO();
-            QString txt;
             unsigned char raw_data[9U];
             _embedded_data[_emb_write].getRawData(raw_data);
 
