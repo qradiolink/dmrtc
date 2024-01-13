@@ -426,10 +426,7 @@ QString LogicalChannel::getText()
 void LogicalChannel::setText(QString txt)
 {
     _data_mutex.lock();
-    if(txt.size() > 0)
-        _text.append(txt);
-    else
-        _text = "";
+    _text = txt;
     _data_mutex.unlock();
     emit update();
 }
