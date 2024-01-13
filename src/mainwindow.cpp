@@ -37,6 +37,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
     QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
+    QObject::connect(ui->pushButtonAuthCheck, SIGNAL(clicked(bool)), this, SLOT(authCheck()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -841,6 +842,28 @@ void MainWindow::displayPingResponse(unsigned int srcId, unsigned int msec)
     _ping_radio_timer.stop();
     ui->labelPingInformation->setStyleSheet("background-color:#009900;color:#FFFFFF");
     ui->labelPingInformation->setText(QString("Ping response from: %1, time: %2 ms").arg(srcId).arg(msec));
+}
+
+void MainWindow::authCheck()
+{
+    QString radio = ui->comboBoxRegisteredMS->currentText();
+    ui->labelAuthSuccess->setStyleSheet("background-color:#FFFFFF;color:#000000");
+    ui->labelAuthSuccess->setText("Checking");
+    emit sendAuthCheck(radio.toInt());
+}
+
+void MainWindow::authSuccess(bool successful)
+{
+    if(successful)
+    {
+        ui->labelAuthSuccess->setStyleSheet("background-color:#009900;color:#FFFFFF");
+        ui->labelAuthSuccess->setText("SUCCESS");
+    }
+    else
+    {
+        ui->labelAuthSuccess->setStyleSheet("background-color:#990000;color:#FFFFFF");
+        ui->labelAuthSuccess->setText("FAILED");
+    }
 }
 
 void MainWindow::sendLocalTimeBroadcast()

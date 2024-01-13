@@ -46,6 +46,7 @@
 #include "MMDVM/DMRSlotType.h"
 #include "MMDVM/CRC.h"
 #include "MMDVM/Sync.h"
+#include "rc4.h"
 
 enum ServiceAction {
     ActionPingRequest,
@@ -56,6 +57,7 @@ enum ServiceAction {
     RegistrationWithAttachment,
     CallDivert,
     UDTPoll,
+    ActionAuthCheck,
 };
 
 class Controller : public QObject
@@ -86,6 +88,7 @@ public slots:
     void pingRadio(unsigned int target_id, bool group=false);
     void pollData(unsigned int target_id);
     void resetPing();
+    void sendAuthCheck(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
 
@@ -100,6 +103,7 @@ signals:
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);
+    void authSuccess(bool successful);
 
 private:
     LogicalChannel* findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
@@ -169,6 +173,7 @@ private:
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
+    unsigned int _auth_reply;
 
 
 

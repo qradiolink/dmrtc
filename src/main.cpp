@@ -160,6 +160,8 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
                      w, SLOT(updateRejectedCallsList(uint,uint,bool)));
     QObject::connect(controller, SIGNAL(pingResponse(uint,uint)),
                      w, SLOT(displayPingResponse(uint,uint)));
+    QObject::connect(controller, SIGNAL(authSuccess(bool)),
+                     w, SLOT(authSuccess(bool)));
     /// GUI to controller
     QObject::connect(w, SIGNAL(channelEnable(uint,bool)), controller, SLOT(setChannelEnabled(uint,bool)));
     QObject::connect(w, SIGNAL(registrationRequested()), controller, SLOT(requestMassRegistration()));
@@ -168,6 +170,7 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
     QObject::connect(w, SIGNAL(pollData(uint)), controller, SLOT(pollData(uint)));
     QObject::connect(w, SIGNAL(pingRadio(uint,bool)), controller, SLOT(pingRadio(uint,bool)));
     QObject::connect(w, SIGNAL(resetPing()), controller, SLOT(resetPing()));
+    QObject::connect(w, SIGNAL(sendAuthCheck(uint)), controller, SLOT(sendAuthCheck(uint)));
     QObject::connect(w, SIGNAL(broadcastLocalTime()), controller, SLOT(announceLocalTime()));
     QObject::connect(w, SIGNAL(broadcastFrequencies()), controller, SLOT(announceSystemFreqs()));
 
