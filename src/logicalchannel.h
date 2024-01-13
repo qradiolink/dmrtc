@@ -22,6 +22,7 @@
 #include <QTimer>
 #include <QQueue>
 #include <QMutex>
+#include <QByteArray>
 #include "src/logger.h"
 #include "src/settings.h"
 #include "MMDVM/DMRData.h"
@@ -74,6 +75,8 @@ public:
     bool getDisabled();
     QString getText();
     void setText(QString txt);
+    void setGPSInfo(float longitude, float latitude, std::string error);
+    QString getGPSInfo();
     void putRFQueue(CDMRData &dmr_data, bool first=false);
     bool getRFQueue(CDMRData &dmr_data);
     void putNetQueue(CDMRData &dmr_data);
@@ -89,6 +92,7 @@ signals:
     void channelDeallocated(unsigned int channel_id);
     void internalStartTimer();
     void internalStopTimer();
+    void update();
 
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data);
@@ -120,6 +124,11 @@ private:
     unsigned int _emb_read;
     unsigned int _emb_write;
     QString _text;
+    QString _gps_info;
+    bool _talker_alias_received;
+    unsigned int _ta_df;
+    unsigned int _ta_dl;
+    QByteArray _ta_data;
     CDMRLC _lc;
     unsigned int _state;
     uint64_t _rx_freq;

@@ -159,7 +159,7 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CD
     data2 |= late_entry << 2;
     data2 |= emergency_call << 1;
     data2 |= aligned_timing;
-    csbk.setCBF(data2);  // 0x18
+    csbk.setCBF(data2);
     if(logical_channel->getCallType() == CallType::CALL_TYPE_GROUP)
     {
         csbk.setDstId(Utils::convertBase10ToBase11GroupNumber(logical_channel->getDestination()));
@@ -351,7 +351,7 @@ void Signalling::createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstI
     csbk.setSrcId(StandardAddreses::DIVERTI);
 }
 
-void Signalling::createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     unsigned int service_kind_flag = 1; // FOACSU: 1, OACSU: 0
@@ -359,7 +359,20 @@ void Signalling::createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned i
         service_kind_flag = 0;
     csbk.setFID(0x00);
     csbk.setData1(service_kind_flag);
-    csbk.setCBF(0x00);  // 0x18
+    csbk.setCBF(0x00);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
+void Signalling::createPrivatePacketCallRequest(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_AHOY);
+    unsigned int service_kind_flag = 0;
+    unsigned int service_options = csbk.getServiceOptions();
+    unsigned char data1 = (unsigned char)((service_options << 1) | service_kind_flag);
+    csbk.setFID(0x00);
+    csbk.setData1(data1);
+    csbk.setCBF(0x02);
     csbk.setDstId(dstId);
     csbk.setSrcId(srcId);
 }
@@ -380,7 +393,7 @@ void Signalling::createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical
     data2 |= (late_entry << 2) & 0x04;
     data2 |= (emergency_call << 1) & 0x02;
     data2 |= aligned_timing;
-    csbk.setCBF(data2);  // 0x18
+    csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(srcId);
 }
@@ -401,7 +414,32 @@ void Signalling::createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_c
     data2 |= (late_entry << 2) & 0x04;
     data2 |= (emergency_call << 1) & 0x02;
     data2 |= aligned_timing;
-    csbk.setCBF(data2);  // 0x18
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
+void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+{
+    unsigned int service_options = csbk.getServiceOptions();
+    bool SIMI = (service_options >> 2) & 0x01;
+    bool hi_rate = (service_options >> 3) & 0x01; // TODO
+    uint8_t emergency_call = 0; // TODO
+    uint8_t rate = hi_rate ? 1 : 0; // TODO
+    unsigned char csbko = SIMI ? CSBKO_PD_GRANT_MI : CSBKO_PD_GRANT;
+    csbk.setCSBKO(csbko);
+    csbk.setFID(0x00);
+    unsigned int phys_chan = logical_channel->getPhysicalChannel() + 1; // our phys channel numbering starts at 0, MS starts at 1
+    unsigned char c1 = (phys_chan >> 4) & 0xFF;
+    csbk.setData1(c1);
+    unsigned char aligned_timing = 0x00; // TODO: aligned timing doesn't work with dual slot packet data
+    unsigned char c2 = (phys_chan & 0xFF) << 4;
+    unsigned char data2 = c2;
+    data2 |= ((logical_channel->getSlot() - 1) << 3) & 0x08;
+    data2 |= (rate << 2) & 0x04;
+    data2 |= (emergency_call << 1) & 0x02;
+    data2 |= aligned_timing;
+    csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(srcId);
 }
