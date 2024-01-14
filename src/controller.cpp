@@ -1010,9 +1010,7 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
             else if(_udt_format == 3)
                 text_message = QString::fromLatin1((const char*)msg, size);
             else if(_udt_format == 7)
-            {
                 Utils::parseUTF16(text_message, size, msg);
-            }
             if(text_message.size() > 0)
             {
                 sendUDTDGNA(text_message, srcId);

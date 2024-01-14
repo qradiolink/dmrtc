@@ -528,7 +528,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
     }
     else if(dataType == DT_VOICE_SYNC)
     {
-
         _emb_read = (_emb_read + 1) % 2;
         _emb_write = (_emb_write + 1) % 2;
         _embedded_data[_emb_write].reset();
@@ -538,7 +537,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         CDMREMB emb;
         emb.putData(data);
         unsigned char lcss = emb.getLCSS();
-
 
         bool ret = _embedded_data[_emb_write].addData(data, lcss);
         if (ret)
@@ -627,7 +625,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
             }
 
         }
-
 
         // Regenerate the previous super blocks Embedded Data or substitude the LC for it
         if (_embedded_data[_emb_read].isValid())
