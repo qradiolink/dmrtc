@@ -480,6 +480,8 @@ void LogicalChannel::processTalkerAlias()
         }
         _talker_alias_received = true;
         _ta_data.clear();
+        _ta_dl = 0;
+        _ta_df = 0;
     }
 }
 
@@ -581,7 +583,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
 
             case FLCO_TALKER_ALIAS_BLOCK1:
             {
-                if(!_talker_alias_received)
+                if(!_talker_alias_received && (_ta_dl > 0))
                 {
                     for(int i=2;i<9;i++)
                     {
@@ -594,7 +596,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
 
             case FLCO_TALKER_ALIAS_BLOCK2:
             {
-                if(!_talker_alias_received)
+                if(!_talker_alias_received && (_ta_dl > 0))
                 {
                     for(int i=2;i<9;i++)
                     {
@@ -607,7 +609,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
 
             case FLCO_TALKER_ALIAS_BLOCK3:
             {
-                if(!_talker_alias_received)
+                if(!_talker_alias_received && (_ta_dl > 0))
                 {
                     for(int i=2;i<9;i++)
                     {
