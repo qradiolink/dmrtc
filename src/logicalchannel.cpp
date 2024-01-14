@@ -473,16 +473,8 @@ void LogicalChannel::processTalkerAlias()
             }
             else
             {
-                char16_t converted_alias[size/2];
-                char16_t alias[size/2];
-                memcpy(alias, _ta_data.data(), size);
-                for(unsigned int i = 0;i<size/2;i++)
-                {
-                    char16_t c = (alias[i] << 8) & 0xFF00;
-                    c |= (alias[i] >> 8) & 0xFF;
-                    converted_alias[i] = c;
-                }
-                QString txt = QString::fromUtf16(converted_alias, size/2);
+                QString txt;
+                Utils::parseUTF16(txt, size, (unsigned char*)_ta_data.data());
                 setText(txt);
             }
         }

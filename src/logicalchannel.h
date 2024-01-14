@@ -26,6 +26,7 @@
 #include <QSysInfo>
 #include "src/logger.h"
 #include "src/settings.h"
+#include "src/utils.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMREMB.h"
 #include "MMDVM/DMREmbeddedData.h"

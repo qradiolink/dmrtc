@@ -454,7 +454,14 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     data[0] = (attach) ? 0x01 : 0x00;
     for(int i=0,k=1;i<tgids.size();i++,k=k+3)
     {
-        unsigned int id = (Utils::convertBase10ToBase11GroupNumber(tgids.at(i).toInt()));
+        bool ok = false;
+        unsigned int group = tgids.at(i).toUInt(&ok);
+        if(!ok)
+        {
+            _logger->log(Logger::LogLevelDebug, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
+            return;
+        }
+        unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
@@ -929,7 +936,9 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool
         else if(_udt_format == 3)
             text_message = QString::fromLatin1((const char*)msg, size);
         else if(_udt_format == 7)
-            text_message = QString::fromUtf16((const char16_t*)msg, size);
+        {
+            Utils::parseUTF16(text_message, size, msg);
+        }
         if(group)
         {
             _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
@@ -983,6 +992,32 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         float ber = float(dmr_data.getBER()) / 1.41f;
         QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
         sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
+    }
+    /// DGNA
+    else if(dstId == (unsigned int)_settings->service_ids.value("dgna", 0))
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
+        transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+        {
+            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
+            unsigned char msg[size];
+            memcpy(msg, _data_message, size);
+            QString text_message;
+            if(_udt_format == 4)
+                text_message = QString::fromUtf8((const char*)msg, size);
+            else if(_udt_format == 3)
+                text_message = QString::fromLatin1((const char*)msg, size);
+            else if(_udt_format == 7)
+            {
+                Utils::parseUTF16(text_message, size, msg);
+            }
+            if(text_message.size() > 0)
+            {
+                sendUDTDGNA(text_message, srcId);
+            }
+        }
     }
 }
 

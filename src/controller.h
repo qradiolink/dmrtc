@@ -69,7 +69,6 @@ public:
     QVector<LogicalChannel*>* getLogicalChannels();
     void announceLateEntry();
     void announceSystemMessage();
-
     CDMRCSBK createRegistrationRequest();
 
 public slots:
