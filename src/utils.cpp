@@ -77,3 +77,24 @@ unsigned int Utils::convertBase10ToBase11GroupNumber(unsigned int gid)
     unsigned int group_number = digit[0] + digit[1] * 11U + digit[2] * 121U + digit[3] * 1331U + digit[4] * 14641U + digit[5] * 146410U + digit[6] * 1464100U;
     return group_number;
 }
+
+void Utils::parseUTF16(QString &text_message, unsigned int size, unsigned char *msg)
+{
+    if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
+    {
+        text_message = QString::fromUtf16((char16_t*)msg, size/2);
+    }
+    else
+    {
+        char16_t converted[size/2];
+        char16_t orig[size/2];
+        memcpy(orig, msg, size);
+        for(unsigned int i = 0;i<size/2;i++)
+        {
+            char16_t c = (orig[i] << 8) & 0xFF00;
+            c |= (orig[i] >> 8) & 0xFF;
+            converted[i] = c;
+        }
+        text_message = QString::fromUtf16(converted, size/2);
+    }
+}

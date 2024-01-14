@@ -400,7 +400,7 @@ void Settings::readConfig()
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
-        service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
+        service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}, {"dgna", 3}};
     }
     try
     {
