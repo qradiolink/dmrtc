@@ -1045,7 +1045,6 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             {
                 _data_msg_size = 0;
             }
-
         }
         else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
         {
@@ -1086,7 +1085,6 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
                 transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
                 _short_data_messages.remove(srcId);
-
             }
             else
             {
@@ -1116,7 +1114,6 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             {
                 _data_msg_size = 0;
             }
-
         }
         else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
         {
@@ -1192,6 +1189,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {
             dstId = Utils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
+            _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         }
         else
         {
@@ -1209,6 +1207,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {
             dstId = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+            _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         }
         else
         {
@@ -1386,7 +1385,6 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
             logical_channel->putRFQueue(dmr_data);
             return;
         }
-
     }
 }
 
@@ -1646,7 +1644,6 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRData &dmr_data, CDMRCSBK
             emit updateLogicalChannels(&_logical_channels);
             emit updateCallLog(srcId, dstId, rssi, ber, true);
         }
-
         return;
     }
 }
@@ -1673,7 +1670,6 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
             updateLogicalChannels(&_logical_channels);
         }
     }
-
 }
 
 void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
@@ -2080,7 +2076,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
     }
-    /// MS acknowledgement of short data message
+    /// MS authentication response
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&
              _uplink_acks->contains(srcId) &&
              _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
@@ -2117,7 +2113,6 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelDebug, "Unhandled CSBK type");
         return;
     }
-
 }
 
 void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
@@ -2196,7 +2191,6 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
                 active_channels[i]->putRFQueue(announce_data);
             }
         }
-
     }
     else
     {
@@ -2212,7 +2206,6 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
             }
         }
     }
-
 }
 
 void Controller::updateMMDVMConfig(unsigned char* payload, int size)
