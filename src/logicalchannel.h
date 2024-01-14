@@ -23,6 +23,7 @@
 #include <QQueue>
 #include <QMutex>
 #include <QByteArray>
+#include <QSysInfo>
 #include "src/logger.h"
 #include "src/settings.h"
 #include "MMDVM/DMRData.h"
@@ -140,6 +141,7 @@ private:
     float _rssi;
     float _ber;
 
+    void processTalkerAlias();
 };
 
 #endif // LOGICALCHANNEL_H

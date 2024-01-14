@@ -426,7 +426,7 @@ QString LogicalChannel::getText()
 void LogicalChannel::setText(QString txt)
 {
     _data_mutex.lock();
-    _text = txt;
+    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "UTF-16" : "");
     _data_mutex.unlock();
     emit update();
 }
@@ -451,6 +451,44 @@ QString LogicalChannel::getGPSInfo()
     gps_info = _gps_info;
     _data_mutex.unlock();
     return gps_info;
+}
+
+void LogicalChannel::processTalkerAlias()
+{
+    unsigned int size = _ta_data.size();
+    if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) || ((_ta_df == 3) && (size >= _ta_dl*2)))
+    {
+        // TODO: handle ISO 7 bit
+        if(_ta_df == 1 || _ta_df == 2)
+        {
+            QString txt = QString::fromUtf8(_ta_data);
+            setText(txt);
+        }
+        else if(_ta_df == 3)
+        {
+            if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
+            {
+                QString txt = QString::fromUtf16((char16_t*)_ta_data.constData(), size/2);
+                setText(txt);
+            }
+            else
+            {
+                char16_t converted_alias[size/2];
+                char16_t alias[size/2];
+                memcpy(alias, _ta_data.data(), size);
+                for(unsigned int i = 0;i<size/2;i++)
+                {
+                    char16_t c = (alias[i] << 8) & 0xFF00;
+                    c |= (alias[i] >> 8) & 0xFF;
+                    converted_alias[i] = c;
+                }
+                QString txt = QString::fromUtf16(converted_alias, size/2);
+                setText(txt);
+            }
+        }
+        _talker_alias_received = true;
+        _ta_data.clear();
+    }
 }
 
 void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
@@ -546,27 +584,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     {
                         _ta_data.append(raw_data[i]);
                     }
-                    unsigned int size = _ta_data.size();
-                    if(size >= _ta_dl)
-                    {
-                        // TODO: handle ISO 7 bit
-                        if(_ta_df == 1)
-                        {
-                            QString txt = QString::fromLatin1(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 2)
-                        {
-                            QString txt = QString::fromUtf8(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 3)
-                        {
-                            QString txt = QString::fromUtf16((char16_t*)_ta_data.data());
-                            setText(txt);
-                        }
-                        _talker_alias_received = true;
-                    }
+                    processTalkerAlias();
                 }
             }
                 break;
@@ -579,27 +597,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     {
                         _ta_data.append(raw_data[i]);
                     }
-                    unsigned int size = _ta_data.size();
-                    if(size >= _ta_dl)
-                    {
-                        // TODO: handle ISO 7 bit
-                        if(_ta_df == 1)
-                        {
-                            QString txt = QString::fromLatin1(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 2)
-                        {
-                            QString txt = QString::fromUtf8(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 3)
-                        {
-                            QString txt = QString::fromUtf16((char16_t*)_ta_data.data());
-                            setText(txt);
-                        }
-                        _talker_alias_received = true;
-                    }
+                    processTalkerAlias();
                 }
             }
                 break;
@@ -612,27 +610,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     {
                         _ta_data.append(raw_data[i]);
                     }
-                    unsigned int size = _ta_data.size();
-                    if(size >= _ta_dl)
-                    {
-                        // TODO: handle ISO 7 bit
-                        if(_ta_df == 1)
-                        {
-                            QString txt = QString::fromLatin1(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 2)
-                        {
-                            QString txt = QString::fromUtf8(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 3)
-                        {
-                            QString txt = QString::fromUtf16((char16_t*)_ta_data.data());
-                            setText(txt);
-                        }
-                        _talker_alias_received = true;
-                    }
+                    processTalkerAlias();
                 }
             }
                 break;
@@ -645,27 +623,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     {
                         _ta_data.append(raw_data[i]);
                     }
-                    unsigned int size = _ta_data.size();
-                    if(size >= _ta_dl)
-                    {
-                        // TODO: handle ISO 7 bit
-                        if(_ta_df == 1)
-                        {
-                            QString txt = QString::fromLatin1(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 2)
-                        {
-                            QString txt = QString::fromUtf8(_ta_data);
-                            setText(txt);
-                        }
-                        else if(_ta_df == 3)
-                        {
-                            QString txt = QString::fromUtf16((char16_t*)_ta_data.data());
-                            setText(txt);
-                        }
-                        _talker_alias_received = true;
-                    }
+                    processTalkerAlias();
                 }
             }
                 break;

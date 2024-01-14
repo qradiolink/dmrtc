@@ -26,6 +26,7 @@ DMR tier III services partly or completely implemented
 11. Radio presence check
 12. Private voice / UDT short data call diversion service
 13. MS authentication
+14. Preferential call notification
 
 
 DMR tier III services NOT implemented
