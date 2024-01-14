@@ -72,6 +72,7 @@ public:
     CDMRData createUDTMessageHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble);
     CDMRData createUDTDGNAHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks);
     CDMRData createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int sap=0);
+    void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
 
 
 

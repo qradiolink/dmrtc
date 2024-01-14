@@ -29,6 +29,29 @@ void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsig
     pad_nibble = _uab_pad_nibbles_mapping[1][msg_size - 1];
 }
 
+void Signalling::rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId)
+{
+    if(dmr_data.getDataType() == DT_DATA_HEADER)
+    {
+        unsigned char data[DMR_FRAME_LENGTH_BYTES];
+        dmr_data.getData(data);
+        CDMRDataHeader header;
+        header.put(data);
+        if(header.getUDT())
+        {
+            header.setDstId(dstId);
+            header.construct();
+            header.get(data);
+            CDMRSlotType slotType;
+            slotType.setColorCode(1);
+            slotType.setDataType(DT_DATA_HEADER);
+            slotType.getData(data);
+            CSync::addDMRDataSync(data, true);
+            dmr_data.setData(data);
+        }
+    }
+}
+
 CDMRData Signalling::createUDTMessageHeader(unsigned int srcId, unsigned int dstId,
                                      unsigned int blocks, unsigned int pad_nibble)
 {
