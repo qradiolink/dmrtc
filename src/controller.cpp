@@ -927,17 +927,24 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool
 {
     if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
     {
-        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
+        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
         unsigned char msg[size];
         memcpy(msg, _data_message, size);
         QString text_message;
+        // last character seems to be null termination
         if(_udt_format == 4)
-            text_message = QString::fromUtf8((const char*)msg, size);
+            text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
         else if(_udt_format == 3)
-            text_message = QString::fromLatin1((const char*)msg, size);
+        {
+            unsigned int bit7_size = 8 * size / 7;
+            unsigned char converted[bit7_size];
+            Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+            text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
+        }
         else if(_udt_format == 7)
         {
-            Utils::parseUTF16(text_message, size, msg);
+            Utils::parseUTF16(text_message, size - 1, msg);
+            text_message = text_message.trimmed();
         }
         if(group)
         {
@@ -1001,16 +1008,25 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
         if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
         {
-            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2 - 1; // size does not include CRC16 and last character
+            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
             unsigned char msg[size];
             memcpy(msg, _data_message, size);
             QString text_message;
+            // last character seems to be null termination
             if(_udt_format == 4)
-                text_message = QString::fromUtf8((const char*)msg, size);
+                text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
             else if(_udt_format == 3)
-                text_message = QString::fromLatin1((const char*)msg, size);
+            {
+                unsigned int bit7_size = 8 * size / 7;
+                unsigned char converted[bit7_size];
+                Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+                text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
+            }
             else if(_udt_format == 7)
-                Utils::parseUTF16(text_message, size, msg);
+            {
+                Utils::parseUTF16(text_message, size - 1, msg);
+                text_message = text_message.trimmed();
+            }
             if(text_message.size() > 0)
             {
                 sendUDTDGNA(text_message, srcId);

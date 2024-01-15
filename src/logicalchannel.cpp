@@ -426,7 +426,7 @@ QString LogicalChannel::getText()
 void LogicalChannel::setText(QString txt)
 {
     _data_mutex.lock();
-    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "UTF-16" : "");
+    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : "");
     _data_mutex.unlock();
     emit update();
 }
@@ -572,6 +572,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                 {
                     _ta_df = (raw_data[2] >> 6) & 0x03;
                     _ta_dl = (raw_data[2] >> 1) & 0x1F;
+                    _ta_data.clear();
                     for(int i=3;i<9;i++)
                     {
                         _ta_data.append(raw_data[i]);
