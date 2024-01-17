@@ -87,6 +87,7 @@ public slots:
     void pingRadio(unsigned int target_id, bool group=false);
     void pollData(unsigned int target_id);
     void resetPing();
+    void resetAuth();
     void sendAuthCheck(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
@@ -103,6 +104,8 @@ signals:
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);
     void authSuccess(bool successful);
+    void startAuthTimer();
+    void stopAuthTimer();
 
 private:
     LogicalChannel* findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
@@ -159,6 +162,7 @@ private:
     QMap<unsigned int, unsigned int> *_uplink_acks;
     QSet<unsigned int> *_rejected_calls;
     QSet<unsigned int> *_subscribed_talkgroups;
+    QMap<unsigned int, unsigned int> *_auth_responses;
 
     std::chrono::high_resolution_clock::time_point t1_ping_ms;
 
@@ -172,11 +176,6 @@ private:
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
-    unsigned int _auth_reply;
-
-
-
-
 };
 
 #endif // CONTROLLER_H

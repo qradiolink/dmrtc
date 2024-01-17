@@ -28,6 +28,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _subscribed_talkgroups = new QSet<unsigned int>;
     // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
     _uplink_acks = new QMap<unsigned int, unsigned int>;
+    _auth_responses = new QMap<unsigned int, unsigned int>;
     _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
     _gateway_router = new GatewayRouter(_settings, _logger);
     _signalling_generator = new Signalling(_settings);
@@ -40,7 +41,6 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _data_msg_size = 0;
     _data_pad_nibble = 0;
     _udt_format = 0;
-    _auth_reply = 0;
     memset(_data_message, 0, 48U);
 }
 
@@ -57,7 +57,10 @@ Controller::~Controller()
     _uplink_acks->clear();
     _subscribed_talkgroups->clear();
     delete _subscribed_talkgroups;
+    _uplink_acks->clear();
     delete _uplink_acks;
+    _auth_responses->clear();
+    delete _auth_responses;
     delete _dmr_rewrite;
     delete _gateway_router;
     delete _signalling_generator;
@@ -77,6 +80,12 @@ void Controller::run()
     uint8_t counter = 0;
     QTimer gateway_timer;
     QTimer announce_system_freqs_timer;
+    QTimer auth_timer;
+    auth_timer.setSingleShot(true);
+    auth_timer.setInterval(3000);
+    QObject::connect(this, SIGNAL(startAuthTimer()), &auth_timer, SLOT(start()));
+    QObject::connect(this, SIGNAL(stopAuthTimer()), &auth_timer, SLOT(stop()));
+    QObject::connect(&auth_timer, SIGNAL(timeout()), this, SLOT(resetAuth()));
     for(int i=0; i<_settings->channel_number; i++)
     {
 
@@ -621,9 +630,31 @@ void Controller::sendAuthCheck(unsigned int target_id)
     QByteArray ba_k = QByteArray::fromHex(key.toLatin1());
     unsigned char *k = (unsigned char*)ba_k.constData();
     unsigned int random_number = 0;
-    arc4_get_challenge_response((unsigned char*)(k), ba_k.size(), random_number, _auth_reply);
+    unsigned int response = 0;
+    arc4_get_challenge_response((unsigned char*)(k), ba_k.size(), random_number, response);
+    _auth_responses->insert(target_id, response);
     _signalling_generator->createAuthCheckAhoy(csbk, target_id, random_number);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+    emit startAuthTimer();
+}
+
+void Controller::resetAuth()
+{
+    QList<unsigned int> target_ids;
+    QMapIterator<unsigned int, unsigned int> it(*_uplink_acks);
+    while(it.hasNext())
+    {
+        it.next();
+        if(it.value() == ServiceAction::ActionAuthCheck)
+        {
+            target_ids.append(it.key());
+        }
+    }
+    for(int i=0;i<target_ids.size();i++)
+    {
+        _uplink_acks->remove(target_ids[i]);
+        _auth_responses->remove(target_ids[i]);
+    }
 }
 
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
@@ -2098,21 +2129,25 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
              _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
     {
         _uplink_acks->remove(srcId);
-        if(dstId == _auth_reply)
+        if(_auth_responses->contains(srcId))
         {
-            _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
-                         .arg(srcId).arg(slotNo));
-            if(!_settings->headless_mode)
-                emit authSuccess(true);
+            if((dstId == _auth_responses->value(srcId)))
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
+                             .arg(srcId).arg(slotNo));
+                if(!_settings->headless_mode)
+                    emit authSuccess(true);
+            }
+            else
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (FAILED) from %1, slot %2")
+                             .arg(srcId).arg(slotNo));
+                if(!_settings->headless_mode)
+                    emit authSuccess(false);
+            }
+            _auth_responses->remove(srcId);
+            emit stopAuthTimer();
         }
-        else
-        {
-            _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (FAILED) from %1, slot %2")
-                         .arg(srcId).arg(slotNo));
-            if(!_settings->headless_mode)
-                emit authSuccess(false);
-        }
-        _auth_reply = 0;
     }
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {

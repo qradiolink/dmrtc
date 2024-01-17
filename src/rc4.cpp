@@ -5,7 +5,7 @@
     ETSI TS 102 361-4
 
     Input1: 24 bit unsigned int random number between 0 and FFFCDF which will be concatenated with key
-    Input2: 16 byte (32 bit) MS auth key
+    Input2: 16 byte (128 bit) MS auth key
     Output1: 24 bit unsigned int random number challenge sent to MS
     Output2: 24 bit unsigned int from the last 3 bytes of the keystream which is the challenge response from MS
 
@@ -62,6 +62,7 @@ void arc4_get_challenge_response(unsigned char *key, unsigned int key_length, un
     KSA(concatenated, S, concatenated_length);
     unsigned char keystream[text_length];
     PRGA(S, text, keystream, text_length);
+    response = 0;
     response |= keystream[256] << 16;
     response |= keystream[257] << 8;
     response |= keystream[258];
