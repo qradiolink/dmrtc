@@ -1243,6 +1243,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             if(_settings->call_diverts.contains(dstId))
             {
                 dstId = _settings->call_diverts.value(dstId);
+                _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
             }
         }
         dmr_data.setDstId(dstId);
@@ -1261,6 +1262,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             if(_settings->call_diverts.contains(dstId))
             {
                 dstId = _settings->call_diverts.value(dstId);
+                _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
             }
         }
         dmr_data.setDstId(dstId);

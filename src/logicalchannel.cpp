@@ -59,13 +59,13 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     QMap<QString, uint64_t> channel;
     for(int i=0;i<_settings->logical_physical_channels.size();i++)
     {
-        if(_settings->logical_physical_channels[i].value("logical_channel") == (_physical_channel + 1))
+        if(_settings->logical_physical_channels[i].value("channel_id") == (_physical_channel + 1))
         {
             channel = _settings->logical_physical_channels[i];
             break;
         }
     }
-    if(channel.size() >= 4)
+    if(channel.size() >= 5)
     {
         _rx_freq = channel.value("rx_freq");
         _tx_freq = channel.value("tx_freq");
@@ -310,6 +310,14 @@ unsigned int LogicalChannel::getPhysicalChannel()
     unsigned int physical_channel = _physical_channel;
     _data_mutex.unlock();
     return physical_channel;
+}
+
+unsigned int LogicalChannel::getLogicalChannel()
+{
+    _data_mutex.lock();
+    unsigned int logical_channel = _lcn;
+    _data_mutex.unlock();
+    return logical_channel;
 }
 
 unsigned int LogicalChannel::getSlot()

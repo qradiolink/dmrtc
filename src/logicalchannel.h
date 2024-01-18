@@ -69,6 +69,7 @@ public:
     bool getLocalCall();
     bool isControlChannel();
     unsigned int getPhysicalChannel();
+    unsigned int getLogicalChannel();
     unsigned int getSlot();
     unsigned int getDestination();
     unsigned int getSource();

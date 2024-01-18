@@ -54,6 +54,9 @@ public:
     int control_channel_slot;
     int payload_channel_idle_timeout;
     int system_identity_code;
+    int freq_base;
+    int freq_separation;
+    int freq_duplexsplit;
     QString udp_local_address;
     QString mmdvm_remote_address;
     QString gateway_remote_address;

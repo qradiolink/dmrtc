@@ -44,6 +44,9 @@ Settings::Settings(Logger *logger)
     announce_priority = 0;
     payload_channel_idle_timeout = 5;
     system_identity_code = 1;
+    freq_base = 430000000;
+    freq_separation = 12500;
+    freq_duplexsplit = 8000000;
     use_absolute_channel_grants = 0;
     announce_system_message = 1;
     prevent_mmdvm_overflows = 1;
@@ -280,6 +283,30 @@ void Settings::readConfig()
     }
     try
     {
+        freq_base = cfg.lookup("freq_base");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        freq_base = 430000000;
+    }
+    try
+    {
+        freq_separation = cfg.lookup("freq_separation");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        freq_separation = 12500;
+    }
+    try
+    {
+        freq_duplexsplit = cfg.lookup("freq_duplexsplit");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        freq_duplexsplit = 8000000;
+    }
+    try
+    {
         use_absolute_channel_grants = cfg.lookup("use_absolute_channel_grants");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -366,14 +393,16 @@ void Settings::readConfig()
         for(int i = 0; i < channel_map.getLength(); ++i)
         {
           const libconfig::Setting &channel = channel_map[i];
-          long long logical_channel, tx_freq, rx_freq, colour_code;
+          long long channel_id, logical_channel, tx_freq, rx_freq, colour_code;
 
-          if(!(channel.lookupValue("logical_channel", logical_channel)
+          if(!(channel.lookupValue("channel_id", channel_id)
+               && channel.lookupValue("logical_channel", logical_channel)
                && channel.lookupValue("tx_freq", tx_freq) &&
                channel.lookupValue("rx_freq", rx_freq) &&
                channel.lookupValue("colour_code", colour_code)))
             continue;
-          QMap<QString, uint64_t> channel_map{{"logical_channel", (uint64_t)logical_channel},
+          QMap<QString, uint64_t> channel_map{{"channel_id", (uint64_t)channel_id},
+                                              {"logical_channel", (uint64_t)logical_channel},
                                               {"tx_freq", (uint64_t)tx_freq},
                                               {"rx_freq", (uint64_t)rx_freq},
                                               {"colour_code", (uint64_t)colour_code}};
@@ -482,6 +511,9 @@ void Settings::saveConfig()
     root.add("system_announcement_message",libconfig::Setting::TypeString) = system_announcement_message.toStdString();
     root.add("payload_channel_idle_timeout",libconfig::Setting::TypeInt) = payload_channel_idle_timeout;
     root.add("system_identity_code",libconfig::Setting::TypeInt) = system_identity_code;
+    root.add("freq_base",libconfig::Setting::TypeInt) = freq_base;
+    root.add("freq_separation",libconfig::Setting::TypeInt) = freq_separation;
+    root.add("freq_duplexsplit",libconfig::Setting::TypeInt) = freq_duplexsplit;
     root.add("use_absolute_channel_grants",libconfig::Setting::TypeInt) = use_absolute_channel_grants;
     root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
@@ -518,6 +550,7 @@ void Settings::saveConfig()
     {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
         libconfig::Setting &channel = lpc.add(libconfig::Setting::TypeGroup);
+        channel.add("channel_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("channel_id");
         channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
         channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");
