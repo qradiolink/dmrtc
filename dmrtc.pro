@@ -20,6 +20,7 @@ linux-g++ {
 
 
 SOURCES += src/main.cpp \
+    src/rc4.cpp \
     src/channelviewmodel.cpp \
     src/dmridlookup.cpp \
     src/dmrrewrite.cpp \
@@ -47,6 +48,7 @@ HEADERS += src/settings.h \
     src/udpclient.h \
     src/controller.h \
     src/mainwindow.h \
+    src/rc4.h \
     src/utils.h
 HEADERS += $$files(src/MMDVM/*.h)
 

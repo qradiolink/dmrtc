@@ -54,6 +54,9 @@ public:
     int control_channel_slot;
     int payload_channel_idle_timeout;
     int system_identity_code;
+    int freq_base;
+    int freq_separation;
+    int freq_duplexsplit;
     QString udp_local_address;
     QString mmdvm_remote_address;
     QString gateway_remote_address;
@@ -64,6 +67,8 @@ public:
     QList<QMap<QString, uint64_t>> logical_physical_channels;
     QMap<QString, unsigned int> service_ids;
     QMap<unsigned int, unsigned int> call_priorities;
+    QMap<unsigned int, unsigned int> call_diverts;
+    QMap<unsigned int, QString> auth_keys; // Auth keys are 32 character hex strings, traducing to 16 byte key
 
     int use_absolute_channel_grants;
     int gateway_enabled;

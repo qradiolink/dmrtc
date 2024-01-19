@@ -30,11 +30,17 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     _busy = false;
     _call_in_progress = false;
     _disabled = false;
+    _local_call = false;
     _state = CallState::CALL_STATE_NONE;
     _source_address = 0;
     _destination_address = 0;
     _emb_read = 1;
     _emb_write = 0;
+    _text = "";
+    _gps_info = "";
+    _talker_alias_received = false;
+    _ta_df = 0;
+    _ta_dl = 0;
     _rx_freq = 0;
     _tx_freq = 0;
     _colour_code = 1;
@@ -53,13 +59,13 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     QMap<QString, uint64_t> channel;
     for(int i=0;i<_settings->logical_physical_channels.size();i++)
     {
-        if(_settings->logical_physical_channels[i].value("logical_channel") == (_physical_channel + 1))
+        if(_settings->logical_physical_channels[i].value("channel_id") == (_physical_channel + 1))
         {
             channel = _settings->logical_physical_channels[i];
             break;
         }
     }
-    if(channel.size() >= 4)
+    if(channel.size() >= 5)
     {
         _rx_freq = channel.value("rx_freq");
         _tx_freq = channel.value("tx_freq");
@@ -91,14 +97,21 @@ bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
     return true;
 }
 
-void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type)
+void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type, bool local)
 {
     _data_mutex.lock();
     _source_address = srcId;
     _destination_address = dstId;
     _call_type = call_type;
+    _text = "";
+    _gps_info = "";
+    _talker_alias_received = false;
+    _ta_df = 0;
+    _ta_dl = 0;
+    _ta_data.clear();
     _busy = true;
     _call_in_progress = false;
+    _local_call = local;
     _data_frames = 0;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
@@ -113,9 +126,16 @@ void LogicalChannel::deallocateChannel()
     _data_mutex.lock();
     _busy = false;
     _call_in_progress = false;
+    _local_call = false;
     _state = CallState::CALL_STATE_NONE;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
+    _text = "";
+    _gps_info = "";
+    _talker_alias_received = false;
+    _ta_df = 0;
+    _ta_dl = 0;
+    _ta_data.clear();
     _data_mutex.unlock();
     _lc = CDMRLC(FLCO::FLCO_USER_USER, 0, 0);
     emit internalStopTimer();
@@ -292,6 +312,14 @@ unsigned int LogicalChannel::getPhysicalChannel()
     return physical_channel;
 }
 
+unsigned int LogicalChannel::getLogicalChannel()
+{
+    _data_mutex.lock();
+    unsigned int logical_channel = _lcn;
+    _data_mutex.unlock();
+    return logical_channel;
+}
+
 unsigned int LogicalChannel::getSlot()
 {
     _data_mutex.lock();
@@ -351,6 +379,21 @@ void LogicalChannel::setBusy(bool busy)
     _data_mutex.unlock();
 }
 
+void LogicalChannel::setLocalCall(bool local)
+{
+    _data_mutex.lock();
+    _local_call = local;
+    _data_mutex.unlock();
+}
+
+bool LogicalChannel::getLocalCall()
+{
+    _data_mutex.lock();
+    bool local = _local_call;
+    _data_mutex.unlock();
+    return local;
+}
+
 void LogicalChannel::setDestination(unsigned int destination)
 {
     _data_mutex.lock();
@@ -391,11 +434,63 @@ QString LogicalChannel::getText()
 void LogicalChannel::setText(QString txt)
 {
     _data_mutex.lock();
-    if(txt.size() > 0)
-        _text.append(txt);
-    else
-        _text = "";
+    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : "");
     _data_mutex.unlock();
+    emit update();
+}
+
+void LogicalChannel::setGPSInfo(float longitude, float latitude, std::string error)
+{
+    _data_mutex.lock();
+    _gps_info = QString("Longitude: %1, Latitude: %2, Error: %3")
+            .arg(longitude)
+            .arg(latitude)
+            .arg(QString::fromStdString(error));
+    _data_mutex.unlock();
+    emit update();
+    _logger->log(Logger::LogLevelDebug, QString("GPS Info received from %1 to %2: %3")
+                 .arg(QString::number(getSource())).arg(QString::number(getDestination())).arg(_gps_info));
+}
+
+QString LogicalChannel::getGPSInfo()
+{
+    QString gps_info;
+    _data_mutex.lock();
+    gps_info = _gps_info;
+    _data_mutex.unlock();
+    return gps_info;
+}
+
+void LogicalChannel::processTalkerAlias()
+{
+    unsigned int size = _ta_data.size();
+    if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) || ((_ta_df == 3) && (size >= _ta_dl*2)))
+    {
+        // TODO: handle ISO 7 bit
+        if(_ta_df == 1 || _ta_df == 2)
+        {
+            QString txt = QString::fromUtf8(_ta_data);
+            setText(txt);
+        }
+        else if(_ta_df == 3)
+        {
+            if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
+            {
+                QString txt = QString::fromUtf16((char16_t*)_ta_data.constData(), size/2);
+                setText(txt);
+            }
+            else
+            {
+                QString txt;
+                Utils::parseUTF16(txt, size, (unsigned char*)_ta_data.data());
+                setText(txt);
+            }
+        }
+        _talker_alias_received = true;
+        _ta_data.clear();
+        _ta_dl = 0;
+        _ta_df = 0;
+    }
 }
 
 void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
@@ -417,7 +512,13 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         slotType.setDataType(dataType);
         slotType.getData(data);
         CSync::addDMRDataSync(data, true);
-        setText("");
+        _data_mutex.lock();
+        _gps_info = "";
+        _talker_alias_received = false;
+        _ta_df = 0;
+        _ta_dl = 0;
+        _ta_data.clear();
+        _data_mutex.unlock();
     }
     if(dataType == DT_TERMINATOR_WITH_LC)
     {
@@ -437,7 +538,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
     }
     else if(dataType == DT_VOICE_SYNC)
     {
-
         _emb_read = (_emb_read + 1) % 2;
         _emb_write = (_emb_write + 1) % 2;
         _embedded_data[_emb_write].reset();
@@ -448,12 +548,10 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         emb.putData(data);
         unsigned char lcss = emb.getLCSS();
 
-
         bool ret = _embedded_data[_emb_write].addData(data, lcss);
         if (ret)
         {
             FLCO flco = _embedded_data[_emb_write].getFLCO();
-            QString txt;
             unsigned char raw_data[9U];
             _embedded_data[_emb_write].getRawData(raw_data);
 
@@ -472,39 +570,63 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                 float longitude, latitude = 0.0f;
                 std::string error;
                 CUtils::extractGPSPosition(raw_data, error, longitude, latitude);
-                _logger->log(Logger::LogLevelDebug, QString("Embedded GPS Info: Longitude: %1, Latitude: %2, Error: %3")
-                             .arg(longitude)
-                             .arg(latitude)
-                             .arg(QString::fromStdString(error)));
+                setGPSInfo(longitude, latitude, error);
             }
                 break;
 
             case FLCO_TALKER_ALIAS_HEADER:
-                txt = QString::fromLocal8Bit((const char*)raw_data, 9);
-                //_logger->log(Logger::LogLevelDebug, QString("Embedded Talker Alias Header %1")
-                //             .arg(txt));
-                setText(txt);
+            {
+                if(!_talker_alias_received)
+                {
+                    _ta_df = (raw_data[2] >> 6) & 0x03;
+                    _ta_dl = (raw_data[2] >> 1) & 0x1F;
+                    _ta_data.clear();
+                    for(int i=3;i<9;i++)
+                    {
+                        _ta_data.append(raw_data[i]);
+                    }
+                    processTalkerAlias();
+                }
+            }
                 break;
 
             case FLCO_TALKER_ALIAS_BLOCK1:
-                txt = QString::fromLocal8Bit((const char*)raw_data, 9);
-                //_logger->log(Logger::LogLevelDebug, QString("Embedded Talker Alias Block 1 %1")
-                //             .arg(txt));
-                setText(txt);
+            {
+                if(!_talker_alias_received && (_ta_dl > 0))
+                {
+                    for(int i=2;i<9;i++)
+                    {
+                        _ta_data.append(raw_data[i]);
+                    }
+                    processTalkerAlias();
+                }
+            }
                 break;
 
             case FLCO_TALKER_ALIAS_BLOCK2:
-                txt = QString::fromLocal8Bit((const char*)raw_data, 9);
-                //_logger->log(Logger::LogLevelDebug, QString("Embedded Talker Alias Block 2 %1")
-                //             .arg(txt));
-                setText(txt);
+            {
+                if(!_talker_alias_received && (_ta_dl > 0))
+                {
+                    for(int i=2;i<9;i++)
+                    {
+                        _ta_data.append(raw_data[i]);
+                    }
+                    processTalkerAlias();
+                }
+            }
                 break;
 
             case FLCO_TALKER_ALIAS_BLOCK3:
-                txt = QString::fromLocal8Bit((const char*)raw_data, 9);
-                //_logger->log(Logger::LogLevelDebug, QString("Embedded Talker Alias Block 3 %1")
-                //             .arg(txt));
-                setText(txt);
+            {
+                if(!_talker_alias_received && (_ta_dl > 0))
+                {
+                    for(int i=2;i<9;i++)
+                    {
+                        _ta_data.append(raw_data[i]);
+                    }
+                    processTalkerAlias();
+                }
+            }
                 break;
 
             default:
@@ -514,7 +636,6 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
             }
 
         }
-
 
         // Regenerate the previous super blocks Embedded Data or substitude the LC for it
         if (_embedded_data[_emb_read].isValid())

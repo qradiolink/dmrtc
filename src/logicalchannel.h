@@ -22,8 +22,11 @@
 #include <QTimer>
 #include <QQueue>
 #include <QMutex>
+#include <QByteArray>
+#include <QSysInfo>
 #include "src/logger.h"
 #include "src/settings.h"
+#include "src/utils.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMREMB.h"
 #include "MMDVM/DMREmbeddedData.h"
@@ -52,7 +55,7 @@ public:
     LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
                    unsigned int physical_channel, unsigned int slot, bool control_channel=false, QObject *parent=0);
 
-    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
+    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP, bool local=false);
     void deallocateChannel();
     void updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
     void startTimeoutTimer();
@@ -62,8 +65,11 @@ public:
     void setDestination(unsigned int destination);
     void setSource(unsigned int source);
     void setCallType(unsigned int call_type);
+    void setLocalCall(bool local);
+    bool getLocalCall();
     bool isControlChannel();
     unsigned int getPhysicalChannel();
+    unsigned int getLogicalChannel();
     unsigned int getSlot();
     unsigned int getDestination();
     unsigned int getSource();
@@ -72,6 +78,8 @@ public:
     bool getDisabled();
     QString getText();
     void setText(QString txt);
+    void setGPSInfo(float longitude, float latitude, std::string error);
+    QString getGPSInfo();
     void putRFQueue(CDMRData &dmr_data, bool first=false);
     bool getRFQueue(CDMRData &dmr_data);
     void putNetQueue(CDMRData &dmr_data);
@@ -87,6 +95,7 @@ signals:
     void channelDeallocated(unsigned int channel_id);
     void internalStartTimer();
     void internalStopTimer();
+    void update();
 
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data);
@@ -101,6 +110,7 @@ private:
     bool _busy;
     bool _call_in_progress;
     bool _disabled;
+    bool _local_call;
     unsigned int _call_type;
     unsigned int _source_address;
     unsigned int _destination_address;
@@ -117,6 +127,11 @@ private:
     unsigned int _emb_read;
     unsigned int _emb_write;
     QString _text;
+    QString _gps_info;
+    bool _talker_alias_received;
+    unsigned int _ta_df;
+    unsigned int _ta_dl;
+    QByteArray _ta_data;
     CDMRLC _lc;
     unsigned int _state;
     uint64_t _rx_freq;
@@ -128,6 +143,7 @@ private:
     float _rssi;
     float _ber;
 
+    void processTalkerAlias();
 };
 
 #endif // LOGICALCHANNEL_H

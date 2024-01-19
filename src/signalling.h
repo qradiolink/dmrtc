@@ -43,12 +43,16 @@ public:
     void createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel);
     void createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time);
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
+    void createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options=0x00);
     void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId=StandardAddreses::SDMI, bool from_ts=true);
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
-    void createPrivateCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
+    void createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId);
+    void createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
+    void createPrivatePacketCallRequest(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
     void createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
+    void createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int dstId, bool group_call);
     void createChannelIdleDeallocation(CDMRCSBK &csbk, unsigned int call_type);
     void createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int dstId, unsigned int UAB);
@@ -56,6 +60,8 @@ public:
     void createCancelPrivateCallAhoy(CDMRCSBK &csbk, unsigned int dstId);
     void createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool group_call);
     unsigned int createRequestToUploadMessage(CDMRCSBK &csbk, unsigned int dstId);
+    unsigned int createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId);
+    void createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId);
     void createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId);
@@ -65,6 +71,8 @@ public:
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
     CDMRData createUDTMessageHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble);
     CDMRData createUDTDGNAHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks);
+    CDMRData createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int sap=0);
+    void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
 
 
 

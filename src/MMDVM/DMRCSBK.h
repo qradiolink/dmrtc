@@ -38,6 +38,8 @@ enum CSBKO {
     CSBKO_TV_GRANT       = 0x31,
     CSBKO_PV_GRANT       = 0x30,
     CSBKO_BTV_GRANT      = 0x32,
+    CSBKO_PD_GRANT       = 0x33,
+    CSBKO_PD_GRANT_MI    = 0x37,
     CSBKO_AHOY           = 0x1C,
     CSBKO_ACKU           = 0x21,
     CSBKO_P_CLEAR        = 0x2E,

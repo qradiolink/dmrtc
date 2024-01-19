@@ -46,12 +46,18 @@
 #include "MMDVM/DMRSlotType.h"
 #include "MMDVM/CRC.h"
 #include "MMDVM/Sync.h"
+#include "rc4.h"
 
 enum ServiceAction {
     ActionPingRequest,
     ActionMessageRequest,
-    ActionPrivateCallRequest,
+    ActionDGNARequest,
+    ActionPrivateVoiceCallRequest,
+    ActionPrivatePacketCallRequest,
     RegistrationWithAttachment,
+    CallDivert,
+    UDTPoll,
+    ActionAuthCheck,
 };
 
 class Controller : public QObject
@@ -63,7 +69,6 @@ public:
     QVector<LogicalChannel*>* getLogicalChannels();
     void announceLateEntry();
     void announceSystemMessage();
-
     CDMRCSBK createRegistrationRequest();
 
 public slots:
@@ -72,13 +77,18 @@ public slots:
     void processDMRPayload(unsigned char *payload, int udp_channel_id, bool from_gateway);
     void updateMMDVMConfig(unsigned char* payload, int size);
     void writeDMRConfig();
+    void updateChannelsToGUI();
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
+    void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
+    void pollData(unsigned int target_id);
     void resetPing();
+    void resetAuth();
+    void sendAuthCheck(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
 
@@ -93,9 +103,13 @@ signals:
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);
+    void authSuccess(bool successful);
+    void startAuthTimer();
+    void stopAuthTimer();
 
 private:
-    LogicalChannel *findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
+    LogicalChannel* findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
+    LogicalChannel* findLowerPriorityChannel(unsigned int dstId, unsigned int srcId, bool local);
     LogicalChannel* findChannelByPhysicalIdAndSlot(unsigned int physical_id, unsigned int slot);
     LogicalChannel* findCallChannel(unsigned int dstId, unsigned int srcId);
     LogicalChannel* getControlOrAlternateChannel();
@@ -112,13 +126,18 @@ private:
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
     void handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
-    void contactMSForCall(CDMRCSBK &csbk, unsigned int slotNo,
+    void handlePrivatePacketDataCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+                                unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
+    void contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool local=false);
+    void contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
+                                unsigned int srcId, unsigned int dstId);
     void handleCallDisconnect(int udp_channel_id, bool group_call, unsigned int &srcId, unsigned int &dstId,
                               unsigned int slotNo, LogicalChannel *&logical_channel, CDMRCSBK &csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
+    void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
     void processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
@@ -143,6 +162,7 @@ private:
     QMap<unsigned int, unsigned int> *_uplink_acks;
     QSet<unsigned int> *_rejected_calls;
     QSet<unsigned int> *_subscribed_talkgroups;
+    QMap<unsigned int, unsigned int> *_auth_responses;
 
     std::chrono::high_resolution_clock::time_point t1_ping_ms;
 
@@ -156,10 +176,6 @@ private:
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
-
-
-
-
 };
 
 #endif // CONTROLLER_H

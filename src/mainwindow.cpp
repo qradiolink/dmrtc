@@ -36,6 +36,8 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
+    QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
+    QObject::connect(ui->pushButtonAuthCheck, SIGNAL(clicked(bool)), this, SLOT(authCheck()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -165,6 +167,9 @@ void MainWindow::setConfig()
     ui->lineEditSystemCode->setText(QString::number(_settings->system_identity_code));
     ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(_settings->announce_system_freqs_interval));
     ui->lineEditAnnounceLateEntryInterval->setText(QString::number(_settings->announce_late_entry_interval));
+    ui->lineEditBaseFrequency->setText(QString::number(_settings->freq_base));
+    ui->lineEditFrequencySeparation->setText(QString::number(_settings->freq_separation));
+    ui->lineEditDuplexSplit->setText(QString::number(_settings->freq_duplexsplit));
     ui->textEditSystemMessage->setText(_settings->system_announcement_message);
     ui->checkBoxAnnouncePriority->setChecked((bool)_settings->announce_priority);
     ui->checkBoxAbsoluteGrants->setChecked((bool)_settings->use_absolute_channel_grants);
@@ -197,6 +202,9 @@ void MainWindow::saveConfig()
     _settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
     _settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
     _settings->announce_late_entry_interval = ui->lineEditAnnounceLateEntryInterval->text().toInt();
+    _settings->freq_base = ui->lineEditBaseFrequency->text().toInt();
+    _settings->freq_separation = ui->lineEditFrequencySeparation->text().toInt();
+    _settings->freq_duplexsplit = ui->lineEditDuplexSplit->text().toInt();
     _settings->system_announcement_message = ui->textEditSystemMessage->toPlainText();
     _settings->announce_priority = (int)ui->checkBoxAnnouncePriority->isChecked();
     _settings->use_absolute_channel_grants = (int)ui->checkBoxAbsoluteGrants->isChecked();
@@ -430,11 +438,12 @@ void MainWindow::deleteSlotRewrite()
 void MainWindow::loadLogicalPhysicalChannels()
 {
     QStringList header_lpc;
+    header_lpc.append("Channel id");
     header_lpc.append("Logical channel");
     header_lpc.append("RX Frequency");
     header_lpc.append("TX Frequency");
     header_lpc.append("Colour code");
-    ui->tableWidgetLogicalPhysicalChannels->setColumnCount(4);
+    ui->tableWidgetLogicalPhysicalChannels->setColumnCount(5);
     ui->tableWidgetLogicalPhysicalChannels->setRowCount(_settings->logical_physical_channels.size());
     ui->tableWidgetLogicalPhysicalChannels->verticalHeader()->setVisible(false);
     ui->tableWidgetLogicalPhysicalChannels->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -446,15 +455,17 @@ void MainWindow::loadLogicalPhysicalChannels()
     while(it_lpc.hasNext())
     {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("channel_id")));
         QTableWidgetItem *lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
         QTableWidgetItem *rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
         QTableWidgetItem *tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
         QTableWidgetItem *cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
 
-        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 0, lc);
-        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 1, rx_freq);
-        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 2, tx_freq);
-        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 3, cc);
+        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 0, id);
+        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 1, lc);
+        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 2, rx_freq);
+        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 3, tx_freq);
+        ui->tableWidgetLogicalPhysicalChannels->setItem(row, 4, cc);
         row++;
     }
 }
@@ -469,21 +480,25 @@ void MainWindow::saveLogicalPhysicalChannels()
         QTableWidgetItem *item2 = ui->tableWidgetLogicalPhysicalChannels->item(i, 1);
         QTableWidgetItem *item3 = ui->tableWidgetLogicalPhysicalChannels->item(i, 2);
         QTableWidgetItem *item4 = ui->tableWidgetLogicalPhysicalChannels->item(i, 3);
-        bool ok1, ok2, ok3, ok4 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0 && item4->text().size() > 0)
+        QTableWidgetItem *item5 = ui->tableWidgetLogicalPhysicalChannels->item(i, 4);
+        bool ok1, ok2, ok3, ok4, ok5 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
+                && item4->text().size() > 0 && item5->text().size() > 0)
         {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
-            item1->text().toInt(&ok3);
-            item2->text().toInt(&ok4);
+            item3->text().toInt(&ok3);
+            item4->text().toInt(&ok4);
+            item5->text().toInt(&ok5);
         }
         if(ok1 && ok2 && ok3 && ok4)
         {
             QMap<QString, uint64_t> map;
-            map.insert("logical_channel", item1->text().toInt());
-            map.insert("rx_freq", item2->text().toInt());
-            map.insert("tx_freq", item3->text().toInt());
-            map.insert("colour_code", item4->text().toInt());
+            map.insert("channel_id", item1->text().toInt());
+            map.insert("logical_channel", item2->text().toInt());
+            map.insert("rx_freq", item3->text().toInt());
+            map.insert("tx_freq", item4->text().toInt());
+            map.insert("colour_code", item5->text().toInt());
             _settings->logical_physical_channels.append(map);
         }
     }
@@ -492,15 +507,16 @@ void MainWindow::saveLogicalPhysicalChannels()
 void MainWindow::addLogicalPhysicalChannel()
 {
     ui->tableWidgetLogicalPhysicalChannels->setRowCount(ui->tableWidgetLogicalPhysicalChannels->rowCount() + 1);
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
     QTableWidgetItem *lc = new QTableWidgetItem(QString(""));
     QTableWidgetItem *rx_freq = new QTableWidgetItem(QString(""));
     QTableWidgetItem *tx_freq = new QTableWidgetItem(QString(""));
     QTableWidgetItem *cc = new QTableWidgetItem(QString(""));
-
-    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 0, lc);
-    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 1, rx_freq);
-    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 2, tx_freq);
-    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 3, cc);
+    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 0, id);
+    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 1, lc);
+    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 2, rx_freq);
+    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 3, tx_freq);
+    ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 4, cc);
     ui->tableWidgetLogicalPhysicalChannels->scrollToBottom();
 }
 
@@ -598,13 +614,15 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
         {
             QModelIndex index1 = _logical_channel_model->index(i, 0);
             QModelIndex index2 = _logical_channel_model->index(i, 1);
-            QString usage1 = logical_channels->at(j)->getBusy() ? "Call " : "Free ";
+            QString usage1 = logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage1 = logical_channels->at(j)->getDisabled() ? "Disabled " : usage1;
-            _logical_channel_model->setData(index1, QString("%3 %1   -->   %2")
+            _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
-                                            .arg(usage1));
-            QString color1 = (logical_channels->at(j)->getBusy() ? "#004d99" : "#9cffab");
+                                            .arg(usage1)
+                                            .arg(logical_channels->at(j)->getText())
+                                            .arg(logical_channels->at(j)->getGPSInfo()));
+            QString color1 = (logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
             _logical_channel_model->setColor(index1, color1);
@@ -613,13 +631,15 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             state1 = logical_channels->at(j)->isControlChannel() ? ChannelState::ChannelControl : state1;
             _logical_channel_model->setState(index1, state1, 0);
 
-            QString usage2 = logical_channels->at(j + 1)->getBusy() ? "Call " : "Free ";
+            QString usage2 = logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
-            _logical_channel_model->setData(index2, QString("%3 %1   -->   %2")
+            _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
-                                            .arg(usage2));
-            QString color2 = (logical_channels->at(j + 1)->getBusy() ? "#004d99" : "#9cffab");
+                                            .arg(usage2)
+                                            .arg(logical_channels->at(j + 1)->getText())
+                                            .arg(logical_channels->at(j + 1)->getGPSInfo()));
+            QString color2 = (logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
             _logical_channel_model->setColor(index2, color2);
             int state2 = logical_channels->at(j + 1)->getBusy() ?
@@ -699,29 +719,6 @@ void MainWindow::deleteSubscribedTalkgroupList()
         delete item;
     }
     ui->listWidgetSubscribedTalkgroups->clear();
-}
-
-void MainWindow::requestRegistration()
-{
-    deleteRegisteredMSList();
-    emit registrationRequested();
-}
-
-void MainWindow::sendSystemMessage()
-{
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
-}
-
-void MainWindow::sendMessageToRadio()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
-}
-
-void MainWindow::addDGNA()
-{
-    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
 }
 
 void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
@@ -810,6 +807,35 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
     }
 }
 
+void MainWindow::requestRegistration()
+{
+    deleteRegisteredMSList();
+    emit registrationRequested();
+}
+
+void MainWindow::sendSystemMessage()
+{
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
+}
+
+void MainWindow::sendMessageToRadio()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::addDGNA()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
+}
+
+void MainWindow::sendUDTPoll()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit pollData(radio);
+}
+
 void MainWindow::sendPing()
 {
     QString radio = ui->comboBoxRegisteredMS->currentText();
@@ -830,6 +856,28 @@ void MainWindow::displayPingResponse(unsigned int srcId, unsigned int msec)
     _ping_radio_timer.stop();
     ui->labelPingInformation->setStyleSheet("background-color:#009900;color:#FFFFFF");
     ui->labelPingInformation->setText(QString("Ping response from: %1, time: %2 ms").arg(srcId).arg(msec));
+}
+
+void MainWindow::authCheck()
+{
+    QString radio = ui->comboBoxRegisteredMS->currentText();
+    ui->labelAuthSuccess->setStyleSheet("background-color:#FFFFFF;color:#000000");
+    ui->labelAuthSuccess->setText("Checking");
+    emit sendAuthCheck(radio.toInt());
+}
+
+void MainWindow::authSuccess(bool successful)
+{
+    if(successful)
+    {
+        ui->labelAuthSuccess->setStyleSheet("background-color:#009900;color:#FFFFFF");
+        ui->labelAuthSuccess->setText("SUCCESS");
+    }
+    else
+    {
+        ui->labelAuthSuccess->setStyleSheet("background-color:#990000;color:#FFFFFF");
+        ui->labelAuthSuccess->setText("FAILED");
+    }
 }
 
 void MainWindow::sendLocalTimeBroadcast()

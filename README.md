@@ -1,9 +1,9 @@
 
-DMR tier III trunking controller for MMDVM
+DMR tier III trunking controller GUI for MMDVM
 ====
 
-This program attempts to implement a DMR tier III trunked radio controller. Only a subset of ETSI TS 102 361-4 is implemented currently, with most focus on amateur radio features.
-This software is licenced under the GPL v3 and is primarily intended for amateur and educational use.
+This program is a proof-of-concept implementation of a DMR tier III trunked radio controller GUI. Only a subset of ETSI TS 102 361-4 is implemented currently, see list below.
+This software is licenced under the GPL v3 and is primarily intended for amateur radio and educational use.
 This software is intended to work together with DMRGateway, MMDVMHost-SDR, MMDVM-SDR and QRadioLink in order to create a DMR tier III radio site.
 
 
@@ -24,26 +24,31 @@ DMR tier III services partly or completely implemented
 9. Talkgroup attachment on registration
 10. Dynamic Group Numbering Assignment service
 11. Radio presence check
+<<<<<<< HEAD
+=======
+12. Private voice / UDT short data call diversion service
+13. MS authentication
+14. Preferential call notification
+>>>>>>> next
 
 
 DMR tier III services NOT implemented
 ----
 
 1. MS dynamic power control
-2. MS authentication
-3. MS pre-emption control
-4. All-MS call service
-5. Packet data call service
-6. Adjacent sites announcements
-7. IP bearer services
-8. Status delivery service
-9. Status polling service
-10. Ambient listening service
-11. Suplimentary user data transfer service (additional data sent as part of the primary call setup)
-12. MS stun, kill and revive
-13. Full duplex voice call service
-14. PABX/PSTN call service
-15. Call diversion service
+2. MS pre-emption control
+3. All-MS call service
+4. Packet data call service
+5. Adjacent sites announcements
+6. IP bearer services
+7. Status delivery service
+8. Status polling service
+9. Ambient listening service
+10. Suplimentary user data transfer service (additional data sent as part of the primary call setup)
+11. MS stun, kill and revive
+12. Full duplex voice call service
+13. PABX/PSTN call service
+14. Call diversion service to PSTN/PABX/Gateway
 
 
 Radio compatibility matrix
@@ -51,7 +56,7 @@ Radio compatibility matrix
 
 tier III compatible radios tested and confirmed to work with this software:
 
-1. Hytera HP785: registration, group voice calls, private voice calls (OACSU and FOACSU), short messages
+1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short messages, call divert, voice with location, DGNA, authentication
 
 
 Requirements

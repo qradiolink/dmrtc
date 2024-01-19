@@ -17,11 +17,16 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <QSysInfo>
+#include <QString>
+#include <string.h>
 
 class Utils
 {
 public:
     Utils();
+    static void parseUTF16(QString &text_message, unsigned int size, unsigned char *msg);
+    static void parseISO7bitToISO8bit(unsigned char *msg, unsigned char *converted, unsigned int bit7_size, unsigned int size);
     static unsigned int convertP3GroupNumberToCAI(unsigned int group_number);
     static unsigned int convertCAIToP3GroupNumber(unsigned int gid);
     static unsigned int convertBase11GroupNumberToBase10(unsigned int group_number);
