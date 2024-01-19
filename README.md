@@ -24,12 +24,9 @@ DMR tier III services partly or completely implemented
 9. Talkgroup attachment on registration
 10. Dynamic Group Numbering Assignment service
 11. Radio presence check
-<<<<<<< HEAD
-=======
 12. Private voice / UDT short data call diversion service
 13. MS authentication
 14. Preferential call notification
->>>>>>> next
 
 
 DMR tier III services NOT implemented

@@ -470,11 +470,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     QList<QString> tgids = dgids.split(" ");
     if(tgids.size() > 15)
         tgids = tgids.mid(0,15);
-<<<<<<< HEAD
-    data[0] = attach ? 0x01 : 0x00;
-=======
     data[0] = (attach) ? 0x01 : 0x00;
->>>>>>> next
     for(int i=0,k=1;i<tgids.size();i++,k=k+3)
     {
         bool ok = false;
