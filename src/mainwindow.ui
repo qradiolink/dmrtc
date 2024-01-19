@@ -1001,7 +1001,7 @@
                   <item row="9" column="2">
                    <widget class="QLabel" name="label_21">
                     <property name="text">
-                     <string>Frequency duplex split</string>
+                     <string>Frequency duplex split (Hz)</string>
                     </property>
                    </widget>
                   </item>
@@ -1015,7 +1015,7 @@
                   <item row="7" column="2">
                    <widget class="QLabel" name="label_20">
                     <property name="text">
-                     <string>Frequency separation</string>
+                     <string>Frequency separation (Hz)</string>
                     </property>
                    </widget>
                   </item>
@@ -1110,7 +1110,7 @@ message</string>
                   <item row="9" column="0">
                    <widget class="QLabel" name="label_13">
                     <property name="text">
-                     <string>Payload channel Idle timeout</string>
+                     <string>Payload channel Idle timeout (s)</string>
                     </property>
                    </widget>
                   </item>
@@ -1336,7 +1336,7 @@ message</string>
                   <item row="6" column="2">
                    <widget class="QLabel" name="label_19">
                     <property name="text">
-                     <string>Base frequency</string>
+                     <string>Base frequency (Hz)</string>
                     </property>
                    </widget>
                   </item>
