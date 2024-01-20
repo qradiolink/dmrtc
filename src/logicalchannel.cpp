@@ -214,6 +214,14 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
             || (dt_first.getDataType() == DT_RATE_1_DATA)
             || (dt_first.getDataType() == DT_RATE_34_DATA))
     {
+        if(dt_first.getControl())
+        {
+            _rf_queue_mutex.lock();
+            dmr_data = _rf_queue.takeFirst();
+            _rf_queue_mutex.unlock();
+            // for control frames, do not update the time as they are not transmitted over RF
+            return true;
+        }
         if(std::chrono::duration_cast<std::chrono::nanoseconds>(t2_rf - t1_rf).count() < TX_TIME)
         {
             return false;
@@ -222,6 +230,8 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
     _rf_queue_mutex.lock();
     dmr_data = _rf_queue.takeFirst();
     _rf_queue_mutex.unlock();
+    if(dmr_data.getControl())
+        return true;
     t1_rf = std::chrono::high_resolution_clock::now();
     if(dmr_data.getDummy())
         return false;

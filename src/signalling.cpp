@@ -479,6 +479,31 @@ void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *lo
     csbk.setSrcId(srcId);
 }
 
+void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+{
+    unsigned int service_options = csbk.getServiceOptions();
+    bool SIMI = (service_options >> 2) & 0x01;
+    bool hi_rate = (service_options >> 3) & 0x01; // TODO
+    uint8_t emergency_call = 0; // TODO
+    uint8_t rate = hi_rate ? 1 : 0; // TODO
+    unsigned char csbko = SIMI ? CSBKO_GD_GRANT_MI : CSBKO_GD_GRANT;
+    csbk.setCSBKO(csbko);
+    csbk.setFID(0x00);
+    unsigned int phys_chan = logical_channel->getLogicalChannel();
+    unsigned char c1 = (phys_chan >> 4) & 0xFF;
+    csbk.setData1(c1);
+    unsigned char aligned_timing = 0x00; // TODO: aligned timing doesn't work with dual slot packet data
+    unsigned char c2 = (phys_chan & 0xFF) << 4;
+    unsigned char data2 = c2;
+    data2 |= ((logical_channel->getSlot() - 1) << 3) & 0x08;
+    data2 |= (rate << 2) & 0x04;
+    data2 |= (emergency_call << 1) & 0x02;
+    data2 |= aligned_timing;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
 void Signalling::createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int dstId, bool group_call)
 {
     csbk.setCSBKO(CSBKO_P_CLEAR);

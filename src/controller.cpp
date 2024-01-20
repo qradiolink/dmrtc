@@ -137,16 +137,11 @@ void Controller::run()
         QObject::connect(client, SIGNAL(dmrData(unsigned char*,int, bool)), this, SLOT(processDMRPayload(unsigned char*,int, bool)), Qt::DirectConnection);
         QObject::connect(client, SIGNAL(newMMDVMConfig(unsigned char*,int)),
                          this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
-        if(i == 0)
-        {
-            client->writeDMRTrunkingParams(true, 1);
-            client->writeDMRTrunkingParams(false, 2);
-        }
-        else
-        {
-            client->writeDMRTrunkingParams(false, 1);
-            client->writeDMRTrunkingParams(false, 2);
-        }
+
+        // Disable all timeslots at startup
+        client->writeDMRTrunkingParams(false, 1);
+        client->writeDMRTrunkingParams(false, 2);
+
     }
     for(int i=0;i<_settings->gateway_number;i++)
     {
@@ -214,7 +209,15 @@ void Controller::run()
             CDMRData dmr_data;
             if(_logical_channels.at(i)->getRFQueue(dmr_data))
             {
-                _udp_channels.at(_logical_channels.at(i)->getPhysicalChannel())->writeDMRData(dmr_data);
+                if(dmr_data.getControl())
+                {
+                    _udp_channels.at(_logical_channels.at(i)->getPhysicalChannel())->writeDMRTrunkingParams(
+                                dmr_data.getChannelEnable(), dmr_data.getSlotNo());
+                }
+                else
+                {
+                    _udp_channels.at(_logical_channels.at(i)->getPhysicalChannel())->writeDMRData(dmr_data);
+                }
             }
 
             /// Data going towards net
@@ -1590,7 +1593,11 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
-        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(true, logical_channel->getSlot());
+        CDMRData dmr_control_data;
+        dmr_control_data.setControl(true);
+        dmr_control_data.setChannelEnable(true);
+        dmr_control_data.setSlotNo(logical_channel->getSlot());
+        logical_channel->putRFQueue(dmr_control_data, true);
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1642,7 +1649,12 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dmrDstId, CallType::CALL_TYPE_GROUP, local);
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
-        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(true, logical_channel->getSlot());
+        CDMRData dmr_control_data;
+        dmr_control_data.setControl(true);
+        dmr_control_data.setChannelEnable(true);
+        dmr_control_data.setSlotNo(logical_channel->getSlot());
+        logical_channel->putRFQueue(dmr_control_data, true);
+
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1730,8 +1742,11 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
             logical_channel->deallocateChannel();
             updateLogicalChannels(&_logical_channels);
         }
-        _udp_channels.at(logical_channel->getPhysicalChannel())->writeDMRTrunkingParams(false, logical_channel->getSlot());
-
+        CDMRData dmr_control_data;
+        dmr_control_data.setControl(true);
+        dmr_control_data.setChannelEnable(false);
+        dmr_control_data.setSlotNo(logical_channel->getSlot());
+        logical_channel->putRFQueue(dmr_control_data, false);
     }
 }
 
@@ -1754,7 +1769,12 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
                      _logical_channels[channel_id]->getPhysicalChannel(), false);
     transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
                      _logical_channels[channel_id]->getPhysicalChannel(), false);
-    _udp_channels.at(_logical_channels[channel_id]->getPhysicalChannel())->writeDMRTrunkingParams(false, _logical_channels[channel_id]->getSlot());
+    CDMRData dmr_control_data;
+    dmr_control_data.setControl(true);
+    dmr_control_data.setChannelEnable(false);
+    dmr_control_data.setSlotNo(_logical_channels[channel_id]->getSlot());
+    _logical_channels[channel_id]->putRFQueue(dmr_control_data, false);
+
     if(!_settings->headless_mode)
     {
         emit updateLogicalChannels(&_logical_channels);

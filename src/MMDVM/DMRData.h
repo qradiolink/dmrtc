@@ -56,6 +56,10 @@ public:
 	unsigned int getData(unsigned char* buffer) const;
     bool getDummy() const;
     void setDummy(bool dummy);
+    bool getControl() const;
+    void setControl(bool control);
+    bool getChannelEnable() const;
+    void setChannelEnable(bool chanEnable);
     unsigned int getStreamId() const;
     void setStreamId(unsigned int streamId);
 
@@ -72,6 +76,8 @@ private:
 	unsigned char  m_rssi;
     unsigned int   m_streamId;
     bool           m_dummy;
+    bool           m_control;
+    bool           m_chanEnable;
 };
 
 #endif
