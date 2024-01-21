@@ -34,7 +34,10 @@ m_n(data.m_n),
 m_ber(data.m_ber),
 m_rssi(data.m_rssi),
 m_streamId(data.m_streamId),
-m_dummy(data.m_dummy)
+m_dummy(data.m_dummy),
+m_control(data.m_control),
+m_chanEnable(data.m_chanEnable),
+m_command(data.m_command)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
 	::memcpy(m_data, data.m_data, 2U * DMR_FRAME_LENGTH_BYTES);
@@ -52,7 +55,10 @@ m_n(0U),
 m_ber(0U),
 m_rssi(0U),
 m_streamId(0U),
-m_dummy(false)
+m_dummy(false),
+m_control(false),
+m_chanEnable(true),
+m_command(0)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
 }
@@ -78,6 +84,9 @@ CDMRData& CDMRData::operator=(const CDMRData& data)
 		m_rssi     = data.m_rssi;
         m_streamId = data.m_streamId;
         m_dummy    = data.m_dummy;
+        m_control  = data.m_control;
+        m_chanEnable  = data.m_chanEnable;
+        m_command  = data.m_command;
 	}
 
 	return *this;
@@ -209,4 +218,34 @@ void CDMRData::setDummy(bool dummy)
 bool CDMRData::getDummy() const
 {
     return m_dummy;
+}
+
+void CDMRData::setControl(bool control)
+{
+    m_control = control;
+}
+
+bool CDMRData::getControl() const
+{
+    return m_control;
+}
+
+void CDMRData::setChannelEnable(bool chanEnable)
+{
+    m_chanEnable = chanEnable;
+}
+
+bool CDMRData::getChannelEnable() const
+{
+    return m_chanEnable;
+}
+
+void CDMRData::setCommand(unsigned int command)
+{
+    m_command = command;
+}
+
+unsigned int CDMRData::getCommand() const
+{
+    return m_command;
 }

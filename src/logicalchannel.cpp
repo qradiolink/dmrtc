@@ -59,13 +59,13 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     QMap<QString, uint64_t> channel;
     for(int i=0;i<_settings->logical_physical_channels.size();i++)
     {
-        if(_settings->logical_physical_channels[i].value("logical_channel") == (_physical_channel + 1))
+        if(_settings->logical_physical_channels[i].value("channel_id") == (_physical_channel + 1))
         {
             channel = _settings->logical_physical_channels[i];
             break;
         }
     }
-    if(channel.size() >= 4)
+    if(channel.size() >= 5)
     {
         _rx_freq = channel.value("rx_freq");
         _tx_freq = channel.value("tx_freq");
@@ -214,6 +214,14 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
             || (dt_first.getDataType() == DT_RATE_1_DATA)
             || (dt_first.getDataType() == DT_RATE_34_DATA))
     {
+        if(dt_first.getControl())
+        {
+            _rf_queue_mutex.lock();
+            dmr_data = _rf_queue.takeFirst();
+            _rf_queue_mutex.unlock();
+            // for control frames, do not update the time as they are not transmitted over RF
+            return true;
+        }
         if(std::chrono::duration_cast<std::chrono::nanoseconds>(t2_rf - t1_rf).count() < TX_TIME)
         {
             return false;
@@ -222,6 +230,8 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
     _rf_queue_mutex.lock();
     dmr_data = _rf_queue.takeFirst();
     _rf_queue_mutex.unlock();
+    if(dmr_data.getControl())
+        return true;
     t1_rf = std::chrono::high_resolution_clock::now();
     if(dmr_data.getDummy())
         return false;
@@ -310,6 +320,14 @@ unsigned int LogicalChannel::getPhysicalChannel()
     unsigned int physical_channel = _physical_channel;
     _data_mutex.unlock();
     return physical_channel;
+}
+
+unsigned int LogicalChannel::getLogicalChannel()
+{
+    _data_mutex.lock();
+    unsigned int logical_channel = _lcn;
+    _data_mutex.unlock();
+    return logical_channel;
 }
 
 unsigned int LogicalChannel::getSlot()

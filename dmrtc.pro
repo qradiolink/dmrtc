@@ -38,6 +38,7 @@ SOURCES += $$files(src/MMDVM/*.cpp)
 
 HEADERS += src/settings.h \
     src/channelviewmodel.h \
+    src/dmr_commands.h \
     src/dmridlookup.h \
     src/dmrrewrite.h \
     src/gatewayrouter.h \

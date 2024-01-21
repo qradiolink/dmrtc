@@ -172,7 +172,7 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CD
     {
         csbk.setCSBKO(CSBKO_PV_GRANT);
     }
-    uint16_t phys_chan = logical_channel->getPhysicalChannel() + 1;
+    uint16_t phys_chan = logical_channel->getLogicalChannel();
     uint8_t c1 = phys_chan >> 4;
     csbk.setData1(c1);
     uint8_t aligned_timing = 0; //TODO
@@ -418,7 +418,7 @@ void Signalling::createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical
     uint8_t late_entry = 0; // TODO
     csbk.setCSBKO(CSBKO_PV_GRANT);
     csbk.setFID(0x00);
-    unsigned int phys_chan = logical_channel->getPhysicalChannel() + 1; // our phys channel numbering starts at 0, MS starts at 1
+    unsigned int phys_chan = logical_channel->getLogicalChannel();
     unsigned char c1 = (phys_chan >> 4) & 0xFF;
     csbk.setData1(c1);
     unsigned char aligned_timing = 0x00; //TODO
@@ -439,7 +439,7 @@ void Signalling::createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_c
     uint8_t late_entry = 0;
     csbk.setCSBKO(CSBKO_TV_GRANT);
     csbk.setFID(0x00);
-    unsigned int phys_chan = logical_channel->getPhysicalChannel() + 1; // our phys channel numbering starts at 0, MS starts at 1
+    unsigned int phys_chan = logical_channel->getLogicalChannel();
     unsigned char c1 = (phys_chan >> 4) & 0xFF;
     csbk.setData1(c1);
     unsigned char aligned_timing = 0x00; //TODO
@@ -464,7 +464,32 @@ void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *lo
     unsigned char csbko = SIMI ? CSBKO_PD_GRANT_MI : CSBKO_PD_GRANT;
     csbk.setCSBKO(csbko);
     csbk.setFID(0x00);
-    unsigned int phys_chan = logical_channel->getPhysicalChannel() + 1; // our phys channel numbering starts at 0, MS starts at 1
+    unsigned int phys_chan = logical_channel->getLogicalChannel();
+    unsigned char c1 = (phys_chan >> 4) & 0xFF;
+    csbk.setData1(c1);
+    unsigned char aligned_timing = 0x00; // TODO: aligned timing doesn't work with dual slot packet data
+    unsigned char c2 = (phys_chan & 0xFF) << 4;
+    unsigned char data2 = c2;
+    data2 |= ((logical_channel->getSlot() - 1) << 3) & 0x08;
+    data2 |= (rate << 2) & 0x04;
+    data2 |= (emergency_call << 1) & 0x02;
+    data2 |= aligned_timing;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
+void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+{
+    unsigned int service_options = csbk.getServiceOptions();
+    bool SIMI = (service_options >> 2) & 0x01;
+    bool hi_rate = (service_options >> 3) & 0x01; // TODO
+    uint8_t emergency_call = 0; // TODO
+    uint8_t rate = hi_rate ? 1 : 0; // TODO
+    unsigned char csbko = SIMI ? CSBKO_GD_GRANT_MI : CSBKO_GD_GRANT;
+    csbk.setCSBKO(csbko);
+    csbk.setFID(0x00);
+    unsigned int phys_chan = logical_channel->getLogicalChannel();
     unsigned char c1 = (phys_chan >> 4) & 0xFF;
     csbk.setData1(c1);
     unsigned char aligned_timing = 0x00; // TODO: aligned timing doesn't work with dual slot packet data
