@@ -36,6 +36,7 @@
 #include "src/dmridlookup.h"
 #include "src/gatewayrouter.h"
 #include "src/signalling.h"
+#include "src/dmr_commands.h"
 #include "MMDVM/DMRDefines.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRDataHeader.h"

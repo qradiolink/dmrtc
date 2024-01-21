@@ -139,8 +139,14 @@ void Controller::run()
                          this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
 
         // Disable all timeslots at startup
-        client->writeDMRTrunkingParams(false, 1);
-        client->writeDMRTrunkingParams(false, 2);
+        CDMRData control1;
+        control1.setControl(true);
+        control1.setSlotNo(1);
+        control1.setCommand(DMRCommand::ChannelEnableDisable);
+        CDMRData control2 = control1;
+        control2.setSlotNo(2);
+        client->writeDMRTrunkingParams(control1);
+        client->writeDMRTrunkingParams(control2);
 
     }
     for(int i=0;i<_settings->gateway_number;i++)
@@ -211,8 +217,7 @@ void Controller::run()
             {
                 if(dmr_data.getControl())
                 {
-                    _udp_channels.at(_logical_channels.at(i)->getPhysicalChannel())->writeDMRTrunkingParams(
-                                dmr_data.getChannelEnable(), dmr_data.getSlotNo());
+                    _udp_channels.at(_logical_channels.at(i)->getPhysicalChannel())->writeDMRTrunkingParams(dmr_data);
                 }
                 else
                 {
@@ -1594,6 +1599,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
         CDMRData dmr_control_data;
+        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
         dmr_control_data.setControl(true);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
@@ -1651,6 +1657,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
         CDMRData dmr_control_data;
         dmr_control_data.setControl(true);
+        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
         logical_channel->putRFQueue(dmr_control_data, true);
@@ -1744,6 +1751,7 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
         }
         CDMRData dmr_control_data;
         dmr_control_data.setControl(true);
+        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
         dmr_control_data.setChannelEnable(false);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
         logical_channel->putRFQueue(dmr_control_data, false);
@@ -1771,6 +1779,7 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
                      _logical_channels[channel_id]->getPhysicalChannel(), false);
     CDMRData dmr_control_data;
     dmr_control_data.setControl(true);
+    dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
     dmr_control_data.setChannelEnable(false);
     dmr_control_data.setSlotNo(_logical_channels[channel_id]->getSlot());
     _logical_channels[channel_id]->putRFQueue(dmr_control_data, false);

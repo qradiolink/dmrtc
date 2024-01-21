@@ -252,7 +252,7 @@ void UDPClient::writeDMRConfig(QVector<unsigned char> &config)
     writeDataToNetwork(buffer, config.size() + 7U);
 }
 
-void UDPClient::writeDMRTrunkingParams(bool channel_enable, unsigned int slotNo)
+void UDPClient::writeDMRTrunkingParams(CDMRData &dmr_control_data)
 {
     unsigned char buffer[8U];
     ::memset(buffer, 0x00U, 8U);
@@ -261,8 +261,9 @@ void UDPClient::writeDMRTrunkingParams(bool channel_enable, unsigned int slotNo)
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
     buffer[3U]  = 'T';
-    buffer[4U]  = slotNo == 1U ? 0x00U : 0x80U;
-    buffer[4U]  |= (channel_enable) ? 0x01 : 0x00;
+    buffer[4U]  = (unsigned char)dmr_control_data.getCommand();
+    buffer[5U]  = dmr_control_data.getSlotNo() == 1U ? 0x00U : 0x80U;
+    buffer[5U]  |= (dmr_control_data.getChannelEnable()) ? 0x01 : 0x00;
     writeDataToNetwork(buffer, 8U);
 }
 

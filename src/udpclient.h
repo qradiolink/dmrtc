@@ -23,8 +23,9 @@
 #include <QTimer>
 #include <QVector>
 #include <QMutex>
-#include "settings.h"
-#include "logger.h"
+#include "src/settings.h"
+#include "src/dmr_commands.h"
+#include "src/logger.h"
 #include "MMDVM/DMRDefines.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRCSBK.h"
@@ -56,7 +57,7 @@ public slots:
     void writeDataToNetwork(unsigned char *data, int size);
     void writeDMRData(CDMRData &data);
     void writeDMRConfig(QVector<unsigned char> &config);
-    void writeDMRTrunkingParams(bool channel_enable, unsigned int slotNo);
+    void writeDMRTrunkingParams(CDMRData &dmr_control_data);
     void handleStateChange(QAbstractSocket::SocketState state);
 
 
