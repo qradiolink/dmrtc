@@ -3,7 +3,13 @@
 
 enum DMRCommand {
     ChannelEnableDisable = 1,
-    ReverseChannelInfo = 2
+    RCCeaseTransmission = 2,
+    RCRequestCeaseTransmission = 3,
+    RCPowerIncreaseOneStep = 4,
+    RCPowerDecreaseOneStep = 5,
+    RCMaximumPower = 6,
+    RCMinimumPower = 7,
+    RCNoCommand = 8
 };
 
 #endif // DMR_COMMANDS_H
