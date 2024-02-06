@@ -414,6 +414,31 @@ void Settings::readConfig()
     }
     try
     {
+        const libconfig::Setting &adjacent_site_map = cfg.lookup("adjacent_sites");
+        for(int i = 0; i < adjacent_site_map.getLength(); ++i)
+        {
+          const libconfig::Setting &channel = adjacent_site_map[i];
+          long long channel_id, logical_channel, tx_freq, rx_freq, colour_code;
+
+          if(!(channel.lookupValue("channel_id", channel_id)
+               && channel.lookupValue("logical_channel", logical_channel)
+               && channel.lookupValue("tx_freq", tx_freq) &&
+               channel.lookupValue("rx_freq", rx_freq) &&
+               channel.lookupValue("colour_code", colour_code)))
+            continue;
+          QMap<QString, uint64_t> channel_map{{"channel_id", (uint64_t)channel_id},
+                                              {"logical_channel", (uint64_t)logical_channel},
+                                              {"tx_freq", (uint64_t)tx_freq},
+                                              {"rx_freq", (uint64_t)rx_freq},
+                                              {"colour_code", (uint64_t)colour_code}};
+          adjacent_sites.append(channel_map);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
+    try
+    {
         const libconfig::Setting &service_map = cfg.lookup("service_ids");
         for(int i = 0; i < service_map.getLength(); ++i)
         {
@@ -550,6 +575,21 @@ void Settings::saveConfig()
     {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
         libconfig::Setting &channel = lpc.add(libconfig::Setting::TypeGroup);
+        channel.add("channel_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("channel_id");
+        channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
+        channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
+        channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");
+        channel.add("colour_code", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("colour_code");
+    }
+
+    /// Adjacent sites
+    root.add("adjacent_sites",libconfig::Setting::TypeList);
+    libconfig::Setting &adjacent_site = root["adjacent_sites"];
+    QListIterator<QMap<QString, uint64_t>> it_sites(adjacent_sites);
+    while(it_sites.hasNext())
+    {
+        QMap<QString, uint64_t> channel_map = it_sites.next();
+        libconfig::Setting &channel = adjacent_site.add(libconfig::Setting::TypeGroup);
         channel.add("channel_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("channel_id");
         channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");

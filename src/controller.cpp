@@ -485,8 +485,8 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         unsigned int group = tgids.at(i).toUInt(&ok);
         if(!ok)
         {
-            _logger->log(Logger::LogLevelDebug, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
-            return;
+            _logger->log(Logger::LogLevelWarning, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
+            continue;
         }
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
@@ -712,9 +712,21 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                           .arg(_logical_channels[i]->getDestination())
                           .arg(srcId)
                           .arg(dstId));
+                    /* TODO
+                    if(_logical_channels[i]->getLocalCall())
+                    {
+                        CDMRData dmr_control_data;
+                        dmr_control_data.setSlotNo(_logical_channels[i]->getSlot());
+                        dmr_control_data.setControl(true);
+                        dmr_control_data.setCommand(DMRCommand::RCCeaseTransmission);
+                        _logical_channels[i]->putRFQueue(dmr_control_data);
+                        return nullptr;
+                    }
+                    */
                     _logical_channels[i]->setDestination(0);
                     _logical_channels[i]->clearNetQueue();
                     _logical_channels[i]->clearRFQueue();
+
 
                     if(local)
                     {
@@ -727,7 +739,6 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                     }
                     return _logical_channels[i];
                 }
-
             }
         }
     }
@@ -1603,7 +1614,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         dmr_control_data.setControl(true);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, true);
+        logical_channel->putRFQueue(dmr_control_data, false);
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1645,7 +1656,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         _signalling_generator->createReplyCallDenied(csbk, srcId);
         if(!_settings->headless_mode)
         {
-            emit updateRejectedCallsList(srcId, dstId, local);
+            emit updateRejectedCallsList(srcId, dmrDstId, local);
         }
         return;
     }
@@ -1660,7 +1671,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, true);
+        logical_channel->putRFQueue(dmr_control_data, false);
 
         if(!_settings->headless_mode)
         {
@@ -2217,6 +2228,24 @@ void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
     (void)udp_channel_id;
     _logger->log(Logger::LogLevelDebug, QString("Received network CSBK from %1, slot %2 to destination %3")
                  .arg(dmr_data.getSrcId()).arg(dmr_data.getSlotNo()).arg(dmr_data.getDstId()));
+    unsigned int srcId = dmr_data.getSrcId();
+    unsigned int dstId = dmr_data.getDstId();
+    unsigned int slotNo = dmr_data.getSlotNo();
+    CDMRCSBK csbk;
+    unsigned char buf[DMR_FRAME_LENGTH_BYTES];
+    dmr_data.getData(buf);
+    bool valid = csbk.put(buf);
+    if (!valid)
+    {
+        _logger->log(Logger::LogLevelDebug, QString("Received invalid CSBK from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+        return;
+    }
+
+    qDebug() << "CSBKO: " << QString::number(csbk.getCSBKO(), 16) <<
+                " FID " << csbk.getFID() <<
+                " data1: " << csbk.getData1() << " data2: " << csbk.getCBF() <<
+                " dst: " << dstId << " src: " << srcId;
 }
 
 void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,

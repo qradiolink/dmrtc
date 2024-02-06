@@ -27,6 +27,7 @@ DMR tier III services partly or completely implemented
 12. Private voice / UDT short data call diversion service
 13. MS authentication
 14. Preferential call notification
+15. Group call priorities, priority interrupt of network group calls
 
 
 DMR tier III services NOT implemented

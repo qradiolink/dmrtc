@@ -474,6 +474,8 @@ QString LogicalChannel::getGPSInfo()
 void LogicalChannel::processTalkerAlias()
 {
     unsigned int size = _ta_data.size();
+    if(size < 1)
+        return;
     if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) || ((_ta_df == 3) && (size >= _ta_dl*2)))
     {
         // TODO: handle ISO 7 bit
@@ -545,6 +547,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         _embedded_data[1].reset();
         _default_embedded_data.reset();
         _default_embedded_data.setLC(_lc);
+        setText("");
     }
     else if(dataType == DT_VOICE_SYNC)
     {

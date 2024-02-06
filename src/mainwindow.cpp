@@ -56,6 +56,10 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
                      this, SLOT(deleteLogicalPhysicalChannel()));
     QObject::connect(ui->pushButtonAddLogicalPhysicalChannel, SIGNAL(clicked(bool)),
                      this, SLOT(addLogicalPhysicalChannel()));
+    QObject::connect(ui->pushButtonRemoveAdjacentSite, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteAdjacentSite()));
+    QObject::connect(ui->pushButtonAddAjacentSite, SIGNAL(clicked(bool)),
+                     this, SLOT(addAdjacentSite()));
     QObject::connect(ui->pushButtonRemoveServiceId, SIGNAL(clicked(bool)),
                      this, SLOT(deleteServiceId()));
     QObject::connect(ui->pushButtonAddServiceId, SIGNAL(clicked(bool)),
@@ -182,6 +186,7 @@ void MainWindow::setConfig()
     loadCallPriorities();
     loadSlotRewrite();
     loadLogicalPhysicalChannels();
+    loadAdjacentSites();
     loadServiceIds();
 }
 
@@ -217,6 +222,7 @@ void MainWindow::saveConfig()
     saveCallPriorities();
     saveSlotRewrite();
     saveLogicalPhysicalChannels();
+    saveAdjacentSites();
     saveServiceIds();
     _settings->saveConfig();
 }
@@ -532,6 +538,106 @@ void MainWindow::deleteLogicalPhysicalChannel()
     for(int row : rows)
     {
         ui->tableWidgetLogicalPhysicalChannels->removeRow(row);
+    }
+}
+
+void MainWindow::loadAdjacentSites()
+{
+    QStringList header_lpc;
+    header_lpc.append("Channel id");
+    header_lpc.append("Logical channel");
+    header_lpc.append("RX Frequency");
+    header_lpc.append("TX Frequency");
+    header_lpc.append("Colour code");
+    ui->tableWidgetAjacentSites->setColumnCount(5);
+    ui->tableWidgetAjacentSites->setRowCount(_settings->adjacent_sites.size());
+    ui->tableWidgetAjacentSites->verticalHeader()->setVisible(false);
+    ui->tableWidgetAjacentSites->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetAjacentSites->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    ui->tableWidgetAjacentSites->setHorizontalHeaderLabels(header_lpc);
+
+    QListIterator<QMap<QString, uint64_t>> it_lpc(_settings->adjacent_sites);
+    int row = 0;
+    while(it_lpc.hasNext())
+    {
+        QMap<QString, uint64_t> channel_map = it_lpc.next();
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("channel_id")));
+        QTableWidgetItem *lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
+        QTableWidgetItem *rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
+        QTableWidgetItem *tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
+        QTableWidgetItem *cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
+
+        ui->tableWidgetAjacentSites->setItem(row, 0, id);
+        ui->tableWidgetAjacentSites->setItem(row, 1, lc);
+        ui->tableWidgetAjacentSites->setItem(row, 2, rx_freq);
+        ui->tableWidgetAjacentSites->setItem(row, 3, tx_freq);
+        ui->tableWidgetAjacentSites->setItem(row, 4, cc);
+        row++;
+    }
+}
+
+void MainWindow::saveAdjacentSites()
+{
+    _settings->adjacent_sites.clear();
+    int rows = ui->tableWidgetAjacentSites->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetAjacentSites->item(i, 0);
+        QTableWidgetItem *item2 = ui->tableWidgetAjacentSites->item(i, 1);
+        QTableWidgetItem *item3 = ui->tableWidgetAjacentSites->item(i, 2);
+        QTableWidgetItem *item4 = ui->tableWidgetAjacentSites->item(i, 3);
+        QTableWidgetItem *item5 = ui->tableWidgetAjacentSites->item(i, 4);
+        bool ok1, ok2, ok3, ok4, ok5 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
+                && item4->text().size() > 0 && item5->text().size() > 0)
+        {
+            item1->text().toInt(&ok1);
+            item2->text().toInt(&ok2);
+            item3->text().toInt(&ok3);
+            item4->text().toInt(&ok4);
+            item5->text().toInt(&ok5);
+        }
+        if(ok1 && ok2 && ok3 && ok4)
+        {
+            QMap<QString, uint64_t> map;
+            map.insert("channel_id", item1->text().toInt());
+            map.insert("logical_channel", item2->text().toInt());
+            map.insert("rx_freq", item3->text().toInt());
+            map.insert("tx_freq", item4->text().toInt());
+            map.insert("colour_code", item5->text().toInt());
+            _settings->adjacent_sites.append(map);
+        }
+    }
+}
+
+void MainWindow::addAdjacentSite()
+{
+    ui->tableWidgetAjacentSites->setRowCount(ui->tableWidgetAjacentSites->rowCount() + 1);
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *lc = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *rx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *tx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *cc = new QTableWidgetItem(QString(""));
+    ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 0, id);
+    ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 1, lc);
+    ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 2, rx_freq);
+    ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 3, tx_freq);
+    ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 4, cc);
+    ui->tableWidgetAjacentSites->scrollToBottom();
+}
+
+void MainWindow::deleteAdjacentSite()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetAjacentSites->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetAjacentSites->removeRow(row);
     }
 }
 

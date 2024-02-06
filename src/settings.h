@@ -65,6 +65,7 @@ public:
     QMap<unsigned int, unsigned int> talkgroup_routing_table;
     QMap<unsigned int, unsigned int> slot_rewrite_table;
     QList<QMap<QString, uint64_t>> logical_physical_channels;
+    QList<QMap<QString, uint64_t>> adjacent_sites;
     QMap<QString, unsigned int> service_ids;
     QMap<unsigned int, unsigned int> call_priorities;
     QMap<unsigned int, unsigned int> call_diverts;
