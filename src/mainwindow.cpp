@@ -544,7 +544,7 @@ void MainWindow::deleteLogicalPhysicalChannel()
 void MainWindow::loadAdjacentSites()
 {
     QStringList header_lpc;
-    header_lpc.append("Channel id");
+    header_lpc.append("System id");
     header_lpc.append("Logical channel");
     header_lpc.append("RX Frequency");
     header_lpc.append("TX Frequency");
@@ -561,7 +561,7 @@ void MainWindow::loadAdjacentSites()
     while(it_lpc.hasNext())
     {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("channel_id")));
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("system_id")));
         QTableWidgetItem *lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
         QTableWidgetItem *rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
         QTableWidgetItem *tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
@@ -600,7 +600,7 @@ void MainWindow::saveAdjacentSites()
         if(ok1 && ok2 && ok3 && ok4)
         {
             QMap<QString, uint64_t> map;
-            map.insert("channel_id", item1->text().toInt());
+            map.insert("system_id", item1->text().toInt());
             map.insert("logical_channel", item2->text().toInt());
             map.insert("rx_freq", item3->text().toInt());
             map.insert("tx_freq", item4->text().toInt());
