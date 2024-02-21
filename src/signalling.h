@@ -41,6 +41,7 @@ public:
                                                    LogicalChannel *&logical_channel);
     void createRegistrationRequest(CDMRCSBK &csbk);
     void createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel);
+    void createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, uint64_t> site);
     void createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time);
     void createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group);
     void createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options=0x00);

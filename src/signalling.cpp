@@ -293,6 +293,35 @@ void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMR
     csbk_cont.setDataType(DT_MBC_CONTINUATION);
 }
 
+void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, uint64_t> site)
+{
+    uint8_t announcement_type = 0x06 << 3;
+    uint32_t reg = 1;
+    uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
+    system_id = system_id | 0x03; // AB MSs
+    uint32_t bcast_parms1 = site.value("system_id");
+    uint32_t bcast_parms2 = site.value("logical_channel");
+    uint32_t confirmed_priority = 1;
+    uint32_t adjacent_priority = 2; // TODO
+    uint32_t active_connection = 3;
+    bcast_parms2 |= active_connection << 22;
+    bcast_parms2 |= confirmed_priority << 19;
+    bcast_parms2 |= adjacent_priority << 16;
+    csbk.setCSBKO(CSBKO_C_BCAST);
+    csbk.setFID(0x00);
+    unsigned char data1 = (unsigned char) announcement_type | ((bcast_parms1 >> 11) & 0x03);
+    unsigned char data2 = (unsigned char) ((bcast_parms1 >> 3) & 0xFF);
+    csbk.setData1(data1);
+    csbk.setCBF(data2);
+    unsigned int data3 = ((bcast_parms1 & 0x03) << 21);
+
+    data3 |= system_id;
+    data3 |= 2 << 16; // backoff
+    data3 |= reg << 20;
+    csbk.setDstId(data3);
+    csbk.setSrcId(bcast_parms2);
+}
+
 void Signalling::createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time)
 {
     uint32_t reg = 1;

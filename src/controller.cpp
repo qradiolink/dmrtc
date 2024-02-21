@@ -35,6 +35,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _stop_thread = false;
     _late_entry_announcing = false;
     _system_freqs_announcing = false;
+    _adjacent_sites_announcing = false;
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
@@ -80,6 +81,7 @@ void Controller::run()
     uint8_t counter = 0;
     QTimer gateway_timer;
     QTimer announce_system_freqs_timer;
+    QTimer announce_adjacent_sites_timer;
     QTimer auth_timer;
     auth_timer.setSingleShot(true);
     auth_timer.setInterval(3000);
@@ -179,6 +181,9 @@ void Controller::run()
     announce_system_freqs_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
     announce_system_freqs_timer.start();
+    announce_adjacent_sites_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
+    announce_adjacent_sites_timer.setSingleShot(true);
+    announce_adjacent_sites_timer.start();
 
 
     /// Main thread loop where most things happen
@@ -193,6 +198,11 @@ void Controller::run()
         {
             QtConcurrent::run(this, &Controller::announceSystemFreqs);
             announce_system_freqs_timer.start();
+        }
+        if(!announce_adjacent_sites_timer.isActive())
+        {
+            QtConcurrent::run(this, &Controller::announceAdjacentSites);
+            announce_adjacent_sites_timer.start();
         }
 
         uint16_t min = QDateTime::currentDateTime().time().minute();
@@ -359,6 +369,30 @@ void Controller::announceSystemFreqs()
     }
 
     _system_freqs_announcing = false;
+}
+
+void Controller::announceAdjacentSites()
+{
+    if(_adjacent_sites_announcing)
+        return;
+    _adjacent_sites_announcing = true;
+    if(_stop_thread)
+        return;
+    _logger->log(Logger::LogLevelInfo, QString("Announcing adjacent sites: %1")
+                 .arg(_settings->adjacent_sites.size()));
+    for(int i = 0;i<_settings->adjacent_sites.size(); i++)
+    {
+        if(_settings->adjacent_sites[i].size() < 5)
+            continue;
+        QMap<QString, uint64_t> site = _settings->adjacent_sites[i];
+        CDMRCSBK csbk;
+        _signalling_generator->createAdjacentSiteAnnouncement(csbk, site);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
+        if(_stop_thread)
+            return;
+    }
+
+    _adjacent_sites_announcing = false;
 }
 
 void Controller::announceLocalTime()

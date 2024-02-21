@@ -92,6 +92,7 @@ public slots:
     void sendAuthCheck(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
+    void announceAdjacentSites();
 
 signals:
     void finished();
@@ -171,6 +172,7 @@ private:
     bool _startup_completed;
     bool _late_entry_announcing;
     bool _system_freqs_announcing;
+    bool _adjacent_sites_announcing;
     unsigned int _minute;
     unsigned char _data_message[48];
     unsigned int _data_msg_size;
