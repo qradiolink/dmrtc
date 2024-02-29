@@ -70,7 +70,14 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
         _rx_freq = channel.value("rx_freq");
         _tx_freq = channel.value("tx_freq");
         _colour_code = channel.value("colour_code");
-        _lcn = channel.value("logical_channel");
+        if(!_settings->use_fixed_channel_plan)
+        {
+            _lcn = channel.value("logical_channel");
+        }
+        else
+        {
+            _lcn = (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;
+        }
     }
     else
     {
@@ -117,8 +124,8 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _embedded_data[1].reset();
     _data_mutex.unlock();
     emit internalStartTimer();
-    _logger->log(Logger::LogLevelDebug, QString("Allocated physical channel %1, slot %2 to destination %3 and source %4")
-                 .arg(_physical_channel).arg(_slot).arg(dstId).arg(srcId));
+    _logger->log(Logger::LogLevelDebug, QString("Allocated physical channel %1, logical channel %2, slot %3 to destination %4 and source %5")
+                 .arg(_physical_channel).arg(_lcn).arg(_slot).arg(dstId).arg(srcId));
 }
 
 void LogicalChannel::deallocateChannel()

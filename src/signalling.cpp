@@ -257,7 +257,9 @@ void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMR
     uint32_t reg = 1;
     uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
     system_id = system_id | 0x03; // AB MSs
-    uint32_t bcast_parms2 = channel.value("logical_channel");
+    uint32_t bcast_parms2 = (!_settings->use_fixed_channel_plan) ?
+                channel.value("logical_channel") :
+                (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
     csbk1.setCSBKO(CSBKO_C_BCAST, false, false);
     csbk1.setFID(0x00);
     unsigned char data1 = (unsigned char) announcement_type;
@@ -275,7 +277,9 @@ void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMR
     csbk_cont.setCSBKO(CSBKO_C_BCAST);
     csbk_cont.setFID(0x00);
 
-    uint64_t lcn = channel.value("logical_channel");
+    uint64_t lcn = (!_settings->use_fixed_channel_plan) ?
+                channel.value("logical_channel") :
+                (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
     uint64_t tx_value_khz = channel.value("tx_freq") % 1000000 / 125;
     uint64_t rx_value_khz = channel.value("rx_freq") % 1000000 / 125;
     uint64_t tx_value_Mhz = channel.value("tx_freq") / 1000000;
@@ -300,7 +304,9 @@ void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, ui
     uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
     system_id = system_id | 0x03; // AB MSs
     uint32_t bcast_parms1 = site.value("system_id");
-    uint32_t bcast_parms2 = site.value("logical_channel");
+    uint32_t bcast_parms2 = (!_settings->use_fixed_channel_plan) ?
+                site.value("logical_channel") :
+                (site.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
     uint32_t confirmed_priority = 1;
     uint32_t adjacent_priority = 2; // TODO
     uint32_t active_connection = 3;

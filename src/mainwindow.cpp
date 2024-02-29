@@ -177,6 +177,7 @@ void MainWindow::setConfig()
     ui->textEditSystemMessage->setText(_settings->system_announcement_message);
     ui->checkBoxAnnouncePriority->setChecked((bool)_settings->announce_priority);
     ui->checkBoxAbsoluteGrants->setChecked((bool)_settings->use_absolute_channel_grants);
+    ui->checkBoxFixedChannelPlan->setChecked((bool)_settings->use_fixed_channel_plan);
     ui->checkBoxGatewayEnabled->setChecked((bool)_settings->gateway_enabled);
     ui->checkBoxAnnounceSystemMessage->setChecked((bool)_settings->announce_system_message);
     ui->checkBoxPreventMMDVMOverflows->setChecked((bool)_settings->prevent_mmdvm_overflows);
@@ -213,6 +214,7 @@ void MainWindow::saveConfig()
     _settings->system_announcement_message = ui->textEditSystemMessage->toPlainText();
     _settings->announce_priority = (int)ui->checkBoxAnnouncePriority->isChecked();
     _settings->use_absolute_channel_grants = (int)ui->checkBoxAbsoluteGrants->isChecked();
+    _settings->use_fixed_channel_plan = (int)ui->checkBoxFixedChannelPlan->isChecked();
     _settings->gateway_enabled = (int)ui->checkBoxGatewayEnabled->isChecked();
     _settings->announce_system_message = (int)ui->checkBoxAnnounceSystemMessage->isChecked();
     _settings->prevent_mmdvm_overflows = (int)ui->checkBoxPreventMMDVMOverflows->isChecked();

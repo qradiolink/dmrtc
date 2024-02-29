@@ -28,6 +28,9 @@ DMR tier III services partly or completely implemented
 13. MS authentication
 14. Preferential call notification
 15. Group call priorities, priority interrupt of network group calls
+16. Adjacent sites announcements
+17. Fixed and flexible hunt channel plans
+18. Absolute channel grants (only when MS is set to hunt in flexible channel plan)
 
 
 DMR tier III services NOT implemented
@@ -37,16 +40,15 @@ DMR tier III services NOT implemented
 2. MS pre-emption control
 3. All-MS call service
 4. Packet data call service
-5. Adjacent sites announcements
-6. IP bearer services
-7. Status delivery service
-8. Status polling service
-9. Ambient listening service
-10. Suplimentary user data transfer service (additional data sent as part of the primary call setup)
-11. MS stun, kill and revive
-12. Full duplex voice call service
-13. PABX/PSTN call service
-14. Call diversion service to PSTN/PABX/Gateway
+5. IP bearer services
+6. Status delivery service
+7. Status polling service
+8. Ambient listening service
+9. Suplimentary user data transfer service (additional data sent as part of the primary call setup)
+10. MS stun, kill and revive
+11. Full duplex voice call service
+12. PABX/PSTN call service
+13. Call diversion service to PSTN/PABX/Gateway
 
 
 Radio compatibility matrix
@@ -54,7 +56,7 @@ Radio compatibility matrix
 
 tier III compatible radios tested and confirmed to work with this software:
 
-1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short messages, call divert, voice with location, DGNA, authentication
+1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short messages, call divert, voice with location, DGNA, authentication, hunting in fixed or flexible channel plans
 
 
 Requirements

@@ -72,6 +72,7 @@ public:
     QMap<unsigned int, QString> auth_keys; // Auth keys are 32 character hex strings, traducing to 16 byte key
 
     int use_absolute_channel_grants;
+    int use_fixed_channel_plan;
     int gateway_enabled;
     int announce_priority;
     int announce_system_message;

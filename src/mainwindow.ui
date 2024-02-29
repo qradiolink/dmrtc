@@ -840,7 +840,7 @@
            <item>
             <widget class="QTabWidget" name="tabWidgetSettings">
              <property name="currentIndex">
-              <number>5</number>
+              <number>0</number>
              </property>
              <property name="iconSize">
               <size>
@@ -1418,6 +1418,13 @@ message</string>
                     </property>
                     <property name="acceptRichText">
                      <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="4">
+                   <widget class="QCheckBox" name="checkBoxFixedChannelPlan">
+                    <property name="text">
+                     <string>Use fixed channel plan</string>
                     </property>
                    </widget>
                   </item>

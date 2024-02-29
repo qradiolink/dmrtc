@@ -48,6 +48,7 @@ Settings::Settings(Logger *logger)
     freq_separation = 12500;
     freq_duplexsplit = 8000000;
     use_absolute_channel_grants = 0;
+    use_fixed_channel_plan = 0;
     announce_system_message = 1;
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
@@ -295,7 +296,7 @@ void Settings::readConfig()
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
-        freq_separation = 12500;
+        freq_separation = 25000;
     }
     try
     {
@@ -312,6 +313,14 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
         use_absolute_channel_grants = 0;
+    }
+    try
+    {
+        use_fixed_channel_plan = cfg.lookup("use_fixed_channel_plan");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        use_fixed_channel_plan = 0;
     }
     try
     {
@@ -540,6 +549,7 @@ void Settings::saveConfig()
     root.add("freq_separation",libconfig::Setting::TypeInt) = freq_separation;
     root.add("freq_duplexsplit",libconfig::Setting::TypeInt) = freq_duplexsplit;
     root.add("use_absolute_channel_grants",libconfig::Setting::TypeInt) = use_absolute_channel_grants;
+    root.add("use_fixed_channel_plan",libconfig::Setting::TypeInt) = use_fixed_channel_plan;
     root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
