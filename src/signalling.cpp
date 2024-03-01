@@ -308,7 +308,7 @@ void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, ui
                 site.value("logical_channel") :
                 (site.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
     uint32_t confirmed_priority = 1;
-    uint32_t adjacent_priority = 2; // TODO
+    uint32_t adjacent_priority = 1; // TODO
     uint32_t active_connection = 3;
     bcast_parms2 |= active_connection << 22;
     bcast_parms2 |= confirmed_priority << 19;

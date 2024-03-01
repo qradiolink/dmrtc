@@ -181,6 +181,21 @@ bool ChannelViewModel::setData(const QModelIndex &index, const QVariant &value, 
     return false;
 }
 
+bool ChannelViewModel::setChecked(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (!checkIndex(index))
+        return false;
+    int row = index.row();
+    int col = index.column();
+    if (role == Qt::CheckStateRole)
+    {
+        _check_state[row][col] = value.toInt();
+        emit dataChanged(this->index(0, 0), this->index(ROWS - 1, COLS -1));
+        return true;
+    }
+    return false;
+}
+
 void ChannelViewModel::setColor(const QModelIndex &index, const QVariant &value, int role)
 {
     (void)role;

@@ -738,6 +738,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                         ChannelState::ChannelBusy : ChannelState::ChannelFree;
             state1 = logical_channels->at(j)->isControlChannel() ? ChannelState::ChannelControl : state1;
             _logical_channel_model->setState(index1, state1, 0);
+            _logical_channel_model->setChecked(index1, logical_channels->at(j)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
 
             QString usage2 = logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
@@ -754,6 +755,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                         ChannelState::ChannelBusy : ChannelState::ChannelFree;
             state2 = logical_channels->at(j + 1)->isControlChannel() ? ChannelState::ChannelControl : state2;
             _logical_channel_model->setState(index2, state2, 0);
+            _logical_channel_model->setChecked(index2, logical_channels->at(j+1)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
         }
     }
 }
