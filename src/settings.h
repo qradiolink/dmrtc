@@ -81,6 +81,7 @@ public:
     int location_service_id;
     int announce_system_freqs_interval;
     int announce_late_entry_interval;
+    int channel_disable_bitmask;
 
 
 private:
