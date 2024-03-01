@@ -181,7 +181,7 @@ void Controller::run()
     announce_system_freqs_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
     announce_system_freqs_timer.start();
-    announce_adjacent_sites_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
+    announce_adjacent_sites_timer.setInterval(20 * 1000);
     announce_adjacent_sites_timer.setSingleShot(true);
     announce_adjacent_sites_timer.start();
 
