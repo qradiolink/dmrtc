@@ -1084,8 +1084,29 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
     ///
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
+    /// Help
+    if(dstId == (unsigned int)_settings->service_ids.value("help", 0))
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
+        transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+        QString message = "Commands: \n";
+        QMapIterator<QString, unsigned int> it(_settings->service_ids);
+        while(it.hasNext())
+        {
+            it.next();
+            message += QString("%1: %2;\n").arg(it.key()).arg(it.value());
+        }
+        int size = message.size();
+        int num_msg = size / 45;
+        for(int i = 0;i<=num_msg;i++)
+        {
+            QString msg = message.mid(i * 45, 45);
+            sendUDTShortMessage(msg, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
+        }
+    }
     /// Location query ???
-    if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
+    else if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
     {
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
@@ -2418,7 +2439,7 @@ QVector<LogicalChannel *> *Controller::getLogicalChannels()
 
 void Controller::setChannelEnabled(unsigned int index, bool state)
 {
-    if((index < (unsigned int)_logical_channels.size()) && (index != _settings->control_channel_physical_id))
+    if((index < (unsigned int)_logical_channels.size()) && (index != (unsigned int)_settings->control_channel_physical_id))
     {
         if(state)
         {
