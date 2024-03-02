@@ -35,6 +35,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _stop_thread = false;
     _late_entry_announcing = false;
     _system_freqs_announcing = false;
+    _adjacent_sites_announcing = false;
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
@@ -80,6 +81,7 @@ void Controller::run()
     uint8_t counter = 0;
     QTimer gateway_timer;
     QTimer announce_system_freqs_timer;
+    QTimer announce_adjacent_sites_timer;
     QTimer auth_timer;
     auth_timer.setSingleShot(true);
     auth_timer.setInterval(3000);
@@ -121,6 +123,14 @@ void Controller::run()
             QObject::connect(payload_channel2, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
             _logical_channels.append(payload_channel1);
             _logical_channels.append(payload_channel2);
+        }
+    }
+    for(int i=0; i<_settings->channel_number; i++)
+    {
+        if(i != _settings->control_channel_physical_id)
+        {
+            int state = (_settings->channel_disable_bitmask >> i) & 1;
+            _logical_channels[i]->setDisabled((bool)state);
         }
     }
     if(!_settings->headless_mode)
@@ -179,6 +189,9 @@ void Controller::run()
     announce_system_freqs_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
     announce_system_freqs_timer.start();
+    announce_adjacent_sites_timer.setInterval(20 * 1000);
+    announce_adjacent_sites_timer.setSingleShot(true);
+    announce_adjacent_sites_timer.start();
 
 
     /// Main thread loop where most things happen
@@ -193,6 +206,11 @@ void Controller::run()
         {
             QtConcurrent::run(this, &Controller::announceSystemFreqs);
             announce_system_freqs_timer.start();
+        }
+        if(!announce_adjacent_sites_timer.isActive())
+        {
+            QtConcurrent::run(this, &Controller::announceAdjacentSites);
+            announce_adjacent_sites_timer.start();
         }
 
         uint16_t min = QDateTime::currentDateTime().time().minute();
@@ -361,6 +379,30 @@ void Controller::announceSystemFreqs()
     _system_freqs_announcing = false;
 }
 
+void Controller::announceAdjacentSites()
+{
+    if(_adjacent_sites_announcing)
+        return;
+    _adjacent_sites_announcing = true;
+    if(_stop_thread)
+        return;
+    _logger->log(Logger::LogLevelInfo, QString("Announcing adjacent sites: %1")
+                 .arg(_settings->adjacent_sites.size()));
+    for(int i = 0;i<_settings->adjacent_sites.size(); i++)
+    {
+        if(_settings->adjacent_sites[i].size() < 5)
+            continue;
+        QMap<QString, uint64_t> site = _settings->adjacent_sites[i];
+        CDMRCSBK csbk;
+        _signalling_generator->createAdjacentSiteAnnouncement(csbk, site);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
+        if(_stop_thread)
+            return;
+    }
+
+    _adjacent_sites_announcing = false;
+}
+
 void Controller::announceLocalTime()
 {
     if(_stop_thread)
@@ -485,8 +527,8 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         unsigned int group = tgids.at(i).toUInt(&ok);
         if(!ok)
         {
-            _logger->log(Logger::LogLevelDebug, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
-            return;
+            _logger->log(Logger::LogLevelWarning, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
+            continue;
         }
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
@@ -712,9 +754,21 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                           .arg(_logical_channels[i]->getDestination())
                           .arg(srcId)
                           .arg(dstId));
+                    /* TODO
+                    if(_logical_channels[i]->getLocalCall())
+                    {
+                        CDMRData dmr_control_data;
+                        dmr_control_data.setSlotNo(_logical_channels[i]->getSlot());
+                        dmr_control_data.setControl(true);
+                        dmr_control_data.setCommand(DMRCommand::RCCeaseTransmission);
+                        _logical_channels[i]->putRFQueue(dmr_control_data);
+                        return nullptr;
+                    }
+                    */
                     _logical_channels[i]->setDestination(0);
                     _logical_channels[i]->clearNetQueue();
                     _logical_channels[i]->clearRFQueue();
+
 
                     if(local)
                     {
@@ -727,7 +781,6 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                     }
                     return _logical_channels[i];
                 }
-
             }
         }
     }
@@ -1031,8 +1084,29 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
     ///
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
+    /// Help
+    if(dstId == (unsigned int)_settings->service_ids.value("help", 0))
+    {
+        CDMRCSBK csbk;
+        _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
+        transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+        QString message = "Commands: \n";
+        QMapIterator<QString, unsigned int> it(_settings->service_ids);
+        while(it.hasNext())
+        {
+            it.next();
+            message += QString("%1: %2;\n").arg(it.key()).arg(it.value());
+        }
+        int size = message.size();
+        int num_msg = size / 45;
+        for(int i = 0;i<=num_msg;i++)
+        {
+            QString msg = message.mid(i * 45, 45);
+            sendUDTShortMessage(msg, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
+        }
+    }
     /// Location query ???
-    if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
+    else if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
     {
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
@@ -1603,7 +1677,7 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         dmr_control_data.setControl(true);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, true);
+        logical_channel->putRFQueue(dmr_control_data, false);
         if(!_settings->headless_mode)
         {
             int rssi = dmr_data.getRSSI() * -1;
@@ -1645,7 +1719,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         _signalling_generator->createReplyCallDenied(csbk, srcId);
         if(!_settings->headless_mode)
         {
-            emit updateRejectedCallsList(srcId, dstId, local);
+            emit updateRejectedCallsList(srcId, dmrDstId, local);
         }
         return;
     }
@@ -1660,7 +1734,7 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
         dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
         dmr_control_data.setChannelEnable(true);
         dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, true);
+        logical_channel->putRFQueue(dmr_control_data, false);
 
         if(!_settings->headless_mode)
         {
@@ -2217,6 +2291,24 @@ void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
     (void)udp_channel_id;
     _logger->log(Logger::LogLevelDebug, QString("Received network CSBK from %1, slot %2 to destination %3")
                  .arg(dmr_data.getSrcId()).arg(dmr_data.getSlotNo()).arg(dmr_data.getDstId()));
+    unsigned int srcId = dmr_data.getSrcId();
+    unsigned int dstId = dmr_data.getDstId();
+    unsigned int slotNo = dmr_data.getSlotNo();
+    CDMRCSBK csbk;
+    unsigned char buf[DMR_FRAME_LENGTH_BYTES];
+    dmr_data.getData(buf);
+    bool valid = csbk.put(buf);
+    if (!valid)
+    {
+        _logger->log(Logger::LogLevelDebug, QString("Received invalid CSBK from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+        return;
+    }
+
+    qDebug() << "CSBKO: " << QString::number(csbk.getCSBKO(), 16) <<
+                " FID " << csbk.getFID() <<
+                " data1: " << csbk.getData1() << " data2: " << csbk.getCBF() <<
+                " dst: " << dstId << " src: " << srcId;
 }
 
 void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
@@ -2347,8 +2439,16 @@ QVector<LogicalChannel *> *Controller::getLogicalChannels()
 
 void Controller::setChannelEnabled(unsigned int index, bool state)
 {
-    if(index < (unsigned int)_logical_channels.size())
+    if((index < (unsigned int)_logical_channels.size()) && (index != (unsigned int)_settings->control_channel_physical_id))
     {
+        if(state)
+        {
+            _settings->channel_disable_bitmask &= ~(1 << index);
+        }
+        else
+        {
+            _settings->channel_disable_bitmask |= 1 << index;
+        }
         _logical_channels[index]->setDisabled(!state);
     }
     if(!_settings->headless_mode)

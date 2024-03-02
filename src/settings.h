@@ -65,12 +65,14 @@ public:
     QMap<unsigned int, unsigned int> talkgroup_routing_table;
     QMap<unsigned int, unsigned int> slot_rewrite_table;
     QList<QMap<QString, uint64_t>> logical_physical_channels;
+    QList<QMap<QString, uint64_t>> adjacent_sites;
     QMap<QString, unsigned int> service_ids;
     QMap<unsigned int, unsigned int> call_priorities;
     QMap<unsigned int, unsigned int> call_diverts;
     QMap<unsigned int, QString> auth_keys; // Auth keys are 32 character hex strings, traducing to 16 byte key
 
     int use_absolute_channel_grants;
+    int use_fixed_channel_plan;
     int gateway_enabled;
     int announce_priority;
     int announce_system_message;
@@ -79,6 +81,7 @@ public:
     int location_service_id;
     int announce_system_freqs_interval;
     int announce_late_entry_interval;
+    int channel_disable_bitmask;
 
 
 private:

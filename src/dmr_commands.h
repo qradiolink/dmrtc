@@ -9,7 +9,7 @@ enum DMRCommand {
     RCPowerDecreaseOneStep = 5,
     RCMaximumPower = 6,
     RCMinimumPower = 7,
-    RCNoCommand = 8
+    RCNoCommand = 0,
 };
 
 #endif // DMR_COMMANDS_H

@@ -1421,6 +1421,13 @@ message</string>
                     </property>
                    </widget>
                   </item>
+                  <item row="6" column="4">
+                   <widget class="QCheckBox" name="checkBoxFixedChannelPlan">
+                    <property name="text">
+                     <string>Use fixed channel plan</string>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </item>
@@ -1805,6 +1812,89 @@ message</string>
                      </item>
                      <item>
                       <spacer name="horizontalSpacer_4">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tabAjacentSites">
+              <property name="toolTip">
+               <string>Adjacent site information</string>
+              </property>
+              <attribute name="icon">
+               <iconset>
+                <normalon>:/res/bookmark-new.png</normalon>
+               </iconset>
+              </attribute>
+              <attribute name="title">
+               <string>Adjacent sites</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_26">
+               <item>
+                <widget class="QFrame" name="frame_24">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_17">
+                  <item>
+                   <widget class="QTableWidget" name="tableWidgetAjacentSites">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_25">
+                    <property name="frameShape">
+                     <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_12">
+                     <item>
+                      <widget class="QPushButton" name="pushButtonAddAjacentSite">
+                       <property name="text">
+                        <string>Add</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-add.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="pushButtonRemoveAdjacentSite">
+                       <property name="text">
+                        <string>Delete</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-remove.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_11">
                        <property name="orientation">
                         <enum>Qt::Horizontal</enum>
                        </property>

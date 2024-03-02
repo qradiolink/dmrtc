@@ -39,6 +39,7 @@
         <file>res/configure.png</file>
         <file>res/mail-receive.png</file>
         <file>res/dashboard-show.png</file>
+        <file>res/bookmark-new.png</file>
     </qresource>
     <qresource prefix="/fonts"/>
 </RCC>

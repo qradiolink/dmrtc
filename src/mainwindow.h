@@ -65,6 +65,9 @@ public slots:
     void saveLogicalPhysicalChannels();
     void addLogicalPhysicalChannel();
     void deleteLogicalPhysicalChannel();
+    void saveAdjacentSites();
+    void addAdjacentSite();
+    void deleteAdjacentSite();
     void saveServiceIds();
     void deleteServiceId();
     void addServiceId();
@@ -102,6 +105,7 @@ private:
     void loadCallPriorities();
     void loadSlotRewrite();
     void loadLogicalPhysicalChannels();
+    void loadAdjacentSites();
     void loadServiceIds();
     void deleteRegisteredMSList();
     void deleteSubscribedTalkgroupList();

@@ -48,11 +48,13 @@ Settings::Settings(Logger *logger)
     freq_separation = 12500;
     freq_duplexsplit = 8000000;
     use_absolute_channel_grants = 0;
+    use_fixed_channel_plan = 0;
     announce_system_message = 1;
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
     announce_system_freqs_interval = 120;
     announce_late_entry_interval = 1;
+    channel_disable_bitmask = 0;
     service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
 }
 
@@ -295,7 +297,7 @@ void Settings::readConfig()
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
-        freq_separation = 12500;
+        freq_separation = 25000;
     }
     try
     {
@@ -312,6 +314,14 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
         use_absolute_channel_grants = 0;
+    }
+    try
+    {
+        use_fixed_channel_plan = cfg.lookup("use_fixed_channel_plan");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        use_fixed_channel_plan = 0;
     }
     try
     {
@@ -352,6 +362,14 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
         announce_late_entry_interval = 1;
+    }
+    try
+    {
+        channel_disable_bitmask = cfg.lookup("channel_disable_bitmask");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        channel_disable_bitmask = 0;
     }
     try
     {
@@ -414,6 +432,31 @@ void Settings::readConfig()
     }
     try
     {
+        const libconfig::Setting &adjacent_site_map = cfg.lookup("adjacent_sites");
+        for(int i = 0; i < adjacent_site_map.getLength(); ++i)
+        {
+          const libconfig::Setting &channel = adjacent_site_map[i];
+          long long system_id, logical_channel, tx_freq, rx_freq, colour_code;
+
+          if(!(channel.lookupValue("system_id", system_id)
+               && channel.lookupValue("logical_channel", logical_channel)
+               && channel.lookupValue("tx_freq", tx_freq) &&
+               channel.lookupValue("rx_freq", rx_freq) &&
+               channel.lookupValue("colour_code", colour_code)))
+            continue;
+          QMap<QString, uint64_t> channel_map{{"system_id", (uint64_t)system_id},
+                                              {"logical_channel", (uint64_t)logical_channel},
+                                              {"tx_freq", (uint64_t)tx_freq},
+                                              {"rx_freq", (uint64_t)rx_freq},
+                                              {"colour_code", (uint64_t)colour_code}};
+          adjacent_sites.append(channel_map);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
+    try
+    {
         const libconfig::Setting &service_map = cfg.lookup("service_ids");
         for(int i = 0; i < service_map.getLength(); ++i)
         {
@@ -429,7 +472,7 @@ void Settings::readConfig()
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
-        service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}, {"dgna", 3}};
+        service_ids = {{"help", 1000001}, {"signal_report", 1000003}, {"location", 1048677}, {"dgna", 1000002}};
     }
     try
     {
@@ -515,11 +558,13 @@ void Settings::saveConfig()
     root.add("freq_separation",libconfig::Setting::TypeInt) = freq_separation;
     root.add("freq_duplexsplit",libconfig::Setting::TypeInt) = freq_duplexsplit;
     root.add("use_absolute_channel_grants",libconfig::Setting::TypeInt) = use_absolute_channel_grants;
+    root.add("use_fixed_channel_plan",libconfig::Setting::TypeInt) = use_fixed_channel_plan;
     root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;
+    root.add("channel_disable_bitmask",libconfig::Setting::TypeInt) = channel_disable_bitmask;
     /// Talkgroup routing
     root.add("talkgroup_routing",libconfig::Setting::TypeList);
     libconfig::Setting &talkgroup_routing = root["talkgroup_routing"];
@@ -551,6 +596,21 @@ void Settings::saveConfig()
         QMap<QString, uint64_t> channel_map = it_lpc.next();
         libconfig::Setting &channel = lpc.add(libconfig::Setting::TypeGroup);
         channel.add("channel_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("channel_id");
+        channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
+        channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
+        channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");
+        channel.add("colour_code", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("colour_code");
+    }
+
+    /// Adjacent sites
+    root.add("adjacent_sites",libconfig::Setting::TypeList);
+    libconfig::Setting &adjacent_site = root["adjacent_sites"];
+    QListIterator<QMap<QString, uint64_t>> it_sites(adjacent_sites);
+    while(it_sites.hasNext())
+    {
+        QMap<QString, uint64_t> channel_map = it_sites.next();
+        libconfig::Setting &channel = adjacent_site.add(libconfig::Setting::TypeGroup);
+        channel.add("system_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("system_id");
         channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
         channel.add("rx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("rx_freq");

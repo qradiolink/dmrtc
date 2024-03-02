@@ -70,7 +70,14 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
         _rx_freq = channel.value("rx_freq");
         _tx_freq = channel.value("tx_freq");
         _colour_code = channel.value("colour_code");
-        _lcn = channel.value("logical_channel");
+        if(!_settings->use_fixed_channel_plan)
+        {
+            _lcn = channel.value("logical_channel");
+        }
+        else
+        {
+            _lcn = (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;
+        }
     }
     else
     {
@@ -117,8 +124,8 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _embedded_data[1].reset();
     _data_mutex.unlock();
     emit internalStartTimer();
-    _logger->log(Logger::LogLevelDebug, QString("Allocated physical channel %1, slot %2 to destination %3 and source %4")
-                 .arg(_physical_channel).arg(_slot).arg(dstId).arg(srcId));
+    _logger->log(Logger::LogLevelDebug, QString("Allocated physical channel %1, logical channel %2, slot %3 to destination %4 and source %5")
+                 .arg(_physical_channel).arg(_lcn).arg(_slot).arg(dstId).arg(srcId));
 }
 
 void LogicalChannel::deallocateChannel()
@@ -474,6 +481,8 @@ QString LogicalChannel::getGPSInfo()
 void LogicalChannel::processTalkerAlias()
 {
     unsigned int size = _ta_data.size();
+    if(size < 1)
+        return;
     if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) || ((_ta_df == 3) && (size >= _ta_dl*2)))
     {
         // TODO: handle ISO 7 bit
@@ -545,6 +554,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         _embedded_data[1].reset();
         _default_embedded_data.reset();
         _default_embedded_data.setLC(_lc);
+        setText("");
     }
     else if(dataType == DT_VOICE_SYNC)
     {
