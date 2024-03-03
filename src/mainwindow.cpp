@@ -171,6 +171,7 @@ void MainWindow::setConfig()
     ui->lineEditSystemCode->setText(QString::number(_settings->system_identity_code));
     ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(_settings->announce_system_freqs_interval));
     ui->lineEditAnnounceLateEntryInterval->setText(QString::number(_settings->announce_late_entry_interval));
+    ui->lineEditAnnounceAdjacentBSInterval->setText(QString::number(_settings->announce_adjacent_bs_interval));
     ui->lineEditBaseFrequency->setText(QString::number(_settings->freq_base));
     ui->lineEditFrequencySeparation->setText(QString::number(_settings->freq_separation));
     ui->lineEditDuplexSplit->setText(QString::number(_settings->freq_duplexsplit));
@@ -208,6 +209,7 @@ void MainWindow::saveConfig()
     _settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
     _settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
     _settings->announce_late_entry_interval = ui->lineEditAnnounceLateEntryInterval->text().toInt();
+    _settings->announce_adjacent_bs_interval = ui->lineEditAnnounceAdjacentBSInterval->text().toInt();
     _settings->freq_base = ui->lineEditBaseFrequency->text().toInt();
     _settings->freq_separation = ui->lineEditFrequencySeparation->text().toInt();
     _settings->freq_duplexsplit = ui->lineEditDuplexSplit->text().toInt();

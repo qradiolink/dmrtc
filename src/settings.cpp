@@ -53,6 +53,7 @@ Settings::Settings(Logger *logger)
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
     announce_system_freqs_interval = 120;
+    announce_adjacent_bs_interval = 30;
     announce_late_entry_interval = 1;
     channel_disable_bitmask = 0;
     service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
@@ -357,6 +358,14 @@ void Settings::readConfig()
     }
     try
     {
+        announce_adjacent_bs_interval = cfg.lookup("announce_adjacent_bs_interval");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        announce_adjacent_bs_interval = 30;
+    }
+    try
+    {
         announce_late_entry_interval = cfg.lookup("announce_late_entry_interval");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -563,6 +572,7 @@ void Settings::saveConfig()
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
+    root.add("announce_adjacent_bs_interval",libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;
     root.add("channel_disable_bitmask",libconfig::Setting::TypeInt) = channel_disable_bitmask;
     /// Talkgroup routing
