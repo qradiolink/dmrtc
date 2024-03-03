@@ -88,7 +88,6 @@ signals:
     void sendDGNA(QString tgids, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
     void pollData(unsigned int target_id);
-    void resetPing();
     void sendAuthCheck(unsigned int target_id);
     void broadcastLocalTime();
     void broadcastFrequencies();
@@ -99,7 +98,6 @@ private:
     Logger *_logger;
     ChannelViewModel *_logical_channel_model;
     DMRIdLookup *_id_lookup;
-    QTimer _ping_radio_timer;
     void setConfig();
     void loadTalkgroupRouting();
     void loadCallPriorities();

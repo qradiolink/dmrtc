@@ -27,7 +27,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _logger = logger;
     _id_lookup = id_lookup;
     _logical_channel_model = new ChannelViewModel;
-    _ping_radio_timer.setSingleShot(true);
+
     QObject::connect(_logical_channel_model, SIGNAL(channelStateChange(int,int,bool)),
                      this, SLOT(channelStateChange(int,int,bool)));
     QObject::connect(ui->requestRegistrationButton, SIGNAL(clicked(bool)), this, SLOT(requestRegistration()));
@@ -73,7 +73,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonPrivateLast, SIGNAL(clicked(bool)),
                      ui->privateCallsTableWidget, SLOT(scrollToBottom()));
 
-    QObject::connect(&_ping_radio_timer, SIGNAL(timeout()), this, SLOT(pingTimeout()));
+
     ui->tabWidgetSettings->setCurrentIndex(0);
     ui->tabWidgetDashboard->setCurrentIndex(0);
     ui->channelTableView->setModel(_logical_channel_model);
@@ -951,7 +951,6 @@ void MainWindow::sendUDTPoll()
 void MainWindow::sendPing()
 {
     QString radio = ui->comboBoxRegisteredMS->currentText();
-    _ping_radio_timer.start(3000);
     ui->labelPingInformation->setStyleSheet("background-color:#EEEEEE;color:#000000");
     emit pingRadio(radio.toInt(), false);
 }
@@ -960,12 +959,10 @@ void MainWindow::pingTimeout()
 {
     ui->labelPingInformation->setStyleSheet("background-color:#CC0000;color:#FFFFFF");
     ui->labelPingInformation->setText("Ping timeout");
-    emit resetPing();
 }
 
 void MainWindow::displayPingResponse(unsigned int srcId, unsigned int msec)
 {
-    _ping_radio_timer.stop();
     ui->labelPingInformation->setStyleSheet("background-color:#009900;color:#FFFFFF");
     ui->labelPingInformation->setText(QString("Ping response from: %1, time: %2 ms").arg(srcId).arg(msec));
 }

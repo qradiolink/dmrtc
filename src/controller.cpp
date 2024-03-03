@@ -83,11 +83,16 @@ void Controller::run()
     QTimer announce_system_freqs_timer;
     QTimer announce_adjacent_sites_timer;
     QTimer auth_timer;
+    QTimer ping_radio_timer;
     auth_timer.setSingleShot(true);
     auth_timer.setInterval(3000);
     QObject::connect(this, SIGNAL(startAuthTimer()), &auth_timer, SLOT(start()));
     QObject::connect(this, SIGNAL(stopAuthTimer()), &auth_timer, SLOT(stop()));
     QObject::connect(&auth_timer, SIGNAL(timeout()), this, SLOT(resetAuth()));
+    ping_radio_timer.setSingleShot(true);
+    QObject::connect(&ping_radio_timer, SIGNAL(timeout()), this, SLOT(timeoutPingResponse()));
+    QObject::connect(this, SIGNAL(stopPingTimer()), &ping_radio_timer, SLOT(stop()));
+    QObject::connect(this, SIGNAL(startPingTimer(int)), &ping_radio_timer, SLOT(start(int)));
     for(int i=0; i<_settings->channel_number; i++)
     {
 
@@ -641,6 +646,7 @@ void Controller::pingRadio(unsigned int target_id, bool group)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Checking presence for target: %1").arg(target_id));
     t1_ping_ms = std::chrono::high_resolution_clock::now();
+    emit startPingTimer(3000);
     _uplink_acks->insert(target_id, ServiceAction::ActionPingRequest);
     CDMRCSBK csbk;
     _signalling_generator->createPresenceCheckAhoy(csbk, target_id, group);
@@ -663,6 +669,12 @@ void Controller::resetPing()
     {
         _uplink_acks->remove(target_ids[i]);
     }
+}
+
+void Controller::timeoutPingResponse()
+{
+    resetPing();
+    emit pingTimeout();
 }
 
 void Controller::pollData(unsigned int target_id)
@@ -1937,6 +1949,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         std::chrono::high_resolution_clock::time_point t2_ping_ms = std::chrono::high_resolution_clock::now();
         uint64_t msec = std::chrono::duration_cast<std::chrono::nanoseconds>(t2_ping_ms - t1_ping_ms).count() / 1000000U;
+        emit stopPingTimer();
         _uplink_acks->remove(srcId);
         emit pingResponse(srcId, msec);
 
