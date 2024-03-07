@@ -130,9 +130,9 @@ void Controller::run()
             _logical_channels.append(payload_channel2);
         }
     }
-    for(int i=0; i<_settings->channel_number * 2; i++)
+    for(int i=0; i<_logical_channels.size(); i++)
     {
-        if(i != _settings->control_channel_physical_id)
+        if(!_logical_channels[i]->isControlChannel())
         {
             int state = (_settings->channel_disable_bitmask >> i) & 1;
             _logical_channels[i]->setDisabled((bool)state);
@@ -2452,17 +2452,20 @@ QVector<LogicalChannel *> *Controller::getLogicalChannels()
 
 void Controller::setChannelEnabled(unsigned int index, bool state)
 {
-    if((index < (unsigned int)_logical_channels.size()) && (index != (unsigned int)_settings->control_channel_physical_id))
+    if(index < (unsigned int)_logical_channels.size())
     {
-        if(state)
+        if(!_logical_channels[index]->isControlChannel())
         {
-            _settings->channel_disable_bitmask &= ~(1 << index);
+            if(state)
+            {
+                _settings->channel_disable_bitmask &= ~(1 << index);
+            }
+            else
+            {
+                _settings->channel_disable_bitmask |= 1 << index;
+            }
+            _logical_channels[index]->setDisabled(!state);
         }
-        else
-        {
-            _settings->channel_disable_bitmask |= 1 << index;
-        }
-        _logical_channels[index]->setDisabled(!state);
     }
     if(!_settings->headless_mode)
     {
