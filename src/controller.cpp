@@ -734,7 +734,7 @@ LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsig
     for(int i=0; i<_logical_channels.size(); i++)
     {
         if(!(_logical_channels[i]->isControlChannel())
-                && !_logical_channels[i]->getDisabled()
+                && !(_logical_channels[i]->getDisabled())
                 && !(_logical_channels[i]->getBusy()))
         {
             return _logical_channels[i];
@@ -805,14 +805,14 @@ LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int src
     {
         if((!_logical_channels[i]->isControlChannel()) && (_logical_channels[i]->getDestination() == dstId)
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             return _logical_channels[i];
         }
         if((!_logical_channels[i]->isControlChannel()) && ((_logical_channels[i]->getDestination() == dstId) ||
                                                            (_logical_channels[i]->getDestination() == srcId))
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             return _logical_channels[i];
         }
@@ -839,7 +839,7 @@ QVector<LogicalChannel*> Controller::findActiveChannels()
     {
         if((!_logical_channels[i]->isControlChannel())
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             active_channels.append(_logical_channels[i]);
         }
