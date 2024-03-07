@@ -130,7 +130,7 @@ void Controller::run()
             _logical_channels.append(payload_channel2);
         }
     }
-    for(int i=0; i<_settings->channel_number; i++)
+    for(int i=0; i<_settings->channel_number * 2; i++)
     {
         if(i != _settings->control_channel_physical_id)
         {
