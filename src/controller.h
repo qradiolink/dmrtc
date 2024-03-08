@@ -87,7 +87,7 @@ public slots:
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
     void pollData(unsigned int target_id);
-    void resetPing();
+    void timeoutPingResponse();
     void resetAuth();
     void sendAuthCheck(unsigned int target_id);
     void announceLocalTime();
@@ -105,6 +105,9 @@ signals:
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);
+    void pingTimeout();
+    void startPingTimer(int msec);
+    void stopPingTimer();
     void authSuccess(bool successful);
     void startAuthTimer();
     void stopAuthTimer();
@@ -143,6 +146,7 @@ private:
     void processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
+    void resetPing();
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;

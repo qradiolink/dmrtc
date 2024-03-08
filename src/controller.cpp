@@ -83,11 +83,16 @@ void Controller::run()
     QTimer announce_system_freqs_timer;
     QTimer announce_adjacent_sites_timer;
     QTimer auth_timer;
+    QTimer ping_radio_timer;
     auth_timer.setSingleShot(true);
     auth_timer.setInterval(3000);
     QObject::connect(this, SIGNAL(startAuthTimer()), &auth_timer, SLOT(start()));
     QObject::connect(this, SIGNAL(stopAuthTimer()), &auth_timer, SLOT(stop()));
     QObject::connect(&auth_timer, SIGNAL(timeout()), this, SLOT(resetAuth()));
+    ping_radio_timer.setSingleShot(true);
+    QObject::connect(&ping_radio_timer, SIGNAL(timeout()), this, SLOT(timeoutPingResponse()));
+    QObject::connect(this, SIGNAL(stopPingTimer()), &ping_radio_timer, SLOT(stop()));
+    QObject::connect(this, SIGNAL(startPingTimer(int)), &ping_radio_timer, SLOT(start(int)));
     for(int i=0; i<_settings->channel_number; i++)
     {
 
@@ -125,9 +130,9 @@ void Controller::run()
             _logical_channels.append(payload_channel2);
         }
     }
-    for(int i=0; i<_settings->channel_number; i++)
+    for(int i=0; i<_logical_channels.size(); i++)
     {
-        if(i != _settings->control_channel_physical_id)
+        if(!_logical_channels[i]->isControlChannel())
         {
             int state = (_settings->channel_disable_bitmask >> i) & 1;
             _logical_channels[i]->setDisabled((bool)state);
@@ -189,7 +194,7 @@ void Controller::run()
     announce_system_freqs_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
     announce_system_freqs_timer.start();
-    announce_adjacent_sites_timer.setInterval(20 * 1000);
+    announce_adjacent_sites_timer.setInterval(_settings->announce_adjacent_bs_interval * 1000);
     announce_adjacent_sites_timer.setSingleShot(true);
     announce_adjacent_sites_timer.start();
 
@@ -317,8 +322,8 @@ void Controller::announceLateEntry()
     for(int i=0;i<_logical_channels.size();i++)
     {
 
-        if(_logical_channels.at(i)->getBusy() && !_logical_channels.at(i)->getDisabled()
-                && !_logical_channels.at(i)->isControlChannel()
+        if(_logical_channels.at(i)->getBusy() && !(_logical_channels.at(i)->getDisabled())
+                && !(_logical_channels.at(i)->isControlChannel())
                 && (_logical_channels.at(i)->getDestination() != 0))
         {
             LogicalChannel *logical_channel = _logical_channels.at(i);
@@ -641,6 +646,7 @@ void Controller::pingRadio(unsigned int target_id, bool group)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Checking presence for target: %1").arg(target_id));
     t1_ping_ms = std::chrono::high_resolution_clock::now();
+    emit startPingTimer(3000);
     _uplink_acks->insert(target_id, ServiceAction::ActionPingRequest);
     CDMRCSBK csbk;
     _signalling_generator->createPresenceCheckAhoy(csbk, target_id, group);
@@ -663,6 +669,12 @@ void Controller::resetPing()
     {
         _uplink_acks->remove(target_ids[i]);
     }
+}
+
+void Controller::timeoutPingResponse()
+{
+    resetPing();
+    emit pingTimeout();
 }
 
 void Controller::pollData(unsigned int target_id)
@@ -722,7 +734,7 @@ LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsig
     for(int i=0; i<_logical_channels.size(); i++)
     {
         if(!(_logical_channels[i]->isControlChannel())
-                && !_logical_channels[i]->getDisabled()
+                && !(_logical_channels[i]->getDisabled())
                 && !(_logical_channels[i]->getBusy()))
         {
             return _logical_channels[i];
@@ -745,7 +757,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
         for(int i=0; i<_logical_channels.size(); i++)
         {
             if(!(_logical_channels[i]->isControlChannel())
-                    && !_logical_channels[i]->getDisabled() && !_logical_channels[i]->getLocalCall())
+                    && !(_logical_channels[i]->getDisabled()) && !(_logical_channels[i]->getLocalCall()))
             {
                 unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
                 if((existing_call_priority == priority) && (incoming_priority > existing_call_priority))
@@ -793,14 +805,14 @@ LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int src
     {
         if((!_logical_channels[i]->isControlChannel()) && (_logical_channels[i]->getDestination() == dstId)
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             return _logical_channels[i];
         }
         if((!_logical_channels[i]->isControlChannel()) && ((_logical_channels[i]->getDestination() == dstId) ||
                                                            (_logical_channels[i]->getDestination() == srcId))
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             return _logical_channels[i];
         }
@@ -827,7 +839,7 @@ QVector<LogicalChannel*> Controller::findActiveChannels()
     {
         if((!_logical_channels[i]->isControlChannel())
                 && _logical_channels[i]->getBusy()
-                && !_logical_channels[i]->getDisabled())
+                && !(_logical_channels[i]->getDisabled()))
         {
             active_channels.append(_logical_channels[i]);
         }
@@ -1937,6 +1949,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         std::chrono::high_resolution_clock::time_point t2_ping_ms = std::chrono::high_resolution_clock::now();
         uint64_t msec = std::chrono::duration_cast<std::chrono::nanoseconds>(t2_ping_ms - t1_ping_ms).count() / 1000000U;
+        emit stopPingTimer();
         _uplink_acks->remove(srcId);
         emit pingResponse(srcId, msec);
 
@@ -2439,17 +2452,20 @@ QVector<LogicalChannel *> *Controller::getLogicalChannels()
 
 void Controller::setChannelEnabled(unsigned int index, bool state)
 {
-    if((index < (unsigned int)_logical_channels.size()) && (index != (unsigned int)_settings->control_channel_physical_id))
+    if(index < (unsigned int)_logical_channels.size())
     {
-        if(state)
+        if(!_logical_channels[index]->isControlChannel())
         {
-            _settings->channel_disable_bitmask &= ~(1 << index);
+            if(state)
+            {
+                _settings->channel_disable_bitmask &= ~(1 << index);
+            }
+            else
+            {
+                _settings->channel_disable_bitmask |= 1 << index;
+            }
+            _logical_channels[index]->setDisabled(!state);
         }
-        else
-        {
-            _settings->channel_disable_bitmask |= 1 << index;
-        }
-        _logical_channels[index]->setDisabled(!state);
     }
     if(!_settings->headless_mode)
     {
