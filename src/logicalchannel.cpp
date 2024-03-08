@@ -368,7 +368,7 @@ void LogicalChannel::setDisabled(bool disabled)
     _disabled = disabled;
     _data_mutex.unlock();
     _logger->log(Logger::LogLevelInfo, QString("State of channel %1, slot %2 changed to %3")
-                 .arg(_physical_channel + 1)
+                 .arg(_physical_channel)
                  .arg(_slot)
                  .arg(disabled ? "disabled" : "enabled"));
 }

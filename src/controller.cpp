@@ -322,8 +322,8 @@ void Controller::announceLateEntry()
     for(int i=0;i<_logical_channels.size();i++)
     {
 
-        if(_logical_channels.at(i)->getBusy() && !_logical_channels.at(i)->getDisabled()
-                && !_logical_channels.at(i)->isControlChannel()
+        if(_logical_channels.at(i)->getBusy() && !(_logical_channels.at(i)->getDisabled())
+                && !(_logical_channels.at(i)->isControlChannel())
                 && (_logical_channels.at(i)->getDestination() != 0))
         {
             LogicalChannel *logical_channel = _logical_channels.at(i);
@@ -757,7 +757,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
         for(int i=0; i<_logical_channels.size(); i++)
         {
             if(!(_logical_channels[i]->isControlChannel())
-                    && !_logical_channels[i]->getDisabled() && !_logical_channels[i]->getLocalCall())
+                    && !(_logical_channels[i]->getDisabled()) && !(_logical_channels[i]->getLocalCall()))
             {
                 unsigned int existing_call_priority = _settings->call_priorities.value(_logical_channels[i]->getDestination(), 0);
                 if((existing_call_priority == priority) && (incoming_priority > existing_call_priority))
