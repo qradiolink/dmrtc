@@ -1400,7 +1400,16 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         _dmr_rewrite->rewriteSource(dmr_data);
 
         if(dmr_data.getFLCO() == FLCO_GROUP)
+        {
+            if(_settings->receive_tg_attach &&
+                    _settings->transmit_subscribed_tg_only &&
+                    !_subscribed_talkgroups->contains(dstId))
+            {
+                // Do not transmit unsubscribed talkgroups if not configured to do so
+                return;
+            }
             dmr_data.setDstId(Utils::convertBase10ToBase11GroupNumber(dstId));
+        }
 
         // rewrite RF header to use the converted destination id
         if(data_sync)

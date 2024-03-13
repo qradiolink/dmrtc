@@ -78,6 +78,7 @@ public:
     int announce_system_message;
     int prevent_mmdvm_overflows;
     int receive_tg_attach;
+    int transmit_subscribed_tg_only;
     int location_service_id;
     int announce_system_freqs_interval;
     int announce_adjacent_bs_interval;
