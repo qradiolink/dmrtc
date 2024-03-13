@@ -1174,6 +1174,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
 {
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
+
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
         if(dmr_data.getDataType() == DT_DATA_HEADER)
@@ -1339,6 +1340,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     {
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {
+            if(_settings->receive_tg_attach &&
+                    _settings->transmit_subscribed_tg_only &&
+                    !_subscribed_talkgroups->contains(dstId))
+            {
+                // Do not transmit unsubscribed talkgroups if not configured to do so
+                return;
+            }
             dstId = Utils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
             _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         }
