@@ -2211,6 +2211,43 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
+    /// Status transport message MS to MS and MS toTG
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::StatusTransport))
+    {
+        uint8_t status = (csbk.getCBF() >> 4) & 0x03;
+        status |= ((csbk.getData1() >> 1) & 0x1F) << 2;
+        if((csbk.getData1() & 0x80) == 0x80)
+        {
+            CDMRCSBK csbk;
+            _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, true);
+            _signalling_generator->createReplyMessageAccepted(csbk, srcId);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received status transport request to TG from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+        }
+        else
+        {
+            _uplink_acks->insert(dstId, ServiceAction::ActionStatusMsg);
+            _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, false);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received status transport request to MS from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
+    }
+    /// MS acknowledgement of status transport message
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionStatusMsg)
+    {
+        _uplink_acks->remove(srcId);
+        csbk.setCSBKO(CSBKO_ACKD);
+        csbk.setDstId(dstId);
+        csbk.setSrcId(srcId);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received read receipt for status transport from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
     /// Call diversion request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallDiversion))
     {

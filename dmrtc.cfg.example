@@ -8,9 +8,9 @@ window_height = 700;
 headless_mode = 0;
 channel_number = 4;
 gateway_number = 3;
-udp_local_address = "192.168.1.3";
-mmdvm_remote_address = "192.168.1.2";
-gateway_remote_address = "192.168.1.2";
+udp_local_address = "127.0.0.1";
+mmdvm_remote_address = "127.0.0.1";
+gateway_remote_address = "127.0.0.1";
 control_channel_physical_id = 0;
 control_channel_slot = 1;
 gateway_enabled = 1;
@@ -18,13 +18,19 @@ announce_priority = 0;
 system_announcement_message = "DMR tier III site";
 payload_channel_idle_timeout = 5;
 system_identity_code = 9;
+freq_base = 431000000;
+freq_separation = 25000;
+freq_duplexsplit = 3000000;
 use_absolute_channel_grants = 0;
-announce_system_message = 1;
+use_fixed_channel_plan = 1;
+announce_system_message = 0;
 prevent_mmdvm_overflows = 1;
-receive_tg_attach = 0;
-location_service_id = 1048577;
+receive_tg_attach = 1;
+transmit_subscribed_tg_only = 0;
 announce_system_freqs_interval = 120;
+announce_adjacent_bs_interval = 30;
 announce_late_entry_interval = 1;
+channel_disable_bitmask = 0;
 talkgroup_routing = ( 
   {
     tg_id = 1;
@@ -32,14 +38,14 @@ talkgroup_routing = (
   }, 
   {
     tg_id = 2;
+    gateway_id = 0;
+  }, 
+  {
+    tg_id = 1000091;
     gateway_id = 1;
   }, 
   {
-    tg_id = 9;
-    gateway_id = 2;
-  }, 
-  {
-    tg_id = 1031656;
+    tg_id = 1000092;
     gateway_id = 2;
   } );
 slot_rewrite = ( 
@@ -57,26 +63,70 @@ slot_rewrite = (
   } );
 logical_physical_channels = ( 
   {
+    channel_id = 1L;
     logical_channel = 1L;
     tx_freq = 431900000L;
     rx_freq = 434900000L;
     colour_code = 1L;
   }, 
   {
+    channel_id = 2L;
     logical_channel = 2L;
     tx_freq = 431950000L;
     rx_freq = 434950000L;
     colour_code = 1L;
   }, 
   {
+    channel_id = 3L;
     logical_channel = 3L;
     tx_freq = 431850000L;
     rx_freq = 434850000L;
     colour_code = 1L;
   }, 
   {
+    channel_id = 4L;
     logical_channel = 4L;
     tx_freq = 431825000L;
     rx_freq = 434825000L;
     colour_code = 1L;
+  } );
+adjacent_sites = ( 
+  {
+    system_id = 10L;
+    logical_channel = 9L;
+    tx_freq = 431600000L;
+    rx_freq = 434600000L;
+    colour_code = 2L;
+  } );
+service_ids = ( 
+  {
+    service_name = "dgna";
+    id = 1000002;
+  }, 
+  {
+    service_name = "help";
+    id = 1000001;
+  }, 
+  {
+    service_name = "location";
+    id = 1048577;
+  }, 
+  {
+    service_name = "signal_report";
+    id = 1000009;
+  } );
+call_priorities = ( 
+  {
+    id = 112;
+    priority = 3;
+  }, 
+  {
+    id = 9990;
+    priority = 1;
+  } );
+call_diverts = ( );
+auth_keys = ( 
+  {
+    id = 2268018;
+    key = "0123456789ABCDEF0123456789ABCDEF";
   } );
