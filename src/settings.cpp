@@ -52,6 +52,7 @@ Settings::Settings(Logger *logger)
     announce_system_message = 1;
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
+    transmit_subscribed_tg_only = 0;
     announce_system_freqs_interval = 120;
     announce_adjacent_bs_interval = 30;
     announce_late_entry_interval = 1;
@@ -350,6 +351,14 @@ void Settings::readConfig()
     }
     try
     {
+        transmit_subscribed_tg_only = cfg.lookup("transmit_subscribed_tg_only");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        transmit_subscribed_tg_only = 0;
+    }
+    try
+    {
         announce_system_freqs_interval = cfg.lookup("announce_system_freqs_interval");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -571,6 +580,7 @@ void Settings::saveConfig()
     root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
+    root.add("transmit_subscribed_tg_only",libconfig::Setting::TypeInt) = transmit_subscribed_tg_only;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_adjacent_bs_interval",libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;

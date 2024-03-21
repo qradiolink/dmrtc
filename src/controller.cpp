@@ -1174,6 +1174,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
 {
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
+
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
         if(dmr_data.getDataType() == DT_DATA_HEADER)
@@ -1339,6 +1340,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     {
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {
+            if(_settings->receive_tg_attach &&
+                    _settings->transmit_subscribed_tg_only &&
+                    !_subscribed_talkgroups->contains(dstId))
+            {
+                // Do not transmit unsubscribed talkgroups if not configured to do so
+                return;
+            }
             dstId = Utils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
             _signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         }
@@ -1400,7 +1408,16 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         _dmr_rewrite->rewriteSource(dmr_data);
 
         if(dmr_data.getFLCO() == FLCO_GROUP)
+        {
+            if(_settings->receive_tg_attach &&
+                    _settings->transmit_subscribed_tg_only &&
+                    !_subscribed_talkgroups->contains(dstId))
+            {
+                // Do not transmit unsubscribed talkgroups if not configured to do so
+                return;
+            }
             dmr_data.setDstId(Utils::convertBase10ToBase11GroupNumber(dstId));
+        }
 
         // rewrite RF header to use the converted destination id
         if(data_sync)
@@ -2192,6 +2209,43 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
         _short_data_messages.insert(srcId, number_of_blocks);
         _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// Status transport message MS to MS and MS toTG
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::StatusTransport))
+    {
+        uint8_t status = (csbk.getCBF() >> 4) & 0x03;
+        status |= ((csbk.getData1() >> 1) & 0x1F) << 2;
+        if((csbk.getData1() & 0x80) == 0x80)
+        {
+            CDMRCSBK csbk;
+            _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, true);
+            _signalling_generator->createReplyMessageAccepted(csbk, srcId);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received status transport request to TG from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+        }
+        else
+        {
+            _uplink_acks->insert(dstId, ServiceAction::ActionStatusMsg);
+            _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, false);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("Received status transport request to MS from %1, slot %2 to destination %3")
+                         .arg(srcId).arg(slotNo).arg(dstId));
+        }
+    }
+    /// MS acknowledgement of status transport message
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionStatusMsg)
+    {
+        _uplink_acks->remove(srcId);
+        csbk.setCSBKO(CSBKO_ACKD);
+        csbk.setDstId(dstId);
+        csbk.setSrcId(srcId);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received read receipt for status transport from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Call diversion request

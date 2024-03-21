@@ -59,6 +59,8 @@ enum ServiceAction {
     CallDivert,
     UDTPoll,
     ActionAuthCheck,
+    ActionStatusMsg,
+    ActionStatusPoll,
 };
 
 class Controller : public QObject

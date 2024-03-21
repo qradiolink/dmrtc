@@ -667,6 +667,20 @@ void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, u
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
+void Signalling::createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group)
+{
+    unsigned int status2 = (csbk.getCBF() >> 4) & 0x03;
+    status2 |= (group) ? 1 << 2 : 0;
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned int data2 = (status2 << 4) | ServiceKind::StatusTransport;
+    unsigned int data1 = (csbk.getData1() >> 1) << 1;
+    csbk.setData1(data1);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
 void Signalling::createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);

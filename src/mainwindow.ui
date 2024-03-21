@@ -1451,6 +1451,13 @@ message</string>
                     </property>
                    </widget>
                   </item>
+                  <item row="7" column="4">
+                   <widget class="QCheckBox" name="checkBoxTransmitSubscribedTGOnly">
+                    <property name="text">
+                     <string>Transmit subscribed TG only</string>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </item>
