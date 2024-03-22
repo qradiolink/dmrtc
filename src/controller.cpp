@@ -2229,13 +2229,15 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         status |= ((csbk.getData1() >> 1) & 0x1F) << 2;
         if((csbk.getData1() & 0x80) == 0x80)
         {
-            CDMRCSBK csbk;
+            CDMRCSBK csbk2;
+            _signalling_generator->createReplyStatusTransportAccepted(csbk2, srcId, StandardAddreses::TSI);
+            transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, false, false);
             _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, true);
-            _signalling_generator->createReplyMessageAccepted(csbk, srcId);
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             _logger->log(Logger::LogLevelInfo, QString("Received status transport request to TG from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+            _logger->log(Logger::LogLevelInfo, QString("Status of radio %1, for talkgroup %2 is %3")
+                         .arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)).arg(status));
         }
         else
         {
@@ -2244,6 +2246,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             _logger->log(Logger::LogLevelInfo, QString("Received status transport request to MS from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
+            _logger->log(Logger::LogLevelInfo, QString("Status of radio %1, for radio %2 is %3")
+                         .arg(srcId).arg(dstId).arg(status));
         }
     }
     /// MS acknowledgement of status transport message
@@ -2270,7 +2274,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                      .arg(srcId).arg(slotNo).arg(dstId).arg(status));
     }
     /// MS status poll reply, service not supported
-    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) &&
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
              _uplink_acks->contains(srcId) &&
              _uplink_acks->value(srcId) == ServiceAction::ActionStatusPoll)
     {
