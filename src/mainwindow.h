@@ -73,6 +73,7 @@ public slots:
     void addServiceId();
     void sendPing();
     void sendUDTPoll();
+    void sendStatusPoll();
     void authCheck();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
     void pingTimeout();
@@ -88,6 +89,7 @@ signals:
     void sendDGNA(QString tgids, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
     void pollData(unsigned int target_id);
+    void pollStatus(unsigned int target_id);
     void sendAuthCheck(unsigned int target_id);
     void broadcastLocalTime();
     void broadcastFrequencies();

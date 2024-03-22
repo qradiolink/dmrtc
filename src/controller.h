@@ -92,6 +92,7 @@ public slots:
     void timeoutPingResponse();
     void resetAuth();
     void sendAuthCheck(unsigned int target_id);
+    void pollStatus(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
     void announceAdjacentSites();
