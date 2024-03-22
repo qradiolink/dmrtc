@@ -401,20 +401,6 @@ void Signalling::createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, 
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createReplyStatusTransportAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId)
-{
-    csbk.setCSBKO(CSBKO_ACKD);
-    csbk.setFID(0x00);
-    unsigned int response_info = 0x00;
-    unsigned int reason = 0x60; // reason: message_accepted
-    unsigned int data1 = (response_info << 1) | reason >> 7;
-    unsigned int data2 = (reason << 1);
-    csbk.setData1(data1);
-    csbk.setCBF(data2);
-    csbk.setDstId(dstId);
-    csbk.setSrcId(srcId);
-}
-
 void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId)
 {
     uint8_t accepted_registrations_mask = 0xFE; // be generous in case the manufacturer isn't

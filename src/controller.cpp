@@ -2230,7 +2230,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         if((csbk.getData1() & 0x80) == 0x80)
         {
             CDMRCSBK csbk2;
-            _signalling_generator->createReplyStatusTransportAccepted(csbk2, srcId, StandardAddreses::TSI);
+            _signalling_generator->createReplyMessageAccepted(csbk2, srcId, StandardAddreses::TSI);
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, false, false);
             _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, true);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
