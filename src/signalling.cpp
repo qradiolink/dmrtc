@@ -681,6 +681,21 @@ void Signalling::createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, u
     csbk.setSrcId(srcId);
 }
 
+void Signalling::createStatusPollAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group)
+{
+    unsigned int status2 = 0x03;
+    status2 |= (group) ? 1 << 2 : 0;
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned int data2 = (status2 << 4) | ServiceKind::StatusTransport;
+    unsigned int data1 = 0x3E;
+    data1 |= (group) ? (1 << 7) : 0;
+    csbk.setData1(data1);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(srcId);
+}
+
 void Signalling::createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);

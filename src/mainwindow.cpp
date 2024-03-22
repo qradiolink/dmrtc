@@ -37,6 +37,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
     QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
+    QObject::connect(ui->pushButtonStatusPoll, SIGNAL(clicked(bool)), this, SLOT(sendStatusPoll()));
     QObject::connect(ui->pushButtonAuthCheck, SIGNAL(clicked(bool)), this, SLOT(authCheck()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
@@ -948,6 +949,12 @@ void MainWindow::sendUDTPoll()
 {
     unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
     emit pollData(radio);
+}
+
+void MainWindow::sendStatusPoll()
+{
+    unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    emit pollStatus(radio);
 }
 
 void MainWindow::sendPing()

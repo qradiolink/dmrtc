@@ -66,6 +66,7 @@ public:
     void createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId);
     void createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId);
     void createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group);
+    void createStatusPollAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group);
     void createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId);

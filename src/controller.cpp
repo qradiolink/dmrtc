@@ -688,6 +688,17 @@ void Controller::pollData(unsigned int target_id)
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
+void Controller::pollStatus(unsigned int target_id)
+{
+    if(target_id == 0)
+        return;
+    _logger->log(Logger::LogLevelInfo, QString("Polling status from target: %1").arg(target_id));
+    _uplink_acks->insert(target_id, ServiceAction::ActionStatusPoll);
+    CDMRCSBK csbk;
+    _signalling_generator->createStatusPollAhoy(csbk, StandardAddreses::TSI, target_id, false);
+    transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+}
+
 void Controller::sendAuthCheck(unsigned int target_id)
 {
     if(target_id == 0 || !_settings->auth_keys.contains(target_id))
@@ -2246,6 +2257,25 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _logger->log(Logger::LogLevelInfo, QString("Received read receipt for status transport from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// MS status poll reply
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8E) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionStatusPoll)
+    {
+        _uplink_acks->remove(srcId);
+        unsigned int status = csbk.getData1() >> 1;
+        _logger->log(Logger::LogLevelInfo, QString("Received status poll reply %4 from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId).arg(status));
+    }
+    /// MS status poll reply, service not supported
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionStatusPoll)
+    {
+        _uplink_acks->remove(srcId);
+        _logger->log(Logger::LogLevelInfo, QString("Received status poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Call diversion request
