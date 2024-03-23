@@ -184,6 +184,7 @@ void MainWindow::setConfig()
     ui->checkBoxAnnounceSystemMessage->setChecked((bool)_settings->announce_system_message);
     ui->checkBoxPreventMMDVMOverflows->setChecked((bool)_settings->prevent_mmdvm_overflows);
     ui->checkBoxReceiveAttachments->setChecked((bool)_settings->receive_tg_attach);
+    ui->checkBoxRegistrationRequired->setChecked((bool)_settings->registration_required);
     ui->checkBoxTransmitSubscribedTGOnly->setChecked((bool)_settings->transmit_subscribed_tg_only);
 
     loadTalkgroupRouting();
@@ -223,6 +224,7 @@ void MainWindow::saveConfig()
     _settings->announce_system_message = (int)ui->checkBoxAnnounceSystemMessage->isChecked();
     _settings->prevent_mmdvm_overflows = (int)ui->checkBoxPreventMMDVMOverflows->isChecked();
     _settings->receive_tg_attach = (int)ui->checkBoxReceiveAttachments->isChecked();
+    _settings->registration_required = (int)ui->checkBoxRegistrationRequired->isChecked();
     _settings->transmit_subscribed_tg_only = (int)ui->checkBoxTransmitSubscribedTGOnly->isChecked();
 
     saveTalkgroupRouting();

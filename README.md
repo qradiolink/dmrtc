@@ -55,7 +55,7 @@ Radio compatibility matrix
 
 tier III compatible radios tested and confirmed to work with this software:
 
-1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short messages, call divert, voice with location, DGNA, status transfer service, status polling service, authentication, hunting in fixed or flexible channel plans
+1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans
 
 
 Requirements
