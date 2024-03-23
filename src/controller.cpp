@@ -202,7 +202,7 @@ void Controller::run()
     /// Main thread loop where most things happen
     while(!_stop_thread)
     {
-        if(!_startup_completed)
+        if(!_startup_completed && _settings->registration_required)
         {
             requestMassRegistration();
         }
@@ -2563,7 +2563,7 @@ void Controller::setChannelEnabled(unsigned int index, bool state)
 
 bool Controller::validateLocalSourceId(unsigned int srcId)
 {
-    if(_registered_ms->contains(srcId))
+    if(_registered_ms->contains(srcId) || !_settings->registration_required)
         return true;
     _logger->log(Logger::LogLevelWarning, QString("Rejected local id %1, not registered with the site").arg(srcId));
     return false;
