@@ -107,6 +107,8 @@ void Controller::run()
                 counter++;
                 QObject::connect(payload_channel, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
                 QObject::connect(payload_channel, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
+                QObject::connect(payload_channel, SIGNAL(setCallStats(uint,uint,float,float,bool)),
+                                 this, SLOT(setCallStats(uint,uint,float,float,bool)));
                 _logical_channels.append(payload_channel);
             }
             else
@@ -126,6 +128,10 @@ void Controller::run()
             QObject::connect(payload_channel2, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
             QObject::connect(payload_channel1, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
             QObject::connect(payload_channel2, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
+            QObject::connect(payload_channel1, SIGNAL(setCallStats(uint,uint,float,float,bool)),
+                             this, SLOT(setCallStats(uint,uint,float,float,bool)));
+            QObject::connect(payload_channel2, SIGNAL(setCallStats(uint,uint,float,float,bool)),
+                             this, SLOT(setCallStats(uint,uint,float,float,bool)));
             _logical_channels.append(payload_channel1);
             _logical_channels.append(payload_channel2);
         }
@@ -1473,10 +1479,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
 
         if(update_gui && !_settings->headless_mode)
         {
-            int rssi = dmr_data.getRSSI() * -1;
-            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dstId, rssi, ber, dmr_data.getFLCO() == FLCO_USER_USER);
         }
         if(local_data)
         {
@@ -1544,7 +1547,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         }
         else
         {
-            handleGroupCallRequest(dmr_data, csbk_grant, logical_channel, dmr_data.getSlotNo(), srcId, dstId, channel_grant, false);
+            handleGroupCallRequest(csbk_grant, logical_channel, dmr_data.getSlotNo(), srcId, dstId, channel_grant, false);
 
             CDMRCSBK csbk2;
             bool valid = false;
@@ -1668,7 +1671,7 @@ void Controller::contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
     return;
 }
 
-void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+void Controller::handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                             unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
 {
     _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private call request from %2 to destination %3")
@@ -1720,17 +1723,14 @@ void Controller::handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Lo
         logical_channel->putRFQueue(dmr_control_data, false);
         if(!_settings->headless_mode)
         {
-            int rssi = dmr_data.getRSSI() * -1;
-            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dstId, rssi, ber, true);
         }
 
         return;
     }
 }
 
-void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+void Controller::handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                         unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
 {
     unsigned int dmrDstId = (local) ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
@@ -1778,16 +1778,13 @@ void Controller::handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, Logi
 
         if(!_settings->headless_mode)
         {
-            int rssi = dmr_data.getRSSI() * -1;
-            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dmrDstId, rssi, ber, false);
         }
         return;
     }
 }
 
-void Controller::handlePrivatePacketDataCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                             unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
 {
     _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private packet data call request from %2 to destination %3")
@@ -1833,10 +1830,7 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRData &dmr_data, CDMRCSBK
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
         if(!_settings->headless_mode)
         {
-            int rssi = dmr_data.getRSSI() * -1;
-            float ber = float(dmr_data.getBER()) / 1.41f;
             emit updateLogicalChannels(&_logical_channels);
-            emit updateCallLog(srcId, dstId, rssi, ber, true);
         }
         return;
     }
@@ -1989,7 +1983,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         bool broadcast_call = false;
         if(csbk.getBroadcast())
             broadcast_call = true;
-        handleGroupCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handleGroupCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
         if(broadcast_call)
             csbk.setCSBKO(CSBKO_BTV_GRANT);
         CDMRCSBK csbk2;
@@ -2036,7 +2030,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
+            handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
 
             CDMRCSBK csbk2;
             bool valid = false;
@@ -2069,7 +2063,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
 
         CDMRCSBK csbk2;
         bool valid = false;
@@ -2121,7 +2115,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
-        handlePrivateCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        handlePrivateCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
 
         CDMRCSBK csbk2;
         bool valid = false;
@@ -2324,7 +2318,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            handlePrivatePacketDataCallRequest(dmr_data, csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
+            handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
 
             CDMRCSBK csbk2;
             bool valid = false;
@@ -2567,6 +2561,14 @@ bool Controller::validateLocalSourceId(unsigned int srcId)
         return true;
     _logger->log(Logger::LogLevelWarning, QString("Rejected local id %1, not registered with the site").arg(srcId));
     return false;
+}
+
+void Controller::setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call)
+{
+    if(!_settings->headless_mode)
+    {
+        emit updateCallLog(srcId, dstId, rssi, ber, private_call);
+    }
 }
 
 

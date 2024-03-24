@@ -74,6 +74,8 @@ public:
     unsigned int getDestination();
     unsigned int getSource();
     unsigned int getCallType();
+    float getBER();
+    float getRSSI();
     bool getBusy();
     bool getDisabled();
     QString getText();
@@ -96,10 +98,12 @@ signals:
     void internalStartTimer();
     void internalStopTimer();
     void update();
+    void setCallStats(unsigned int srcId, unsigned int dstId, float ber, float rssi, bool private_call);
+    void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
 
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data);
-    void updateStats(CDMRData &dmr_data);
+    void updateStats(CDMRData &dmr_data, bool end_call=false);
 
     Settings *_settings;
     Logger *_logger;
@@ -114,6 +118,8 @@ private:
     unsigned int _call_type;
     unsigned int _source_address;
     unsigned int _destination_address;
+    unsigned int _stats_dst_id;
+    unsigned int _stats_src_id;
     QTimer _timeout_timer;
     QMutex _rf_queue_mutex;
     QMutex _net_queue_mutex;
@@ -140,8 +146,10 @@ private:
     uint64_t _lcn;
     unsigned int _stream_id;
     unsigned int _data_frames;
-    float _rssi;
+    float _rssi_accumulator;
+    float _ber_accumulator;
     float _ber;
+    float _rssi;
 
     void processTalkerAlias();
 };
