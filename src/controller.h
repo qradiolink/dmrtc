@@ -81,6 +81,7 @@ public slots:
     void updateMMDVMConfig(unsigned char* payload, int size);
     void writeDMRConfig();
     void updateChannelsToGUI();
+    void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
@@ -130,11 +131,11 @@ private:
     void processVoice(CDMRData &dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway=false);
     bool handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigned int srcId,
                             unsigned int dstId, unsigned int &uab);
-    void handleGroupCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+    void handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
-    void handlePrivateCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+    void handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
-    void handlePrivatePacketDataCallRequest(CDMRData &dmr_data, CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+    void handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
     void contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool local=false);

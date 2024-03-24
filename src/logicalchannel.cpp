@@ -47,8 +47,10 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     _lcn = _physical_channel + 1;
     _stream_id = 0;
     _data_frames = 0;
-    _rssi = 0.0f;
+    _rssi_accumulator = 0.0f;
+    _ber_accumulator = 0.0f;
     _ber = 0.0f;
+    _rssi = 0.0f;
     t1_rf = std::chrono::high_resolution_clock::now();
     t1_net = std::chrono::high_resolution_clock::now();
     _timeout_timer.setInterval(_settings->payload_channel_idle_timeout * 1000);
@@ -145,7 +147,9 @@ void LogicalChannel::deallocateChannel()
     _ta_data.clear();
     _data_mutex.unlock();
     _lc = CDMRLC(FLCO::FLCO_USER_USER, 0, 0);
+    CDMRData dummy_data;
     emit internalStopTimer();
+    updateStats(dummy_data, true);
     _logger->log(Logger::LogLevelDebug, QString("Deallocated physical channel %1, slot %2 from destination %3")
                  .arg(_physical_channel).arg(_slot).arg(_destination_address));
 }
@@ -163,29 +167,45 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
                  .arg(_physical_channel).arg(_slot).arg(dstId).arg(srcId));
 }
 
-void LogicalChannel::updateStats(CDMRData &dmr_data)
+void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 {
+    if(end_call)
+    {
+        _rssi = _rssi_accumulator / float(_data_frames);
+        _ber = _ber_accumulator / float(_data_frames);
+        emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
+        _stream_id = 0;
+        _data_frames = 0;
+        _rssi_accumulator = 0.0f;
+        _ber_accumulator = 0.0f;
+        return;
+    }
+
     unsigned int new_stream_id = dmr_data.getStreamId();
     unsigned int old_stream_id = _stream_id;
-    float ber = 0.0f;
-    float rssi = 0.0f;
     if(new_stream_id != old_stream_id)
     {
         _stream_id = new_stream_id;
         if(old_stream_id != 0)
         {
-            rssi = _rssi / float(_data_frames);
-            ber = _ber / float(_data_frames);
+            _rssi = _rssi_accumulator / float(_data_frames);
+            _ber = _ber_accumulator / float(_data_frames);
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
         }
-        _rssi = float(dmr_data.getRSSI()) * -1.0f;
-        _ber = float(dmr_data.getBER()) / 1.41f;
+        _rssi_accumulator = float(dmr_data.getRSSI()) * -1.0f;
+        _ber_accumulator = float(dmr_data.getBER()) / 1.41f;
         _data_frames = 1;
+        _stats_dst_id = dmr_data.getDstId();
+        _stats_src_id = dmr_data.getSrcId();
     }
     else
     {
-        _rssi += float(dmr_data.getRSSI()) * -1.0f;
-        _ber += float(dmr_data.getBER()) / 1.41f;
+        _rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
+        _ber_accumulator += float(dmr_data.getBER()) / 1.41f;
         _data_frames++;
+        _rssi = _rssi_accumulator / float(_data_frames);
+        _ber = _ber_accumulator / float(_data_frames);
+        emit update();
     }
 }
 
@@ -201,6 +221,11 @@ void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
+    if(dmr_data.getFLCO() != FLCO_USER_USER)
+    {
+        dmr_data.setDstId(Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
+    }
+    updateStats(dmr_data);
 }
 
 bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
@@ -254,6 +279,7 @@ void LogicalChannel::putNetQueue(CDMRData &dmr_data)
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);
     _net_queue_mutex.unlock();
+    updateStats(dmr_data);
 }
 
 bool LogicalChannel::getNetQueue(CDMRData &dmr_data)
@@ -409,6 +435,22 @@ bool LogicalChannel::getLocalCall()
     bool local = _local_call;
     _data_mutex.unlock();
     return local;
+}
+
+float LogicalChannel::getBER()
+{
+    _data_mutex.lock();
+    float ber = _ber;
+    _data_mutex.unlock();
+    return ber;
+}
+
+float LogicalChannel::getRSSI()
+{
+    _data_mutex.lock();
+    float rssi = _rssi;
+    _data_mutex.unlock();
+    return rssi;
 }
 
 void LogicalChannel::setDestination(unsigned int destination)
