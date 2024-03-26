@@ -48,13 +48,7 @@ int ChannelViewModel::columnCount(const QModelIndex & /*parent*/) const
 QVariant ChannelViewModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role == Qt::DisplayRole && orientation == Qt::Horizontal) {
-        switch (section)
-        {
-        case 0:
-            return QString("Timelot 1");
-        case 1:
-            return QString("Timelot 2");
-        }
+        return QString("Timeslot %1").arg(section + 1);
     }
     if (role == Qt::DisplayRole && orientation == Qt::Vertical) {
         return QString("RF channel %1").arg(section + 1);

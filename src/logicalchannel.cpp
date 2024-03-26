@@ -145,8 +145,9 @@ void LogicalChannel::deallocateChannel()
     _ta_df = 0;
     _ta_dl = 0;
     _ta_data.clear();
-    _data_mutex.unlock();
     _lc = CDMRLC(FLCO::FLCO_USER_USER, 0, 0);
+    _data_mutex.unlock();
+
     CDMRData dummy_data;
     emit internalStopTimer();
     updateStats(dummy_data, true);
@@ -205,7 +206,8 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         _data_frames++;
         _rssi = _rssi_accumulator / float(_data_frames);
         _ber = _ber_accumulator / float(_data_frames);
-        emit update();
+        if((_data_frames % 10) == 0)
+            emit update();
     }
 }
 
