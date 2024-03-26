@@ -58,6 +58,20 @@ tier III compatible radios tested and confirmed to work with this software:
 1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans
 
 
+Known issues
+====
+
+1. Private calls and private messages do not work when MS registration is disabled
+2. Site to site handover in RX and TX does not work
+3. MS power control and transmit interrupt do not work
+4. RSSI indicated values are not accurate
+5. UDT short data polling does not work
+6. Status polling from TS does not work
+7. Talkgroup call priorities not respected for all local calls
+8. Absolute channel grants do not work when the MS is set to hunt with fixed channel plan
+9. TSCCAS support is incomplete / buggy
+
+
 Requirements
 ====
 
