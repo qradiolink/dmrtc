@@ -529,6 +529,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     unsigned char data[48];
     memset(data, 0U, 48U);
     QList<QString> tgids = dgids.split(" ");
+    QList<unsigned int> dgna_tg;
     if(tgids.size() > 15)
         tgids = tgids.mid(0,15);
     data[0] = (attach) ? 0x01 : 0x00;
@@ -541,13 +542,17 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
             _logger->log(Logger::LogLevelWarning, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
             continue;
         }
+        dgna_tg.append(group);
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
     }
     unsigned int blocks = 4;
-
+    QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
+    registered_tg = registered_tg + dgna_tg;
+    QList<unsigned int> unique_tgids = QSet<unsigned int>(registered_tg.begin(), registered_tg.end()).values();
+    updateSubscriptions(unique_tgids, dstId);
     // expect ACKU from target
     _uplink_acks->insert(dstId, ServiceAction::ActionDGNARequest);
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
