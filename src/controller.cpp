@@ -695,7 +695,8 @@ void Controller::pollData(unsigned int target_id)
     _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
     _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
     CDMRCSBK csbk;
-    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id);
+    // NMEA location poll test
+    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id, PollFMT::PollNMEA, 1);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
@@ -2279,6 +2280,15 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         _uplink_acks->remove(srcId);
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
+    /// MS UDT data poll reply, service not supported
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::UDTPoll)
+    {
+        _uplink_acks->remove(srcId);
+        _logger->log(Logger::LogLevelInfo, QString("Received UDT data poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
     /// Call diversion request
