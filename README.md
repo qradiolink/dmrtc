@@ -33,6 +33,7 @@ DMR tier III services partly or completely implemented
 18. Absolute channel grants (only when MS is set to hunt in flexible channel plan)
 19. Status delivery service
 20. Status polling service
+21. NMEA location polling via UDT
 
 DMR tier III services NOT implemented
 ----
@@ -55,7 +56,7 @@ Radio compatibility matrix
 
 tier III compatible radios tested and confirmed to work with this software:
 
-1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans
+1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
 
 
 Known issues
@@ -65,7 +66,7 @@ Known issues
 2. Site to site handover in RX and TX does not work
 3. MS power control and transmit interrupt do not work
 4. RSSI indicated values are not accurate
-5. UDT short data polling does not work
+5. UDT short data polling other than NMEA location does not work
 6. Status polling from TS does not work
 7. Talkgroup call priorities not respected for all local calls
 8. Absolute channel grants do not work when the MS is set to hunt with fixed channel plan

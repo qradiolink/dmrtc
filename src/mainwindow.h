@@ -27,6 +27,7 @@
 #include "src/settings.h"
 #include "src/logger.h"
 #include "src/dmridlookup.h"
+#include "src/standard_PDU.h"
 
 namespace Ui {
 class MainWindow;
@@ -72,7 +73,7 @@ public slots:
     void deleteServiceId();
     void addServiceId();
     void sendPing();
-    void sendUDTPoll();
+    void sendNMEAPoll();
     void sendStatusPoll();
     void authCheck();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
@@ -88,7 +89,7 @@ signals:
     void sendShortMessage(QString message, unsigned int target);
     void sendDGNA(QString tgids, unsigned int target);
     void pingRadio(unsigned int target_id, bool group);
-    void pollData(unsigned int target_id);
+    void pollData(unsigned int target_id, unsigned int location_format);
     void pollStatus(unsigned int target_id);
     void sendAuthCheck(unsigned int target_id);
     void broadcastLocalTime();
