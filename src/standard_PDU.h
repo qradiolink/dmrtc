@@ -54,5 +54,32 @@ enum ServiceKind
     CancelCall = 15
 };
 
+enum PollFMT
+{
+    PollBinary = 0,
+    PollAddress = 1,
+    Poll4BCD = 2,
+    PollISO7 = 3,
+    PollISO8 = 4,
+    PollNMEA = 5,
+    PollIP = 6,
+    PollUTF16 = 7,
+    PollStatus = 10,
+};
+
+enum UDTFormat
+{
+    FmtBinary = 0,
+    FmtAddress = 1,
+    Fmt4BCD = 2,
+    FmtISO7 = 3,
+    FmtISO8 = 4,
+    FmtNMEA = 5,
+    FmtIP = 6,
+    FmtUTF16 = 7,
+    FmtMixed = 10,
+    FmtLIP = 11,
+};
+
 
 #endif // STANDARD_PDU_H

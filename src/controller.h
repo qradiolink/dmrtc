@@ -89,7 +89,7 @@ public slots:
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
-    void pollData(unsigned int target_id);
+    void pollData(unsigned int target_id, unsigned int poll_format);
     void timeoutPingResponse();
     void resetAuth();
     void sendAuthCheck(unsigned int target_id);
@@ -147,6 +147,7 @@ private:
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
     void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
+    void processNMEAMessage(unsigned int srcId, unsigned int dstId, unsigned int format);
     void processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);

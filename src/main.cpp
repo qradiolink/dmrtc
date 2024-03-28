@@ -169,7 +169,7 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
     QObject::connect(w, SIGNAL(registrationRequested()), controller, SLOT(requestMassRegistration()));
     QObject::connect(w, SIGNAL(sendShortMessage(QString,uint)), controller, SLOT(sendUDTShortMessage(QString,uint)));
     QObject::connect(w, SIGNAL(sendDGNA(QString,uint)), controller, SLOT(sendUDTDGNA(QString,uint)));
-    QObject::connect(w, SIGNAL(pollData(uint)), controller, SLOT(pollData(uint)));
+    QObject::connect(w, SIGNAL(pollData(uint, uint)), controller, SLOT(pollData(uint, uint)));
     QObject::connect(w, SIGNAL(pollStatus(uint)), controller, SLOT(pollStatus(uint)));
     QObject::connect(w, SIGNAL(pingRadio(uint,bool)), controller, SLOT(pingRadio(uint,bool)));
     QObject::connect(w, SIGNAL(sendAuthCheck(uint)), controller, SLOT(sendAuthCheck(uint)));

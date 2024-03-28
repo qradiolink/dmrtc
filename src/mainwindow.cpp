@@ -36,7 +36,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
-    QObject::connect(ui->pushButtonUDTPoll, SIGNAL(clicked(bool)), this, SLOT(sendUDTPoll()));
+    QObject::connect(ui->pushButtonNMEAPoll, SIGNAL(clicked(bool)), this, SLOT(sendNMEAPoll()));
     QObject::connect(ui->pushButtonStatusPoll, SIGNAL(clicked(bool)), this, SLOT(sendStatusPoll()));
     QObject::connect(ui->pushButtonAuthCheck, SIGNAL(clicked(bool)), this, SLOT(authCheck()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
@@ -951,10 +951,10 @@ void MainWindow::addDGNA()
     emit sendDGNA(ui->textEditSystemMessageOnce->toPlainText(), radio);
 }
 
-void MainWindow::sendUDTPoll()
+void MainWindow::sendNMEAPoll()
 {
     unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit pollData(radio);
+    emit pollData(radio, PollFMT::PollNMEA);
 }
 
 void MainWindow::sendStatusPoll()

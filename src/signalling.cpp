@@ -643,13 +643,13 @@ unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigne
     return number_of_blocks;
 }
 
-void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId, unsigned int format, unsigned int num_blocks)
 {
-    unsigned int number_of_blocks = 0;
+    unsigned int service_options = format << 1;
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
-    unsigned int data2 = (number_of_blocks << 4) | ServiceKind::UDTDataPolling;
-    csbk.setData1(0x00);
+    unsigned int data2 = (num_blocks << 4) | ServiceKind::UDTDataPolling;
+    csbk.setData1(service_options);
     csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(StandardAddreses::SDMI);

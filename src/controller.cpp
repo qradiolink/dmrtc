@@ -327,7 +327,6 @@ void Controller::announceLateEntry()
         return;
     for(int i=0;i<_logical_channels.size();i++)
     {
-
         if(_logical_channels.at(i)->getBusy() && !(_logical_channels.at(i)->getDisabled())
                 && !(_logical_channels.at(i)->isControlChannel())
                 && (_logical_channels.at(i)->getDestination() != 0))
@@ -337,14 +336,10 @@ void Controller::announceLateEntry()
             _signalling_generator->createLateEntryAnnouncement(logical_channel, csbk);
             CDMRCSBK csbk2;
             bool valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+            transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
             if(valid)
             {
-                transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
                 transmitCSBK(csbk2, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
-            }
-            else
-            {
-                transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false);
             }
             // TODO: Set late entry time so it doesn't clash with other data
             QThread::sleep((unsigned long) _settings->announce_late_entry_interval);
@@ -688,14 +683,16 @@ void Controller::timeoutPingResponse()
     emit pingTimeout();
 }
 
-void Controller::pollData(unsigned int target_id)
+void Controller::pollData(unsigned int target_id, unsigned int poll_format)
 {
     if(target_id == 0)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
     _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
+    _short_data_messages.insert(target_id, 1);
     CDMRCSBK csbk;
-    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id);
+    // NMEA location poll test
+    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id, poll_format, 1);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
@@ -808,7 +805,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                     {
                         CDMRCSBK csbk;
                         _signalling_generator->createReplyWaitForSignalling(csbk, srcId);
-                        for(int i = 0;i<18;i++)
+                        for(int i = 0;i<3;i++)
                         {
                             transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
                         }
@@ -1059,6 +1056,58 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     _settings->call_diverts.insert(srcId, divert_id);
 }
 
+void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsigned int format)
+{
+    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned char msg[size];
+    memcpy(msg, _data_message, size);
+    int8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
+    int16_t NMINF, EMINF, COG;
+    C = msg[0] >> 7;
+    NS = (msg[0] >> 6) & 0x01;
+    EW = (msg[0] >> 5) & 0x01;
+    Q = (msg[0] >> 4) & 0x01;
+    SPEED = (msg[0] & 0x0F) << 3;
+    SPEED |= (msg[1] >> 5);
+    NDEG = (msg[1] & 0x1F) << 2;
+    NDEG |= (msg[2] >> 6);
+    NMIN = (msg[2] & 0x3F);
+    NMINF = msg[3] << 6;
+    NMINF |= msg[4] >> 2;
+    EDEG = (msg[4] & 0x03) << 6;
+    EDEG |= (msg[5] >> 2);
+    EMINmm = (msg[5] & 0x03) << 4;
+    EMINmm |= (msg[6] >> 4);
+    EMINF = (msg[6] & 0x0F) << 10;
+    EMINF |= (msg[7] << 2);
+    EMINF |= (msg[8] >> 6);
+    UTChh = (msg[8] >> 1) & 0x1F;
+    UTCmm = (msg[8] & 0x01) << 5;
+    UTCmm |= (msg[9] >> 3);
+    if(format == 1)
+    {
+        UTCss = (msg[9] & 0x07);
+        COG = 0;
+    }
+    else if(format == 2)
+    {
+        UTCss = (msg[9] & 0x07) << 3;
+        UTCss |= msg[10] >> 5;
+        COG = (msg[12] & 0x01) << 8;
+        COG |= msg[13];
+    }
+    QString message = QString("C %1, NS %2, EW %3, Q %4, Speed %5,"
+                                " Latitude N %6 degrees %7.%8 minutes, Longitude E %9 degrees %10.%11 minutes,"
+                                " Time %12:%13:%14 UTC, COG %15")
+            .arg(C).arg(NS).arg(EW).arg(Q).arg(SPEED).arg(NDEG).arg(NMIN).arg(NMINF).arg(EDEG).arg(EMINmm).arg(EMINF)
+            .arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG);
+    _logger->log(Logger::LogLevelInfo, QString("Received NMEA UDT location message from %1 to %2: %3")
+          .arg(srcId)
+          .arg(dstId)
+          .arg(message));
+    emit updateMessageLog(srcId, dstId, message, false);
+}
+
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
 {
     if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
@@ -1213,7 +1262,8 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 _udt_format = header.getUDTFormat();
                 qDebug() << "A: " << header.getA() << " GI: " << header.getGI() << " Format: " << header.getFormat()
                          << " UDTFormat: " << header.getUDTFormat() << " Opcode: " << header.getOpcode() << " RSVD: " << header.getRSVD()
-                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP();
+                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
+                         << " Blocks: " << header.getBlocks();
             }
             else
             {
@@ -1234,8 +1284,16 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 bool valid = CCRC::checkCCITT162(_data_message, _data_msg_size*12);
                 if(valid)
                 {
+                    if(_udt_format == 5)
+                    {
+                        processNMEAMessage(srcId, dstId, _data_msg_size);
+                    }
+
                     /// Text message
-                    processTextMessage(dstId, srcId, dmr_data.getFLCO() == FLCO_GROUP);
+                    if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+                    {
+                        processTextMessage(dstId, srcId, dmr_data.getFLCO() == FLCO_GROUP);
+                    }
                 }
                 else
                 {
@@ -1282,7 +1340,8 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 _udt_format = header.getUDTFormat();
                 qDebug() << "A: " << header.getA() << " GI: " << header.getGI() << " Format: " << header.getFormat()
                          << " UDTFormat: " << header.getUDTFormat() << " Opcode: " << header.getOpcode() << " RSVD: " << header.getRSVD()
-                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP();
+                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
+                         << " Blocks: " << header.getBlocks();
             }
             else
             {
@@ -1328,6 +1387,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                         if(_settings->service_ids.values().contains(dstId))
                         {
                             processTextServiceRequest(dmr_data, udp_channel_id);
+                        }
+                        if(_udt_format == 5)
+                        {
+                            processNMEAMessage(srcId, dstId, _data_msg_size);
                         }
                     }
                 }
@@ -1558,17 +1621,12 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
             bool valid = false;
             if(csbk_grant.getCSBKO() == CSBKO_TV_GRANT)
                 valid = _signalling_generator->createAbsoluteParameters(csbk_grant, csbk2, logical_channel);
+            transmitCSBK(csbk_grant, logical_channel, _control_channel->getSlot(),
+                             _control_channel->getPhysicalChannel(), false, priority, true);
             if(valid)
             {
-                transmitCSBK(csbk_grant, logical_channel, _control_channel->getSlot(),
-                                 _control_channel->getPhysicalChannel(), false, false, true);
                 transmitCSBK(csbk2, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(),
                                  false, false, true);
-            }
-            else
-            {
-                transmitCSBK(csbk_grant, logical_channel, _control_channel->getSlot(),
-                                 _control_channel->getPhysicalChannel(), false, priority, true);
             }
             dmr_data.setSlotNo(logical_channel->getSlot());
             logical_channel->putRFQueue(dmr_data);
@@ -1884,12 +1942,12 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
     CDMRCSBK csbk;
     _signalling_generator->createChannelIdleDeallocation(csbk, call_type);
 
-    transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
-                     _logical_channels[channel_id]->getPhysicalChannel(), false);
-    transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
-                     _logical_channels[channel_id]->getPhysicalChannel(), false);
-    transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
-                     _logical_channels[channel_id]->getPhysicalChannel(), false);
+    for(int i=0;i < 3;i++)
+    {
+        transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
+                         _logical_channels[channel_id]->getPhysicalChannel(), false);
+    }
+
     CDMRData dmr_control_data;
     dmr_control_data.setControl(true);
     dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
@@ -1995,14 +2053,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         bool valid = false;
         if((csbk.getCSBKO() == CSBKO_TV_GRANT) || (csbk.getCSBKO() == CSBKO_BTV_GRANT))
             valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         if(valid)
         {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        }
-        else
-        {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
     }
     /// Group call with suplimentary data
@@ -2041,14 +2095,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             bool valid = false;
             if(csbk.getCSBKO() == CSBKO_PV_GRANT)
                 valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             if(valid)
             {
-                transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
                 transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-            }
-            else
-            {
-                transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             }
             _logger->log(Logger::LogLevelInfo, QString("Received radio OACSU call request (not registered radio)"
                                                         " from %1, slot %2 to destination %3")
@@ -2074,28 +2124,20 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         bool valid = false;
         if(csbk.getCSBKO() == CSBKO_PV_GRANT)
             valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         if(valid)
         {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        }
-        else
-        {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
         csbk.setDstId(srcId);
         csbk.setSrcId(dstId);
 
         if(csbk.getCSBKO() == CSBKO_PV_GRANT)
             valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         if(valid)
         {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        }
-        else
-        {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
         _logger->log(Logger::LogLevelInfo, QString("Received acknowledgement for OACSU call from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
@@ -2126,14 +2168,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         bool valid = false;
         if(csbk.getCSBKO() == CSBKO_PV_GRANT)
             valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         if(valid)
         {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-        }
-        else
-        {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
         _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call answer from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
@@ -2281,6 +2319,16 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
     }
+    /// MS UDT data poll reply, service not supported
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::UDTPoll)
+    {
+        _uplink_acks->remove(srcId);
+        _short_data_messages.remove(srcId);
+        _logger->log(Logger::LogLevelInfo, QString("Received UDT data poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+    }
     /// Call diversion request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallDiversion))
     {
@@ -2329,14 +2377,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             bool valid = false;
             if((csbk.getCSBKO() == CSBKO_PD_GRANT) || (csbk.getCSBKO() == CSBKO_PD_GRANT_MI))
                 valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             if(valid)
             {
-                transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
                 transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-            }
-            else
-            {
-                transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             }
             _logger->log(Logger::LogLevelInfo, QString("Received private packet data call request (not registered radio)"
                                                         " from %1, slot %2 to destination %3")

@@ -733,9 +733,9 @@
             </widget>
            </item>
            <item row="9" column="0">
-            <widget class="QPushButton" name="pushButtonUDTPoll">
+            <widget class="QPushButton" name="pushButtonNMEAPoll">
              <property name="text">
-              <string>UDT Short data polling</string>
+              <string>Poll location in NMEA format</string>
              </property>
             </widget>
            </item>
