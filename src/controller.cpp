@@ -1096,10 +1096,12 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
         COG = (msg[12] & 0x01) << 8;
         COG |= msg[13];
     }
-    QString message = QString("C %1, NS %2, EW %3, Q %4, Speed %5,"
-                                " Latitude N %6 degrees %7.%8 minutes, Longitude E %9 degrees %10.%11 minutes,"
-                                " Time %12:%13:%14 UTC, COG %15")
-            .arg(C).arg(NS).arg(EW).arg(Q).arg(SPEED).arg(NDEG).arg(NMIN).arg(NMINF).arg(EDEG).arg(EMINmm).arg(EMINF)
+    QString lat = NS ? "N" : "S";
+    QString longit = EW ? "E" : "W";
+    QString message = QString("Position message: Encrypted %1, Fix %4, Speed %5,"
+                                " Latitude %2 %6 degrees %7.%8 minutes, Longitude %3 %9 degrees %10.%11 minutes,"
+                                " Time %12:%13:%14 UTC, Course %15 degrees")
+            .arg(C ? "yes" : "no").arg(lat).arg(longit).arg(Q ? "valid" : "no fix").arg(SPEED).arg(NDEG).arg(NMIN).arg(NMINF).arg(EDEG).arg(EMINmm).arg(EMINF)
             .arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG);
     _logger->log(Logger::LogLevelInfo, QString("Received NMEA UDT location message from %1 to %2: %3")
           .arg(srcId)
