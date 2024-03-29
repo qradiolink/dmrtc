@@ -160,6 +160,8 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
                      w, SLOT(updateRejectedCallsList(uint,uint,bool)));
     QObject::connect(controller, SIGNAL(pingResponse(uint,uint)),
                      w, SLOT(displayPingResponse(uint,uint)));
+    QObject::connect(controller, SIGNAL(positionResponse(uint,QString)),
+                     w, SLOT(displayPositionResponse(uint,QString)));
     QObject::connect(controller, SIGNAL(pingTimeout()),
                      w, SLOT(pingTimeout()));
     QObject::connect(controller, SIGNAL(authSuccess(bool)),

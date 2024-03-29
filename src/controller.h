@@ -109,6 +109,7 @@ signals:
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void pingResponse(unsigned int srcId, unsigned int time);
+    void positionResponse(unsigned int srcId, QString message);
     void pingTimeout();
     void startPingTimer(int msec);
     void stopPingTimer();

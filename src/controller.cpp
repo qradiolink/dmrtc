@@ -1061,8 +1061,8 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
     unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
     unsigned char msg[size];
     memcpy(msg, _data_message, size);
-    int8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
-    int16_t NMINF, EMINF, COG;
+    uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
+    uint16_t NMINF, EMINF, COG;
     C = msg[0] >> 7;
     NS = (msg[0] >> 6) & 0x01;
     EW = (msg[0] >> 5) & 0x01;
@@ -1098,15 +1098,16 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
     }
     QString lat = NS ? "N" : "S";
     QString longit = EW ? "E" : "W";
-    QString message = QString("Position message: Encrypted %1, Fix %4, Speed %5,"
-                                " Latitude %2 %6 degrees %7.%8 minutes, Longitude %3 %9 degrees %10.%11 minutes,"
-                                " Time %12:%13:%14 UTC, Course %15 degrees")
+    QString message = QString("Position message: Encrypted: %1, Fix: %4, Speed: %5,"
+                                " Latitude: %2 %6 degrees %7.%8 minutes, Longitude: %3 %9 degrees %10.%11 minutes,"
+                                " Time: %12:%13:%14 UTC, Course: %15 degrees")
             .arg(C ? "yes" : "no").arg(lat).arg(longit).arg(Q ? "valid" : "no fix").arg(SPEED).arg(NDEG).arg(NMIN).arg(NMINF).arg(EDEG).arg(EMINmm).arg(EMINF)
             .arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG);
     _logger->log(Logger::LogLevelInfo, QString("Received NMEA UDT location message from %1 to %2: %3")
           .arg(srcId)
           .arg(dstId)
           .arg(message));
+    emit positionResponse(srcId, message);
     emit updateMessageLog(srcId, dstId, message, false);
 }
 
