@@ -643,7 +643,8 @@ unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigne
     return number_of_blocks;
 }
 
-void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int dstId, unsigned int format, unsigned int num_blocks)
+void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId,
+                                                    unsigned int format, unsigned int num_blocks)
 {
     unsigned int service_options = format << 1;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -652,7 +653,7 @@ void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int
     csbk.setData1(service_options);
     csbk.setCBF(data2);
     csbk.setDstId(dstId);
-    csbk.setSrcId(StandardAddreses::SDMI);
+    csbk.setSrcId(srcId);
 }
 
 void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId)

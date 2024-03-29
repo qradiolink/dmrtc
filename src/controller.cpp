@@ -438,7 +438,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     if(message.size() < 1)
         return;
     if(message.size() > 46)
-        message = message.chopped(46);
+        message.truncate(46);
     unsigned int msg_size = message.size();
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
@@ -683,16 +683,18 @@ void Controller::timeoutPingResponse()
     emit pingTimeout();
 }
 
-void Controller::pollData(unsigned int target_id, unsigned int poll_format)
+void Controller::pollData(unsigned int target_id, unsigned int poll_format, unsigned int srcId)
 {
     if(target_id == 0)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
     _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
     _short_data_messages.insert(target_id, 1);
+    if(srcId == 0)
+        srcId = StandardAddreses::SDMI;
     CDMRCSBK csbk;
     // NMEA location poll test
-    _signalling_generator->createRequestToUploadUDTPolledData(csbk, target_id, poll_format, 1);
+    _signalling_generator->createRequestToUploadUDTPolledData(csbk, srcId, target_id, poll_format, 1);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
@@ -1096,6 +1098,11 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
         COG = (msg[12] & 0x01) << 8;
         COG |= msg[13];
     }
+    else
+    {
+        UTCss = 0;
+        COG = 0;
+    }
     QString lat = NS ? "N" : "S";
     QString longit = EW ? "E" : "W";
     QString message = QString("Position message: Encrypted: %1, Fix: %4, Speed: %5,"
@@ -1107,8 +1114,22 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
           .arg(srcId)
           .arg(dstId)
           .arg(message));
-    emit positionResponse(srcId, message);
-    emit updateMessageLog(srcId, dstId, message, false);
+    if(dstId != StandardAddreses::SDMI)
+    {
+        int size = message.size();
+        int num_msg = size / 45;
+        for(int i = 0;i<=num_msg;i++)
+        {
+            QString msg = message.mid(i * 45, 45);
+            sendUDTShortMessage(msg, dstId, srcId);
+        }
+    }
+    if(!_settings->headless_mode)
+    {
+        if(dstId == StandardAddreses::SDMI)
+            emit positionResponse(srcId, message);
+        emit updateMessageLog(srcId, dstId, message, false);
+    }
 }
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
@@ -1197,6 +1218,34 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+        {
+            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
+            unsigned char msg[size];
+            memcpy(msg, _data_message, size);
+            QString text_message;
+            // last character seems to be null termination
+            if(_udt_format == 4)
+                text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
+            else if(_udt_format == 3)
+            {
+                unsigned int bit7_size = 8 * size / 7;
+                unsigned char converted[bit7_size];
+                Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+                text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
+            }
+            else if(_udt_format == 7)
+            {
+                Utils::parseUTF16(text_message, size - 1, msg);
+                text_message = text_message.trimmed();
+            }
+            if(text_message.size() > 0)
+            {
+                bool ok = false;
+                unsigned int target_id = text_message.toUInt(&ok);
+                pollData(target_id, PollFMT::PollNMEA, srcId);
+            }
+        }
     }
     /// Signal report request
     else if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
@@ -2458,8 +2507,33 @@ void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
                 " dst: " << dstId << " src: " << srcId;
 }
 
-void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
-                                  unsigned int udp_channel_id, bool channel_grant, bool priority_queue, bool announce_priority)
+CDMRData Controller::createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk)
+{
+    unsigned char dataType = csbk.getDataType();
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(dataType);
+    dmr_data.setSlotNo(slotNo);
+
+    unsigned char repacked_data[DMR_FRAME_LENGTH_BYTES];
+    // Regenerate the CSBK data
+    csbk.get(repacked_data);
+    CDMRSlotType slotType;
+    slotType.putData(repacked_data);
+    slotType.setColorCode(1);
+    slotType.setDataType(dataType);
+    slotType.getData(repacked_data);
+
+    CSync::addDMRDataSync(repacked_data, 1);
+    dmr_data.setDstId(csbk.getDstId());
+    dmr_data.setSrcId(csbk.getSrcId());
+    dmr_data.setData(repacked_data);
+
+    return dmr_data;
+}
+
+CDMRData Controller::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant)
 {
     CDMRData dmr_data_wait;
     if(channel_grant)
@@ -2484,26 +2558,14 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
         dmr_data_wait.setSrcId(csbk_wait.getSrcId());
         dmr_data_wait.setData(repacked_data_wait);
     }
-    unsigned char dataType = csbk.getDataType();
-    CDMRData dmr_data;
-    dmr_data.setSeqNo(0);
-    dmr_data.setN(0);
-    dmr_data.setDataType(dataType);
-    dmr_data.setSlotNo(slotNo);
+    return dmr_data_wait;
+}
 
-    unsigned char repacked_data[DMR_FRAME_LENGTH_BYTES];
-    // Regenerate the CSBK data
-    csbk.get(repacked_data);
-    CDMRSlotType slotType;
-    slotType.putData(repacked_data);
-    slotType.setColorCode(1);
-    slotType.setDataType(dataType);
-    slotType.getData(repacked_data);
-
-    CSync::addDMRDataSync(repacked_data, 1);
-    dmr_data.setDstId(csbk.getDstId());
-    dmr_data.setSrcId(csbk.getSrcId());
-    dmr_data.setData(repacked_data);
+void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
+                                  unsigned int udp_channel_id, bool channel_grant, bool priority_queue, bool announce_priority)
+{
+    CDMRData dmr_data_wait = createWaitForSignallingAnswer(slotNo, csbk, channel_grant);
+    CDMRData dmr_data = createDataFromCSBK(slotNo, csbk);
     LogicalChannel *main_channel = findChannelByPhysicalIdAndSlot(udp_channel_id, slotNo);
 
     if (channel_grant)

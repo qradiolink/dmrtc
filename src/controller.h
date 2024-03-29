@@ -89,7 +89,7 @@ public slots:
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
-    void pollData(unsigned int target_id, unsigned int poll_format);
+    void pollData(unsigned int target_id, unsigned int poll_format, unsigned int srcId=0);
     void timeoutPingResponse();
     void resetAuth();
     void sendAuthCheck(unsigned int target_id);
@@ -127,6 +127,8 @@ private:
     bool validateLocalSourceId(unsigned int srcId);
     void processSignalling(CDMRData &dmr_data, int udp_channel_id);
     void processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id);
+    CDMRData createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk);
+    CDMRData createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant);
     void transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
                           unsigned int udp_channel_id, bool channel_grant=false, bool priority_queue=false, bool announce_priority=false);
     void processVoice(CDMRData &dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway=false);
@@ -189,6 +191,7 @@ private:
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
+
 };
 
 #endif // CONTROLLER_H
