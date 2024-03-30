@@ -77,6 +77,7 @@ public slots:
     void sendStatusPoll();
     void authCheck();
     void displayPingResponse(unsigned int srcId, unsigned int msec);
+    void displayPositionResponse(unsigned int srcId, QString message);
     void pingTimeout();
     void authSuccess(bool successful);
     void sendLocalTimeBroadcast();

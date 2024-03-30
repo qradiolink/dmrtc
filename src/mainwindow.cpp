@@ -907,6 +907,7 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         ui->tableWidgetMessages->setItem(rows, 1, srcitem);
         ui->tableWidgetMessages->setItem(rows, 2, dstitem);
         ui->tableWidgetMessages->setItem(rows, 3, msg);
+        ui->tableWidgetMessages->resizeRowsToContents();
     }
     else
     {
@@ -954,7 +955,23 @@ void MainWindow::addDGNA()
 void MainWindow::sendNMEAPoll()
 {
     unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
+    ui->labelPositionResponse->setStyleSheet("background-color:#FFFFFF;color:#000000");
+    ui->labelPositionResponse->setText("Polling location");
     emit pollData(radio, PollFMT::PollNMEA);
+}
+
+void MainWindow::displayPositionResponse(unsigned int srcId, QString message)
+{
+    Q_UNUSED(srcId)
+    ui->labelPositionResponse->setText(message);
+    if(message.contains("Fix: no fix"))
+    {
+        ui->labelPositionResponse->setStyleSheet("background-color:#CC0000;color:#FFFFFF");
+    }
+    else
+    {
+        ui->labelPositionResponse->setStyleSheet("background-color:#007700;color:#FFFFFF");
+    }
 }
 
 void MainWindow::sendStatusPoll()
