@@ -1243,7 +1243,8 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
             {
                 bool ok = false;
                 unsigned int target_id = text_message.toUInt(&ok);
-                pollData(target_id, PollFMT::PollNMEA, srcId);
+                if(ok && (target_id > 0) && (target_id < 0xFFFFFFF))
+                    pollData(target_id, PollFMT::PollNMEA, srcId);
             }
         }
     }
