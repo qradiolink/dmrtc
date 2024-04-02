@@ -172,9 +172,12 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 {
     if(end_call)
     {
-        _rssi = _rssi_accumulator / float(_data_frames);
-        _ber = _ber_accumulator / float(_data_frames);
-        emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
+        if(_data_frames > 0)
+        {
+            _rssi = _rssi_accumulator / float(_data_frames);
+            _ber = _ber_accumulator / float(_data_frames);
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
+        }
         _stream_id = 0;
         _data_frames = 0;
         _rssi_accumulator = 0.0f;
@@ -187,7 +190,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
     if(new_stream_id != old_stream_id)
     {
         _stream_id = new_stream_id;
-        if(old_stream_id != 0)
+        if((old_stream_id != 0) && (_data_frames > 0))
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
@@ -206,7 +209,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         _data_frames++;
         _rssi = _rssi_accumulator / float(_data_frames);
         _ber = _ber_accumulator / float(_data_frames);
-        if((_data_frames % 10) == 0)
+        if(((_data_frames % 10) == 0) && (_data_frames > 0))
             emit update();
     }
 }
