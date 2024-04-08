@@ -168,9 +168,17 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CD
     {
         csbk.setCSBKO(CSBKO_TV_GRANT);
     }
-    else
+    else if(logical_channel->getCallType() == CallType::CALL_TYPE_MS)
     {
         csbk.setCSBKO(CSBKO_PV_GRANT);
+    }
+    else if(logical_channel->getCallType() == CallType::CALL_TYPE_INDIV_PACKET)
+    {
+        csbk.setCSBKO(CSBKO_PD_GRANT);
+    }
+    else if(logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET)
+    {
+        csbk.setCSBKO(CSBKO_TD_GRANT);
     }
     uint16_t phys_chan = logical_channel->getLogicalChannel();
     uint8_t c1 = phys_chan >> 4;
@@ -183,7 +191,8 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CD
     data2 |= emergency_call << 1;
     data2 |= aligned_timing;
     csbk.setCBF(data2);
-    if(logical_channel->getCallType() == CallType::CALL_TYPE_GROUP)
+    if((logical_channel->getCallType() == CallType::CALL_TYPE_GROUP) ||
+            (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET))
     {
         csbk.setDstId(Utils::convertBase10ToBase11GroupNumber(logical_channel->getDestination()));
     }
@@ -492,8 +501,8 @@ void Signalling::createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_c
 void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
 {
     unsigned int service_options = csbk.getServiceOptions();
-    bool SIMI = (service_options >> 2) & 0x01;
-    bool hi_rate = (service_options >> 3) & 0x01; // TODO
+    bool SIMI = (bool) (service_options >> 2) & 0x01;
+    bool hi_rate = (bool) (service_options >> 3) & 0x01; // TODO
     uint8_t emergency_call = 0; // TODO
     uint8_t rate = hi_rate ? 1 : 0; // TODO
     unsigned char csbko = SIMI ? CSBKO_PD_GRANT_MI : CSBKO_PD_GRANT;
@@ -517,11 +526,11 @@ void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *lo
 void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
 {
     unsigned int service_options = csbk.getServiceOptions();
-    bool SIMI = (service_options >> 2) & 0x01;
-    bool hi_rate = (service_options >> 3) & 0x01; // TODO
+    bool SIMI = (bool) (service_options >> 2) & 0x01;
+    bool hi_rate = (bool) (service_options >> 3) & 0x01; // TODO
     uint8_t emergency_call = 0; // TODO
     uint8_t rate = hi_rate ? 1 : 0; // TODO
-    unsigned char csbko = SIMI ? CSBKO_GD_GRANT_MI : CSBKO_GD_GRANT;
+    unsigned char csbko = SIMI ? CSBKO_TD_GRANT_MI : CSBKO_TD_GRANT;
     csbk.setCSBKO(csbko);
     csbk.setFID(0x00);
     unsigned int phys_chan = logical_channel->getLogicalChannel();
@@ -666,6 +675,22 @@ void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, u
     csbk.setCBF(data2);
     csbk.setDstId(dstId);
     csbk.setSrcId(StandardAddreses::TSI);
+}
+
+void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, unsigned int srcId,
+                                                              unsigned int dstId, uint8_t GI, uint8_t uab)
+{
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned char data1 = csbk.getServiceOptions() << 1;
+    unsigned int data2 = ServiceKind::IndivPacketDataCall;
+    data2 |= uab << 4;
+    data2 |= GI << 6;
+    csbk.setData1(data1);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    qDebug() << dstId;
+    csbk.setSrcId(srcId);
 }
 
 void Signalling::createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group)

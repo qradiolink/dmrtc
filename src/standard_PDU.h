@@ -33,6 +33,7 @@ enum StandardAddreses
     GPI = 0xFFFECE,
     AUTHI = 0xFFFECD,
     SUPLI = 0xFFFEC4,
+    DISPATI = 0xFFFECB,
 };
 
 enum ServiceKind

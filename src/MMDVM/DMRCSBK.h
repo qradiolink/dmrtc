@@ -40,12 +40,14 @@ enum CSBKO {
     CSBKO_BTV_GRANT      = 0x32,
     CSBKO_PD_GRANT       = 0x33,
     CSBKO_PD_GRANT_MI    = 0x37,
-    CSBKO_GD_GRANT       = 0x34,
-    CSBKO_GD_GRANT_MI    = 0x38,
+    CSBKO_TD_GRANT       = 0x34,
+    CSBKO_TD_GRANT_MI    = 0x38,
     CSBKO_AHOY           = 0x1C,
     CSBKO_ACKU           = 0x21,
     CSBKO_P_CLEAR        = 0x2E,
-    CSBKO_C_BCAST        = 0x28
+    CSBKO_C_BCAST        = 0x28,
+    CSBKO_PV_GRANT_DX    = 0x35,
+    CSBKO_PD_GRANT_DX    = 0x36,
 };
 
 

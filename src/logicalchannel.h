@@ -38,7 +38,9 @@
 enum CallType
 {
     CALL_TYPE_MS=0,
-    CALL_TYPE_GROUP=1
+    CALL_TYPE_GROUP=1,
+    CALL_TYPE_INDIV_PACKET=2,
+    CALL_TYPE_GROUP_PACKET=3,
 };
 
 enum CallState
