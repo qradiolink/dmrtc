@@ -164,6 +164,7 @@ void Controller::run()
         control1.setControl(true);
         control1.setSlotNo(1);
         control1.setCommand(DMRCommand::ChannelEnableDisable);
+        control1.setChannelEnable(false);
         CDMRData control2 = control1;
         control2.setSlotNo(2);
         client->writeDMRTrunkingParams(control1);
@@ -329,7 +330,8 @@ void Controller::announceLateEntry()
     {
         if(_logical_channels.at(i)->getBusy() && !(_logical_channels.at(i)->getDisabled())
                 && !(_logical_channels.at(i)->isControlChannel())
-                && (_logical_channels.at(i)->getDestination() != 0))
+                && (_logical_channels.at(i)->getDestination() != 0)
+                && (_logical_channels.at(i)->getCallType() < CallType::CALL_TYPE_INDIV_PACKET))
         {
             LogicalChannel *logical_channel = _logical_channels.at(i);
             CDMRCSBK csbk;
@@ -542,6 +544,11 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         data[k] = (id >> 16) & 0xFF;
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
+    }
+    if(dgna_tg.size() < 1)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("No valid DGNA talkgroups selected for radio: %1").arg(dstId));
+        return;
     }
     unsigned int blocks = 4;
     QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
@@ -1778,7 +1785,7 @@ void Controller::contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
 void Controller::contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
                             unsigned int srcId, unsigned int dstId)
 {
-    _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private packet data call request from %2 to TG %3")
+    _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private packet data call request from %2 to MS %3")
                  .arg(slotNo).arg(srcId).arg(dstId));
     if(!_private_calls.contains(dstId))
         _private_calls.insert(dstId, srcId);
@@ -1906,12 +1913,6 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
     _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private packet data call request from %2 to destination %3")
                  .arg(slotNo).arg(srcId).arg(dstId));
 
-    if(local)
-    {
-        unsigned int temp = srcId;
-        srcId = dstId;
-        dstId = temp;
-    }
     logical_channel = findCallChannel(dstId, srcId);
     if(logical_channel != nullptr)
     {
@@ -1925,9 +1926,7 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
     }
 
     // Next try to find a free payload channel to allocate
-    unsigned int dest = (local) ? srcId : dstId;
-    unsigned int src = (local) ? dstId : srcId;
-    logical_channel = findNextFreePayloadChannel(dest, src, local);
+    logical_channel = findNextFreePayloadChannel(dstId, srcId, local);
     if(logical_channel == nullptr)
     {
         _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
@@ -1942,8 +1941,13 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
     {
         _signalling_generator->createPrivatePacketDataGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
-        logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
-        logical_channel->setCallType(CallType::CALL_TYPE_MS);
+        logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_INDIV_PACKET, local);
+        CDMRData dmr_control_data;
+        dmr_control_data.setControl(true);
+        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
+        dmr_control_data.setChannelEnable(true);
+        dmr_control_data.setSlotNo(logical_channel->getSlot());
+        logical_channel->putRFQueue(dmr_control_data, false);
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
@@ -1984,17 +1988,21 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
 
 void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
 {
-    if(_logical_channels.at(channel_id)->getCallType() == CallType::CALL_TYPE_MS)
+    unsigned int call_type = _logical_channels.at(channel_id)->getCallType();
+    if(call_type == CallType::CALL_TYPE_MS)
     {
         if(_private_calls.contains(_logical_channels.at(channel_id)->getDestination()))
             _private_calls.remove(_logical_channels.at(channel_id)->getDestination());
         if(_private_calls.contains(_logical_channels.at(channel_id)->getSource()))
             _private_calls.remove(_logical_channels.at(channel_id)->getSource());
     }
-    unsigned int call_type = _logical_channels.at(channel_id)->getCallType();
-    CDMRCSBK csbk;
-    _signalling_generator->createChannelIdleDeallocation(csbk, call_type);
 
+    CDMRCSBK csbk;
+    if(call_type == CallType::CALL_TYPE_INDIV_PACKET)
+        call_type = CallType::CALL_TYPE_MS;
+    if(call_type == CallType::CALL_TYPE_GROUP_PACKET)
+        call_type = CallType::CALL_TYPE_GROUP;
+    _signalling_generator->createChannelIdleDeallocation(csbk, call_type);
     for(int i=0;i < 3;i++)
     {
         transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
@@ -2417,6 +2425,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         if(_registered_ms->contains(dstId))
         {
+            uint8_t service_options = csbk.getServiceOptions();
+            _simi = (service_options >> 2) & 0x01;
             contactMSForPacketCall(csbk, slotNo, srcId, dstId);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             _logger->log(Logger::LogLevelInfo, QString("Received private packet data call request from %1, slot %2 to destination %3")
@@ -2424,8 +2434,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, false);
-
+            handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
             CDMRCSBK csbk2;
             bool valid = false;
             if((csbk.getCSBKO() == CSBKO_PD_GRANT) || (csbk.getCSBKO() == CSBKO_PD_GRANT_MI))
@@ -2435,10 +2444,36 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             {
                 transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             }
-            _logger->log(Logger::LogLevelInfo, QString("Received private packet data call request (not registered radio)"
-                                                        " from %1, slot %2 to destination %3")
+            _logger->log(Logger::LogLevelInfo, QString("Received private packet data call request"
+                                                        " from %1, slot %2 to destination %3 (not registered ID)")
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
+    }
+    /// MS acknowledgement of private packet data call
+    else if ((csbko == CSBKO_ACKU) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionPrivatePacketCallRequest)
+    {
+        _uplink_acks->remove(srcId);
+        csbk.setCSBKO(CSBKO_ACKD);
+        csbk.setDstId(dstId);
+        csbk.setSrcId(srcId);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        _logger->log(Logger::LogLevelInfo, QString("Received packet data acknowledgement from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+        // FIXME
+        csbk.setData1(0x08);
+        handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo, dstId, srcId, channel_grant, true);
+        CDMRCSBK csbk2;
+        bool valid = false;
+        if((csbk.getCSBKO() == CSBKO_PD_GRANT) || (csbk.getCSBKO() == CSBKO_PD_GRANT_MI))
+            valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        if(valid)
+        {
+            transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        }
+
     }
     /// MS authentication response
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&

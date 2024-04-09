@@ -2,7 +2,7 @@
 DMRTC Operation Manual
 ====
 
-## Settings
+## Settings page
 
 
 ### General settings
@@ -85,3 +85,67 @@ Special DMR ids used for requesting DMR services from DMRTC. The first column (s
 - Service: is the specific service being requested. Should not be modified. Available services: DGNA, Help, Location, RSSI report.
 - System id: DMR id used for the service. This value can be modified by the administrator and will be used by the radio user to request the service.
 
+## System page
+
+On the System page you can perform tests and operations on registered radios.
+
+
+- Dropdown with list of IDs of currently registered radios: select and ID from the list to perform an action on it
+- Ping radio: will send a presence check PDU and measure the roundtrip time until a response is received, displayed near this button. Radios which are engaged in a call will not receive this request.
+- Text input field: used for UDT short data messages and the DGNA service
+- Send message to all: click this button to send a message input in the above field to all registered radios. Radios which are engaged in a call will not receive this message.
+- Send message to radio: click this button to send a message input in the above field to the radio selected in the dropdown. Radios which are engaged in a call will not receive this message.
+- Send DGNA to target radio: click this button to send a Dynamic Group Number to the radio selected in the dropdown. Put the list of numerical group ids in the text field, separated by spaces. Can also send a single group id. If the text field contains a value of zero, DGNA is cleared from the target radio. Radios which are engaged in a call will not receive this request.
+- Request mass registration: click this button to clear the list of all registered radios and send a PDU requesting mass registration from radios listening on the control channel. Radios which are engaged in a call will not receive this request.
+- Broadcast local time: click to trigger a time broadcast on the control channel
+- Broadcast frequencies: click to trigger a broadcast of all site frequencies on the control channel
+- Poll location in NMEA format: send a location poll to the radio selected in the dropdown. If the radio is GPS enabled and supports this service, the location message will be displayed next to this button. Radios which are engaged in a call will not receive this request.
+- Status poll: click to send a status poll PDU to the selected radio. If the radio supports this service, the poll result will be displayed next to it. Radios which are engaged in a call will not receive this request.
+- Authentication check: click to verify authentication for the selected radio. The radio needs to have the authentication key programmed, and DMRTC needs to also have the same authentication key saved in the config file. If the authetication is successful, SUCCESS will be displayed next to this button. Radios which are engaged in a call will not receive this request.
+
+
+## Dashboard page
+
+### Group calls
+
+Displays a list of group calls which were served by DMRTC since the program was started.
+
+### Private calls
+
+Displays a list of private calls served by DMRTC since the program was started
+
+### Text messages
+
+Displays a list of text messages received since the program was started. Will also display location poll messages and service request made to special system ids.
+
+### Rejected calls
+
+Displays a list of all calls that have been rejected since the program started, usually because system capacity was completely full.
+
+
+## RF channel usage page
+
+This page displays 3 information elements
+
+### List of RF channels
+
+A list of all RF channels is displayed with maximum 7 channels available. Each channel has two timeslots which are displayed next to each other. One timeslot is a logical channel in the system.
+
+A checkbox is available for all logical channel. Toggling this checkbox off will disable usage of this timeslot in the RF channel. Calls will be routed to other available timeslots. The enabled or disabled state will be preserved after program restarts.
+
+RF channel 1 with timeslot 1 is the control channel, displayed in yellow. No information is currently displayed for this logical channel. Cannot be disabled with the checkbox.
+
+Free logical channels are displayed in green colour. Disabled logical channels are displayed in red colour. Logical channels which have an ongoing call originating from the Internet are displayed in dark blue colour.
+Logical channels which have an ongoing call originating locally are displayed in light blue colour. Unused channels are displayed in white colour.
+
+Call allocation is sequential from RF channel 1 to RF channel 7 and from timeslot 1 to timeslot 2, based on the first logical channel free to allocate. A maximum of 13 voice calls can be transmitted and received simultaneously by the system. Edit the **Number of RF channels** on the Settings page to change this number.
+
+The first line of the logical channel has information about source (ID, callsign), destination ID, and whether the call is coming from the network or is a local site call. The second line displays the talker alias decoded from the transmisssion. The third line displays the GPS position sent with the voice, if available. The fourth line displays BER and RSSI information (only available for local site calls).
+
+### Registered radios
+
+A list of all radios currently registered on the system, ID and callsign if this information is available. If the **Require registration** checkbox is disabled in the Settings page, this list will be empty.
+
+### Subscribed talkgroups
+
+A list of all talkgroups which have been attached to by registered radios. If the **Require registration** checkbox or the **Use radio talkgroup attachmet** checkbox are disabled in the Settings page, this list will be empty.

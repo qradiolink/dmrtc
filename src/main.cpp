@@ -36,8 +36,6 @@
 
 void connectGuiSignals(MainWindow *w, Controller *controller);
 
-class Station;
-
 void signal_handler(int signal)
 {
     std::cout << "Received signal " << signal << std::endl;

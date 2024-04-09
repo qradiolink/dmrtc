@@ -65,6 +65,7 @@ public:
     unsigned int createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId);
     void createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, unsigned int format, unsigned int num_blocks);
     void createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId);
+    void createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, uint8_t GI, uint8_t uab);
     void createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group);
     void createStatusPollAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group);
     void createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId);

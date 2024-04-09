@@ -191,6 +191,7 @@ private:
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
+    unsigned int _simi;
 
 };
 
