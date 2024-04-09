@@ -545,6 +545,11 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
     }
+    if(dgna_tg.size() < 1)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("No valid DGNA talkgroups selected for radio: %1").arg(dstId));
+        return;
+    }
     unsigned int blocks = 4;
     QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
     registered_tg = registered_tg + dgna_tg;
