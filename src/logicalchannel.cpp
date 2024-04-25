@@ -546,7 +546,7 @@ void LogicalChannel::processTalkerAlias()
         {
             unsigned char converted[bit7_size];
             Utils::parseISO7bitToISO8bit((unsigned char*)_ta_data.constData(), converted, bit7_size, size);
-            QString txt = QString::fromLatin1((const char*)converted + 1, bit7_size - 1).trimmed();
+            QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
             setText(txt);
         }
         else if(_ta_df == 3)

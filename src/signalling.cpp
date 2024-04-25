@@ -628,7 +628,7 @@ void Signalling::createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool g
 
 unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK &csbk, unsigned int dstId)
 {
-    unsigned int number_of_blocks = csbk.getCBF() >> 4;
+    unsigned int number_of_blocks = (csbk.getCBF() >> 4) & 0x03;
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
     unsigned int data2 = (number_of_blocks << 4) | csbk.getServiceKind();
@@ -641,7 +641,7 @@ unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK &csbk, unsigned i
 
 unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId)
 {
-    unsigned int number_of_blocks = csbk.getCBF() >> 4;
+    unsigned int number_of_blocks = (csbk.getCBF() >> 4) & 0x03;
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
     unsigned int data2 = (number_of_blocks << 4) | csbk.getServiceKind();
@@ -684,12 +684,11 @@ void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, un
     csbk.setFID(0x00);
     unsigned char data1 = csbk.getServiceOptions() << 1;
     unsigned int data2 = ServiceKind::IndivPacketDataCall;
-    data2 |= uab << 4;
-    data2 |= GI << 6;
+    data2 |= (uab & 0x03) << 4;
+    data2 |= (GI & 0x01) << 6;
     csbk.setData1(data1);
     csbk.setCBF(data2);
     csbk.setDstId(dstId);
-    qDebug() << dstId;
     csbk.setSrcId(srcId);
 }
 
