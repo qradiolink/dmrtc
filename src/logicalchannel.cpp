@@ -326,7 +326,7 @@ void LogicalChannel::clearRFQueue()
 
 void LogicalChannel::startTimeoutTimer()
 {
-    _timeout_timer.start();
+    emit internalStartTimer();
 }
 
 void LogicalChannel::stopTimeoutTimer()
@@ -497,8 +497,10 @@ QString LogicalChannel::getText()
 
 void LogicalChannel::setText(QString txt)
 {
+    if(txt.size() < 1)
+        return;
     _data_mutex.lock();
-    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : "");
+    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : ((_ta_df == 0) ? ("(ISO 7)") : "(ISO 8)"));
     _data_mutex.unlock();
     emit update();
 }
@@ -530,12 +532,21 @@ void LogicalChannel::processTalkerAlias()
     unsigned int size = _ta_data.size();
     if(size < 1)
         return;
-    if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) || ((_ta_df == 3) && (size >= _ta_dl*2)))
+    unsigned int bit7_size = 8 * size / 7;
+    if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) ||
+            ((_ta_df == 3) && (size >= _ta_dl*2)) ||
+            ((_ta_df == 0) && (bit7_size >= _ta_dl)))
     {
-        // TODO: handle ISO 7 bit
         if(_ta_df == 1 || _ta_df == 2)
         {
             QString txt = QString::fromUtf8(_ta_data);
+            setText(txt);
+        }
+        else if(_ta_df == 0)
+        {
+            unsigned char converted[bit7_size];
+            Utils::parseISO7bitToISO8bit((unsigned char*)_ta_data.constData(), converted, bit7_size, size);
+            QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
             setText(txt);
         }
         else if(_ta_df == 3)
@@ -648,6 +659,11 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
                     _ta_df = (raw_data[2] >> 6) & 0x03;
                     _ta_dl = (raw_data[2] >> 1) & 0x1F;
                     _ta_data.clear();
+                    if(_ta_df == 0)
+                    {
+                        // for 7 bit TA the MSB is last bit of byte 3
+                        _ta_data.append(raw_data[2] & 0x01);
+                    }
                     for(int i=3;i<9;i++)
                     {
                         _ta_data.append(raw_data[i]);

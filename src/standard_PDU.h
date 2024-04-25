@@ -34,6 +34,8 @@ enum StandardAddreses
     AUTHI = 0xFFFECD,
     SUPLI = 0xFFFEC4,
     DISPATI = 0xFFFECB,
+    LINEI = 0xFFFEC2,
+    IPI = 0xFFFEC3,
 };
 
 enum ServiceKind
