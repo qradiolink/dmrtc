@@ -495,12 +495,15 @@ QString LogicalChannel::getText()
     return text;
 }
 
-void LogicalChannel::setText(QString txt)
+void LogicalChannel::setText(QString txt, bool control_channel)
 {
     if(txt.size() < 1)
         return;
     _data_mutex.lock();
-    _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : ((_ta_df == 0) ? ("(ISO 7)") : "(ISO 8)"));
+    if(control_channel)
+        _text = txt;
+    else
+        _text = QString("%1 %2").arg(txt).arg((_ta_df == 3) ? "(UTF-16)" : ((_ta_df == 0) ? ("(ISO 7)") : "(ISO 8)"));
     _data_mutex.unlock();
     emit update();
 }
@@ -540,27 +543,27 @@ void LogicalChannel::processTalkerAlias()
         if(_ta_df == 1 || _ta_df == 2)
         {
             QString txt = QString::fromUtf8(_ta_data);
-            setText(txt);
+            setText(txt, false);
         }
         else if(_ta_df == 0)
         {
             unsigned char converted[bit7_size];
             Utils::parseISO7bitToISO8bit((unsigned char*)_ta_data.constData(), converted, bit7_size, size);
             QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
-            setText(txt);
+            setText(txt, false);
         }
         else if(_ta_df == 3)
         {
             if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
             {
                 QString txt = QString::fromUtf16((char16_t*)_ta_data.constData(), size/2);
-                setText(txt);
+                setText(txt, false);
             }
             else
             {
                 QString txt;
                 Utils::parseUTF16(txt, size, (unsigned char*)_ta_data.data());
-                setText(txt);
+                setText(txt, false);
             }
         }
         _talker_alias_received = true;
@@ -612,7 +615,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         _embedded_data[1].reset();
         _default_embedded_data.reset();
         _default_embedded_data.setLC(_lc);
-        setText("");
+        setText("", false);
     }
     else if(dataType == DT_VOICE_SYNC)
     {

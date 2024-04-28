@@ -81,7 +81,7 @@ public:
     bool getBusy();
     bool getDisabled();
     QString getText();
-    void setText(QString txt);
+    void setText(QString txt, bool control_channel=true);
     void setGPSInfo(float longitude, float latitude, std::string error);
     QString getGPSInfo();
     void putRFQueue(CDMRData &dmr_data, bool first=false);
