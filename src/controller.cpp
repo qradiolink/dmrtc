@@ -1030,6 +1030,10 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
                      .arg(srcId).arg(converted_id));
     }
     _control_channel->setText(QString("Talkgroup attachment message: %1").arg(srcId));
+    if(!_settings->headless_mode)
+    {
+        emit updateLogicalChannels(&_logical_channels);
+    }
     updateSubscriptions(tg_list, srcId);
 }
 
@@ -1065,6 +1069,10 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     }
     _settings->call_diverts.insert(srcId, divert_id);
     _control_channel->setText(QString("Call divert message: %1").arg(srcId));
+    if(!_settings->headless_mode)
+    {
+        emit updateLogicalChannels(&_logical_channels);
+    }
 }
 
 void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsigned int format)
@@ -1140,6 +1148,10 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
         emit updateMessageLog(srcId, dstId, message, false);
     }
     _control_channel->setText(QString("Position message: %1").arg(srcId));
+    if(!_settings->headless_mode)
+    {
+        emit updateLogicalChannels(&_logical_channels);
+    }
 }
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
@@ -1192,6 +1204,10 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool
             }
         }
         _control_channel->setText(QString("Short text message: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
 }
 
@@ -1222,6 +1238,10 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
             sendUDTShortMessage(msg, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
         }
         _control_channel->setText(QString("Help message: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Location query ???
     else if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
@@ -1259,6 +1279,10 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
             }
         }
         _control_channel->setText(QString("Location query message: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Signal report request
     else if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
@@ -1271,6 +1295,10 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
         sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
         _control_channel->setText(QString("Signal report message: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// DGNA
     else if(dstId == (unsigned int)_settings->service_ids.value("dgna", 0))
@@ -1304,6 +1332,10 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
                 sendUDTDGNA(text_message, srcId);
             }
             _control_channel->setText(QString("DGNA request message: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
         }
     }
 }
@@ -2083,6 +2115,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             }
         }
         _control_channel->setText(QString("Registration / deregistration: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Service requested while not registered
     else if(!validateLocalSourceId(srcId))
@@ -2092,6 +2128,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received service request while not registered from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Unregistered service request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     ///
     /// All below signaling needs the MS to be registered
@@ -2107,6 +2147,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _uplink_acks->remove(srcId);
         emit pingResponse(srcId, msec);
         _control_channel->setText(QString("Presence check response: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Group call request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupVoiceCall)
@@ -2128,6 +2172,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
         _control_channel->setText(QString("Talkgroup voice request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Group call with suplimentary data
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupVoiceCall) && csbk.getSuplimentaryData())
@@ -2135,6 +2183,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _signalling_generator->createRequestToSendGroupCallSupplimentaryData(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
         _control_channel->setText(QString("Talkgroup voice request with SUPLI: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Direct MS to MS call request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
@@ -2176,6 +2228,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
         _control_channel->setText(QString("Private voice request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS acknowledgement of OACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
@@ -2214,6 +2270,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received acknowledgement for OACSU call from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("OACSU call acknowledgemet: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS acknowledgement of FOACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8C))
@@ -2230,6 +2290,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelDebug, QString("Received acknowledgement for FOACSU call from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("FOACSU call acknowledgemet: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS FOACSU call answer
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallAnswer) && ((csbk.getCBF() & 0xF0) == 0))
@@ -2250,6 +2314,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call answer from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("FOACSU call answer: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// call reject
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallAnswer) && ((csbk.getCBF() & 0xF0) == 0x20))
@@ -2259,6 +2327,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _signalling_generator->createReplyCallRejected(csbk, srcId, dstId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("FOACSU call reject: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// cancel private call
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() > 0))
@@ -2268,6 +2340,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _signalling_generator->createCancelPrivateCallAhoy(csbk, csbk.getDstId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("FOACSU call cancelled: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// cancel call
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() == 0))
@@ -2277,6 +2353,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("Call cancelled: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Call disconnect
     else if ((csbko == CSBKO_MAINT) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
@@ -2287,6 +2367,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _signalling_generator->createCallDisconnect(csbk_receiver, srcId, group_call);
         transmitCSBK(csbk_receiver, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("Call disconnect: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS acknowledgement of short data message
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
@@ -2301,6 +2385,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received read receipt for message request from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Short message acknowledge: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS acknowledgement of DGNA request
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
@@ -2315,6 +2403,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received ACK for DGNA request from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("DGNA assignement acknowledge: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Short data service MS to MS
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::IndivUDTDataCall))
@@ -2331,6 +2423,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received private short data message request from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Short private message request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Short data service MS to TG
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupUDTDataCall))
@@ -2341,6 +2437,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received group short data message request to TG from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Short talkgroup message request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Status transport message MS to MS and MS toTG
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::StatusTransport))
@@ -2359,6 +2459,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             _logger->log(Logger::LogLevelInfo, QString("Status of radio %1, for talkgroup %2 is %3")
                          .arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)).arg(status));
             _control_channel->setText(QString("Status transfer to talkgroup: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
         }
         else
         {
@@ -2370,6 +2474,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             _logger->log(Logger::LogLevelInfo, QString("Status of radio %1, for radio %2 is %3")
                          .arg(srcId).arg(dstId).arg(status));
             _control_channel->setText(QString("Status transfer to radio: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
         }
     }
     /// MS acknowledgement of status transport message
@@ -2385,6 +2493,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received read receipt for status transport from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Acknowledge status transfer: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS status poll reply
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8E) &&
@@ -2396,6 +2508,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply %4 from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId).arg(status));
         _control_channel->setText(QString("Status poll reply: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS status poll reply, service not supported
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
@@ -2406,6 +2522,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Status poll reply UNSUPPORTED: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS UDT data poll reply, service not supported
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
@@ -2417,6 +2537,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelInfo, QString("Received UDT data poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("UDT poll reply UNSUPPORTED: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Call diversion request
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CallDiversion))
@@ -2432,6 +2556,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             _logger->log(Logger::LogLevelInfo, QString("Received call diversion request request from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
             _control_channel->setText(QString("Call diversion request: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
         }
         else
         {
@@ -2441,6 +2569,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             _logger->log(Logger::LogLevelInfo, QString("Received cancel call diversion request request from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
             _control_channel->setText(QString("Cancel call diversion request: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
         }
     }
     /// Individual packet data call
@@ -2481,6 +2613,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
         _control_channel->setText(QString("Individual packet data call: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// MS acknowledgement of private packet data call
     else if ((csbko == CSBKO_ACKU) &&
@@ -2507,6 +2643,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         }
         _control_channel->setText(QString("Individual packet data call response: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
 
     }
     /// MS authentication response
@@ -2524,6 +2664,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                 if(!_settings->headless_mode)
                     emit authSuccess(true);
                 _control_channel->setText(QString("Successful authentication reply: %1").arg(srcId));
+                if(!_settings->headless_mode)
+                {
+                    emit updateLogicalChannels(&_logical_channels);
+                }
             }
             else
             {
@@ -2532,6 +2676,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                 if(!_settings->headless_mode)
                     emit authSuccess(false);
                 _control_channel->setText(QString("Failed authentication reply: %1").arg(srcId));
+                if(!_settings->headless_mode)
+                {
+                    emit updateLogicalChannels(&_logical_channels);
+                }
             }
             _auth_responses->remove(srcId);
             emit stopAuthTimer();
@@ -2542,6 +2690,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         _logger->log(Logger::LogLevelDebug, QString("Received unhandled ACKU from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Unhandled radio reply: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
     }
     /// Not implemeted yet
     else
@@ -2552,6 +2704,10 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                     " dst: " << dstId << " src: " << srcId;
         _logger->log(Logger::LogLevelDebug, QString("Unhandled CSBK type slot %1, channel %2").arg(slotNo).arg(udp_channel_id));
         _control_channel->setText(QString("Unknown service request: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
         return;
     }
 }
