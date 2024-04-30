@@ -123,6 +123,8 @@ private:
     LogicalChannel* findChannelByPhysicalIdAndSlot(unsigned int physical_id, unsigned int slot);
     LogicalChannel* findCallChannel(unsigned int dstId, unsigned int srcId);
     LogicalChannel* getControlOrAlternateChannel();
+    void disableLogicalChannel(LogicalChannel *&logical_channel);
+    void enableLogicalChannel(LogicalChannel *&logical_channel);
     QVector<LogicalChannel*> findActiveChannels();
     bool validateLocalSourceId(unsigned int srcId);
     void processSignalling(CDMRData &dmr_data, int udp_channel_id);
@@ -192,7 +194,6 @@ private:
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;
     unsigned int _simi;
-
 };
 
 #endif // CONTROLLER_H

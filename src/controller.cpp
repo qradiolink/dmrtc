@@ -887,6 +887,26 @@ LogicalChannel* Controller::getControlOrAlternateChannel()
     }
 }
 
+void Controller::enableLogicalChannel(LogicalChannel *&logical_channel)
+{
+    CDMRData dmr_control_data;
+    dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
+    dmr_control_data.setControl(true);
+    dmr_control_data.setChannelEnable(true);
+    dmr_control_data.setSlotNo(logical_channel->getSlot());
+    logical_channel->putRFQueue(dmr_control_data, true);
+}
+
+void Controller::disableLogicalChannel(LogicalChannel *&logical_channel)
+{
+    CDMRData dmr_control_data;
+    dmr_control_data.setControl(true);
+    dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
+    dmr_control_data.setChannelEnable(false);
+    dmr_control_data.setSlotNo(logical_channel->getSlot());
+    logical_channel->putRFQueue(dmr_control_data, false);
+}
+
 void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, bool from_gateway)
 {
     unsigned char seqNo = payload[4U];
@@ -1877,12 +1897,7 @@ void Controller::handlePrivateCallRequest(CDMRCSBK &csbk, LogicalChannel *&logic
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_MS, local);
         logical_channel->setCallType(CallType::CALL_TYPE_MS);
-        CDMRData dmr_control_data;
-        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
-        dmr_control_data.setControl(true);
-        dmr_control_data.setChannelEnable(true);
-        dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, false);
+        enableLogicalChannel(logical_channel);
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
@@ -1931,12 +1946,7 @@ void Controller::handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dmrDstId, CallType::CALL_TYPE_GROUP, local);
         logical_channel->setCallType(CallType::CALL_TYPE_GROUP);
-        CDMRData dmr_control_data;
-        dmr_control_data.setControl(true);
-        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
-        dmr_control_data.setChannelEnable(true);
-        dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, false);
+        enableLogicalChannel(logical_channel);
 
         if(!_settings->headless_mode)
         {
@@ -1981,12 +1991,7 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
         _signalling_generator->createPrivatePacketDataGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_INDIV_PACKET, local);
-        CDMRData dmr_control_data;
-        dmr_control_data.setControl(true);
-        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
-        dmr_control_data.setChannelEnable(true);
-        dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, true);
+        enableLogicalChannel(logical_channel);
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
@@ -2016,12 +2021,7 @@ void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
             logical_channel->deallocateChannel();
             updateLogicalChannels(&_logical_channels);
         }
-        CDMRData dmr_control_data;
-        dmr_control_data.setControl(true);
-        dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
-        dmr_control_data.setChannelEnable(false);
-        dmr_control_data.setSlotNo(logical_channel->getSlot());
-        logical_channel->putRFQueue(dmr_control_data, false);
+
     }
 }
 
@@ -2042,18 +2042,12 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
     if(call_type == CallType::CALL_TYPE_GROUP_PACKET)
         call_type = CallType::CALL_TYPE_GROUP;
     _signalling_generator->createChannelIdleDeallocation(csbk, call_type);
-    for(int i=0;i < 3;i++)
+    for(int i=0;i < 5;i++)
     {
         transmitCSBK(csbk, _logical_channels[channel_id], _logical_channels[channel_id]->getSlot(),
                          _logical_channels[channel_id]->getPhysicalChannel(), false);
     }
-
-    CDMRData dmr_control_data;
-    dmr_control_data.setControl(true);
-    dmr_control_data.setCommand(DMRCommand::ChannelEnableDisable);
-    dmr_control_data.setChannelEnable(false);
-    dmr_control_data.setSlotNo(_logical_channels[channel_id]->getSlot());
-    _logical_channels[channel_id]->putRFQueue(dmr_control_data, false);
+    disableLogicalChannel(_logical_channels[channel_id]);
 
     if(!_settings->headless_mode)
     {
@@ -2351,26 +2345,31 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
-        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        for(int i=0;i<3;i++)
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("Call cancelled: %1").arg(srcId));
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
         }
+        disableLogicalChannel(logical_channel);
     }
     /// Call disconnect
     else if ((csbko == CSBKO_MAINT) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall))
     {
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
-        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        for(int i=0;i<3;i++)
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         CDMRCSBK csbk_receiver;
         _signalling_generator->createCallDisconnect(csbk_receiver, srcId, group_call);
-        transmitCSBK(csbk_receiver, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        for(int i=0;i<3;i++)
+            transmitCSBK(csbk_receiver, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("Call disconnect: %1").arg(srcId));
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
         }
+        disableLogicalChannel(logical_channel);
     }
     /// MS acknowledgement of short data message
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
