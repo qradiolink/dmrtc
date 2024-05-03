@@ -55,7 +55,7 @@ class LogicalChannel : public QObject
     Q_OBJECT
 public:
     LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
-                   unsigned int physical_channel, unsigned int slot, bool control_channel=false, QObject *parent=0);
+                   unsigned int physical_channel, unsigned int slot, bool control_channel=false, bool gui_enabled=false, QObject *parent=0);
 
     void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP, bool local=false);
     void deallocateChannel();
@@ -79,6 +79,7 @@ public:
     float getBER();
     float getRSSI();
     bool getBusy();
+    bool getTimeout();
     bool getDisabled();
     QString getText();
     void setText(QString txt, bool control_channel=true);
@@ -91,14 +92,19 @@ public:
     void clearRFQueue();
     void clearNetQueue();
     bool getChannelParams(uint64_t &params, uint8_t &colour_code);
+    void startLastFrameTimer();
+    void stopLastFrameTimer();
 
 public slots:
     void setChannelIdle();
+    void notifyLastFrame();
 
 signals:
     void channelDeallocated(unsigned int channel_id);
     void internalStartTimer();
     void internalStopTimer();
+    void internalStartLastFrameTimer();
+    void internalStopLastFrameTimer();
     void update();
     void setCallStats(unsigned int srcId, unsigned int dstId, float ber, float rssi, bool private_call);
     void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
@@ -106,14 +112,17 @@ signals:
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data);
     void updateStats(CDMRData &dmr_data, bool end_call=false);
+    void processTalkerAlias();
 
     Settings *_settings;
     Logger *_logger;
+    bool _gui_enabled;
     unsigned int _id;
     unsigned int _physical_channel;
     unsigned int _slot;
     bool _control_channel;
     bool _busy;
+    bool _frame_timeout;
     bool _call_in_progress;
     bool _disabled;
     bool _local_call;
@@ -123,6 +132,7 @@ private:
     unsigned int _stats_dst_id;
     unsigned int _stats_src_id;
     QTimer _timeout_timer;
+    QTimer _last_frame_timer;
     QMutex _rf_queue_mutex;
     QMutex _net_queue_mutex;
     QMutex _data_mutex;
@@ -153,7 +163,7 @@ private:
     float _ber;
     float _rssi;
 
-    void processTalkerAlias();
+
 };
 
 #endif // LOGICALCHANNEL_H

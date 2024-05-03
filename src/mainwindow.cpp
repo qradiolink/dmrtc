@@ -746,7 +746,13 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(logical_channels->at(j)->getBER())
                                             .arg(logical_channels->at(j)->getRSSI()));
             }
-            QString color1 = (logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
+            QString color1 = (logical_channels->at(j)->getBusy() ?
+                                  (logical_channels->at(j)->getTimeout() ?
+                                       "#ff8000":
+                                  (logical_channels->at(j)->getLocalCall() ?
+                                       "#004dFF" :
+                                       "#004d99")) :
+                                  "#9cffab");
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
             _logical_channel_model->setColor(index1, color1);
@@ -773,7 +779,13 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(logical_channels->at(j + 1)->getBER())
                                             .arg(logical_channels->at(j + 1)->getRSSI()));
             }
-            QString color2 = (logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "#004dFF" : "#004d99") : "#9cffab");
+            QString color2 = (logical_channels->at(j + 1)->getBusy() ?
+                                  (logical_channels->at(j + 1)->getTimeout() ?
+                                       "#ff8000":
+                                  (logical_channels->at(j + 1)->getLocalCall() ?
+                                       "#004dFF" :
+                                       "#004d99")) :
+                                  "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
             _logical_channel_model->setColor(index2, color2);
             int state2 = logical_channels->at(j + 1)->getBusy() ?

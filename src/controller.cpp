@@ -103,7 +103,7 @@ void Controller::run()
             _logical_channels.append(_control_channel);
             if(_settings->control_channel_slot == 1)
             {
-                LogicalChannel *payload_channel = new LogicalChannel(_settings, _logger, counter, i, 2, false);
+                LogicalChannel *payload_channel = new LogicalChannel(_settings, _logger, counter, i, 2, false, !_settings->headless_mode);
                 counter++;
                 QObject::connect(payload_channel, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
                 QObject::connect(payload_channel, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
@@ -120,9 +120,9 @@ void Controller::run()
         }
         else
         {
-            LogicalChannel *payload_channel1 = new LogicalChannel(_settings, _logger, counter, i, 1, false);
+            LogicalChannel *payload_channel1 = new LogicalChannel(_settings, _logger, counter, i, 1, false, !_settings->headless_mode);
             counter++;
-            LogicalChannel *payload_channel2 = new LogicalChannel(_settings, _logger, counter, i, 2, false);
+            LogicalChannel *payload_channel2 = new LogicalChannel(_settings, _logger, counter, i, 2, false, !_settings->headless_mode);
             counter++;
             QObject::connect(payload_channel1, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
             QObject::connect(payload_channel2, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
