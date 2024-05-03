@@ -19,15 +19,17 @@
 const long long TX_TIME = 58000000L; // needs to be ~ two timeslots
 
 LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
-                               unsigned int physical_channel, unsigned int slot, bool control_channel, QObject *parent) : QObject(parent)
+                               unsigned int physical_channel, unsigned int slot, bool control_channel, bool gui_enabled, QObject *parent) : QObject(parent)
 {
     _id = id;
     _settings = settings;
     _logger = logger;
+    _gui_enabled = gui_enabled;
     _physical_channel = physical_channel;
     _slot = slot;
     _control_channel = control_channel;
     _busy = false;
+    _frame_timeout = false;
     _call_in_progress = false;
     _disabled = false;
     _local_call = false;
@@ -58,6 +60,11 @@ LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int 
     QObject::connect(&_timeout_timer, SIGNAL(timeout()), this, SLOT(setChannelIdle()), Qt::DirectConnection);
     QObject::connect(this, SIGNAL(internalStartTimer()), &_timeout_timer, SLOT(start()));
     QObject::connect(this, SIGNAL(internalStopTimer()), &_timeout_timer, SLOT(stop()));
+    _last_frame_timer.setInterval(4 * TX_TIME / 1000000);
+    _last_frame_timer.setSingleShot(true);
+    QObject::connect(&_last_frame_timer, SIGNAL(timeout()), this, SLOT(notifyLastFrame()), Qt::DirectConnection);
+    QObject::connect(this, SIGNAL(internalStartLastFrameTimer()), &_last_frame_timer, SLOT(start()));
+    QObject::connect(this, SIGNAL(internalStopLastFrameTimer()), &_last_frame_timer, SLOT(stop()));
     QMap<QString, uint64_t> channel;
     for(int i=0;i<_settings->logical_physical_channels.size();i++)
     {
@@ -119,6 +126,7 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _ta_dl = 0;
     _ta_data.clear();
     _busy = true;
+    _frame_timeout = false;
     _call_in_progress = false;
     _local_call = local;
     _data_frames = 0;
@@ -126,6 +134,8 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _embedded_data[1].reset();
     _data_mutex.unlock();
     emit internalStartTimer();
+    if(_gui_enabled)
+        emit internalStartLastFrameTimer();
     _logger->log(Logger::LogLevelDebug, QString("Allocated physical channel %1, logical channel %2, slot %3 to destination %4 and source %5")
                  .arg(_physical_channel).arg(_lcn).arg(_slot).arg(dstId).arg(srcId));
 }
@@ -134,6 +144,7 @@ void LogicalChannel::deallocateChannel()
 {
     _data_mutex.lock();
     _busy = false;
+    _frame_timeout = false;
     _call_in_progress = false;
     _local_call = false;
     _state = CallState::CALL_STATE_NONE;
@@ -150,6 +161,7 @@ void LogicalChannel::deallocateChannel()
 
     CDMRData dummy_data;
     emit internalStopTimer();
+    emit internalStopLastFrameTimer();
     updateStats(dummy_data, true);
     _logger->log(Logger::LogLevelDebug, QString("Deallocated physical channel %1, slot %2 from destination %3")
                  .arg(_physical_channel).arg(_slot).arg(_destination_address));
@@ -216,6 +228,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
 {
+    startLastFrameTimer();
     rewriteEmbeddedData(dmr_data);
     _rf_queue_mutex.lock();
     if(first)
@@ -277,6 +290,7 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
 
 void LogicalChannel::putNetQueue(CDMRData &dmr_data)
 {
+    startLastFrameTimer();
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
@@ -331,17 +345,36 @@ void LogicalChannel::startTimeoutTimer()
 
 void LogicalChannel::stopTimeoutTimer()
 {
-    _timeout_timer.stop();
+    emit internalStopTimer();
+}
+
+void LogicalChannel::startLastFrameTimer()
+{
+    _frame_timeout = false;
+    if(_gui_enabled)
+        emit internalStartLastFrameTimer();
+}
+
+void LogicalChannel::stopLastFrameTimer()
+{
+    emit internalStopLastFrameTimer();
 }
 
 void LogicalChannel::setChannelIdle()
 {
     _data_mutex.lock();
     _busy = false;
+    _frame_timeout = false;
     _data_mutex.unlock();
     emit channelDeallocated(_id);
     _logger->log(Logger::LogLevelDebug, QString("Physical channel %1, slot %2 to destination %3 and source %4 is marked as idle and deallocated")
                  .arg(_physical_channel).arg(_slot).arg(_destination_address).arg(_source_address));
+}
+
+void LogicalChannel::notifyLastFrame()
+{
+    _frame_timeout = true;
+    emit update();
 }
 
 bool LogicalChannel::isControlChannel()
@@ -384,6 +417,14 @@ bool LogicalChannel::getBusy()
     return busy;
 }
 
+bool LogicalChannel::getTimeout()
+{
+    _data_mutex.lock();
+    bool timeout = _frame_timeout;
+    _data_mutex.unlock();
+    return timeout;
+}
+
 bool LogicalChannel::getDisabled()
 {
     _data_mutex.lock();
@@ -397,6 +438,7 @@ void LogicalChannel::setDisabled(bool disabled)
 {
     _data_mutex.lock();
     _disabled = disabled;
+    _frame_timeout = false;
     _data_mutex.unlock();
     _logger->log(Logger::LogLevelInfo, QString("State of channel %1, slot %2 changed to %3")
                  .arg(_physical_channel)
