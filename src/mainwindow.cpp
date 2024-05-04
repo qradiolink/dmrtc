@@ -748,7 +748,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             QString color1 = (logical_channels->at(j)->getBusy() ?
                                   (logical_channels->at(j)->getTimeout() ?
-                                       "#ff8000":
+                                       "#029500":
                                   (logical_channels->at(j)->getLocalCall() ?
                                        "#004dFF" :
                                        "#004d99")) :
@@ -781,7 +781,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             QString color2 = (logical_channels->at(j + 1)->getBusy() ?
                                   (logical_channels->at(j + 1)->getTimeout() ?
-                                       "#ff8000":
+                                       "#029500":
                                   (logical_channels->at(j + 1)->getLocalCall() ?
                                        "#004dFF" :
                                        "#004d99")) :
