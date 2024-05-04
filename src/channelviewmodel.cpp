@@ -90,7 +90,7 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
         {
             return boldFont;
         }
-        if((_colors[row][col] == "#004d99") || (_colors[row][col] == "#004dFF") || (_colors[row][col] == "#ff8000"))
+        if((_colors[row][col] == "#004d99") || (_colors[row][col] == "#004dFF") || (_colors[row][col] == "#029500"))
         {
             return boldFont;
         }
@@ -111,7 +111,7 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
         {
             return QBrush(QColor("#000000"));
         }
-        if((_colors[row][col] == "#004d99") || (_colors[row][col] == "#004dFF") || (_colors[row][col] == "#ff8000"))
+        if((_colors[row][col] == "#004d99") || (_colors[row][col] == "#004dFF") || (_colors[row][col] == "#029500"))
         {
             return QBrush(QColor("#FFFFFF"));
         }
