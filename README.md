@@ -125,6 +125,12 @@ $ ./dmrtc -h
 - The log file is written at $HOME/.config/dmrtc/dmrtc.log 
 
 
+Documentation
+----
+
+A complete HTML version of the MMDVM DMR trunking documentation can be found [here](https://qradiolink.org/docs/MMDVM/trunking.html)
+
+
 Copyright and License
 -----
 - The program is released under the GNU General Public License version 3. Please see the COPYRIGHT and AUTHORS files for details.
