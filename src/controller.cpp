@@ -894,7 +894,7 @@ void Controller::enableLogicalChannel(LogicalChannel *&logical_channel)
     dmr_control_data.setControl(true);
     dmr_control_data.setChannelEnable(true);
     dmr_control_data.setSlotNo(logical_channel->getSlot());
-    logical_channel->putRFQueue(dmr_control_data, true);
+    logical_channel->putRFQueue(dmr_control_data, false);
 }
 
 void Controller::disableLogicalChannel(LogicalChannel *&logical_channel)

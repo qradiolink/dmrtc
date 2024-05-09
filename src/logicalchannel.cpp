@@ -182,6 +182,7 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
 
 void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 {
+    _data_mutex.lock();
     if(end_call)
     {
         if(_data_frames > 0)
@@ -194,6 +195,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         _data_frames = 0;
         _rssi_accumulator = 0.0f;
         _ber_accumulator = 0.0f;
+        _data_mutex.unlock();
         return;
     }
 
@@ -224,6 +226,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         if(((_data_frames % 10) == 0) && (_data_frames > 0))
             emit update();
     }
+    _data_mutex.unlock();
 }
 
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
@@ -350,7 +353,9 @@ void LogicalChannel::stopTimeoutTimer()
 
 void LogicalChannel::startLastFrameTimer()
 {
+    _data_mutex.lock();
     _frame_timeout = false;
+    _data_mutex.unlock();
     if(_gui_enabled)
         emit internalStartLastFrameTimer();
 }
