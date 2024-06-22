@@ -39,10 +39,11 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
+    _data_msg_type = DPF_UDT;
     _data_msg_size = 0;
     _data_pad_nibble = 0;
     _udt_format = 0;
-    memset(_data_message, 0, 48U);
+    memset(_data_message, 0, 1024U);
 }
 
 Controller::~Controller()
@@ -1373,6 +1374,8 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             dmr_data.getData(data);
             CDMRDataHeader header;
             header.put(data);
+            // FIXME: this value should be per channel instead of global
+            _data_msg_type = header.getDPF();
             if(header.getUDT())
             {
                 _data_msg_size = header.getBlocks();
@@ -1384,9 +1387,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                          << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
                          << " Blocks: " << header.getBlocks();
             }
-            else
+            else if(_data_msg_type == DPF_CONFIRMED_DATA)
             {
-                _data_msg_size = 0;
+                _data_msg_size = header.getBlocks();
+                _data_pad_nibble = 0;
+                _data_block = _data_msg_size;
+                qDebug() << "SrcId:" << header.getSrcId() << " DstId:" << header.getDstId() <<
+                            " Format:" << header.getFormat() << " Blocks: " << _data_msg_size;
             }
         }
         else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
@@ -1398,7 +1405,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             CBPTC19696 bptc;
             bptc.decode(data, block);
             memcpy(_data_message + ((_data_msg_size - _data_block) * 12) , block, 12U);
-            if(_data_block == 1)
+            if(_data_block == 1 && _data_msg_type == DPF_UDT)
             {
                 bool valid = CCRC::checkCCITT162(_data_message, _data_msg_size*12);
                 if(valid)
@@ -1422,6 +1429,11 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
                 }
                 _data_msg_size = 0;
+            }
+            else if(_data_block == 1 && _data_msg_type == DPF_CONFIRMED_DATA)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Confirmed data message from %1: %2").arg(srcId).
+                             arg(QString::fromLocal8Bit((const char*)_data_message, _data_msg_size*12)));
             }
             _data_block -= 1;
         }
@@ -1451,6 +1463,8 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             dmr_data.getData(data);
             CDMRDataHeader header;
             header.put(data);
+            // FIXME: this value should be per channel instead of global
+            _data_msg_type = header.getDPF();
             if(header.getUDT())
             {
                 _data_msg_size = header.getBlocks();
@@ -1462,9 +1476,13 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                          << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
                          << " Blocks: " << header.getBlocks();
             }
-            else
+            else if(_data_msg_type == DPF_CONFIRMED_DATA)
             {
-                _data_msg_size = 0;
+                _data_msg_size = header.getBlocks();
+                _data_pad_nibble = 0;
+                _data_block = _data_msg_size;
+                qDebug() << "SrcId:" << header.getSrcId() << " DstId:" << header.getDstId() <<
+                            " Format:" << header.getFormat() << " Blocks: " << _data_msg_size;
             }
         }
         else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
@@ -1475,8 +1493,9 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             dmr_data.getData(data);
             CBPTC19696 bptc;
             bptc.decode(data, block);
+            qDebug() << "Data block: " << _data_block;
             memcpy(_data_message + ((_data_msg_size - _data_block) * 12) , block, 12U);
-            if(_data_block == 1)
+            if(_data_block == 1 && _data_msg_type == DPF_UDT)
             {
                 bool valid = CCRC::checkCCITT162(_data_message, _data_msg_size*12);
 
@@ -1521,6 +1540,11 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
                 }
                 _data_msg_size = 0;
+            }
+            else if(_data_block == 1 && _data_msg_type == DPF_CONFIRMED_DATA)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Confirmed data message from %1: %2").arg(srcId).
+                             arg(QString::fromLocal8Bit((const char*)_data_message, _data_msg_size*12)));
             }
             _data_block -= 1;
         }
@@ -1849,7 +1873,7 @@ void Controller::contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
     if(!_private_calls.contains(dstId))
         _private_calls.insert(dstId, srcId);
     _uplink_acks->insert(dstId, ServiceAction::ActionPrivatePacketCallRequest);
-    _signalling_generator->createPrivatePacketCallRequest(csbk, srcId, dstId);
+    _signalling_generator->createPrivatePacketCallAhoy(csbk, srcId, dstId);
     return;
 }
 

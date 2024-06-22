@@ -188,8 +188,9 @@ private:
     bool _system_freqs_announcing;
     bool _adjacent_sites_announcing;
     unsigned int _minute;
-    unsigned char _data_message[48];
+    unsigned char _data_message[1024];
     unsigned int _data_msg_size;
+    unsigned int _data_msg_type;
     unsigned int _data_block;
     unsigned int _data_pad_nibble;
     unsigned int _udt_format;

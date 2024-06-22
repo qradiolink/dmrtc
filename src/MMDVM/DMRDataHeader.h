@@ -64,6 +64,9 @@ public:
     void          setPF(bool pf);
     bool          getPF() const;
 
+    void          setDPF(unsigned char dpf);
+    unsigned char getDPF() const;
+
 	unsigned int  getSrcId() const;
 	unsigned int  getDstId() const;
     void          setSrcId(unsigned int srcId);
@@ -96,6 +99,7 @@ private:
     unsigned char  m_opcode;
     bool           m_SF;
     bool           m_PF;
+    unsigned char  m_DPF;
 };
 
 #endif

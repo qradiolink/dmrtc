@@ -50,7 +50,7 @@ public:
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);
-    void createPrivatePacketCallRequest(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
+    void createPrivatePacketCallAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId);
     void createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);
     void createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId);

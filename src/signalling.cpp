@@ -443,17 +443,19 @@ void Signalling::createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsig
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createPrivatePacketCallRequest(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivatePacketCallAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     unsigned int service_kind_flag = 0;
+    unsigned int service_kind = 0x02;
     unsigned int service_options = csbk.getServiceOptions();
     unsigned char data1 = (unsigned char)((service_options << 1) | service_kind_flag);
+    unsigned char data2 = service_kind;
     csbk.setFID(0x00);
     csbk.setData1(data1);
-    csbk.setCBF(0x02);
-    csbk.setDstId(dstId);
-    csbk.setSrcId(srcId);
+    csbk.setCBF(data2);
+    csbk.setDstId(srcId);
+    csbk.setSrcId(StandardAddreses::TSI);
 }
 
 void Signalling::createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
@@ -519,8 +521,8 @@ void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *lo
     data2 |= (emergency_call << 1) & 0x02;
     data2 |= aligned_timing;
     csbk.setCBF(data2);
-    csbk.setDstId(dstId);
-    csbk.setSrcId(srcId);
+    csbk.setDstId(srcId);
+    csbk.setSrcId(dstId);
 }
 
 void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)

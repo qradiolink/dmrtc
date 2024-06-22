@@ -50,7 +50,8 @@ m_format(0x00),
 m_sap(0x00),
 m_opcode(0x00),
 m_SF(false),
-m_PF(false)
+m_PF(false),
+m_DPF(0x00)
 {
 	m_data = new unsigned char[12U];
 }
@@ -84,7 +85,7 @@ bool CDMRDataHeader::put(const unsigned char* bytes)
 	unsigned char dpf = m_data[0U] & 0x0FU;
 	if (dpf == DPF_PROPRIETARY)
 		return true;
-
+    m_DPF = dpf;
 	m_dstId = m_data[2U] << 16 | m_data[3U] << 8 | m_data[4U];
 	m_srcId = m_data[5U] << 16 | m_data[6U] << 8 | m_data[7U];
 
@@ -277,6 +278,16 @@ void CDMRDataHeader::setPF(bool pf)
 bool CDMRDataHeader::getPF() const
 {
     return m_PF;
+}
+
+void CDMRDataHeader::setDPF(unsigned char dpf)
+{
+    m_DPF = dpf;
+}
+
+unsigned char CDMRDataHeader::getDPF() const
+{
+    return m_DPF;
 }
 
 unsigned int CDMRDataHeader::getSrcId() const
