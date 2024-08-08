@@ -164,10 +164,10 @@ void MainWindow::setConfig()
     ui->lineEditMMDVMSendBasePort->setText(QString::number(_settings->mmdvm_send_port));
     ui->lineEditGatewayListenBasePort->setText(QString::number(_settings->gateway_listen_port));
     ui->lineEditGatewaySendBasePort->setText(QString::number(_settings->gateway_send_port));
-    ui->lineEditNumberOfChannels->setText(QString::number(_settings->channel_number));
+    ui->spinBoxNumberOfChannels->setValue(_settings->channel_number);
     ui->lineEditControlChannelPhysicalId->setText(QString::number(_settings->control_channel_physical_id));
     ui->spinBoxControlChannelSlot->setValue(_settings->control_channel_slot);
-    ui->lineEditNumberOfGateways->setText(QString::number(_settings->gateway_number));
+    ui->spinBoxNumberOfGateways->setValue(_settings->gateway_number);
     ui->lineEditPayloadChannelTimeout->setText(QString::number(_settings->payload_channel_idle_timeout));
     ui->lineEditSystemCode->setText(QString::number(_settings->system_identity_code));
     ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(_settings->announce_system_freqs_interval));
@@ -204,10 +204,10 @@ void MainWindow::saveConfig()
     _settings->mmdvm_send_port = ui->lineEditMMDVMSendBasePort->text().toInt();
     _settings->gateway_listen_port = ui->lineEditGatewayListenBasePort->text().toInt();
     _settings->gateway_send_port = ui->lineEditGatewaySendBasePort->text().toInt();
-    _settings->channel_number = ui->lineEditNumberOfChannels->text().toInt();
+    _settings->channel_number = ui->spinBoxNumberOfChannels->text().toInt();
     _settings->control_channel_physical_id = ui->lineEditControlChannelPhysicalId->text().toInt();
     _settings->control_channel_slot = ui->spinBoxControlChannelSlot->value();
-    _settings->gateway_number = ui->lineEditNumberOfGateways->text().toInt();
+    _settings->gateway_number = ui->spinBoxNumberOfGateways->text().toInt();
     _settings->payload_channel_idle_timeout = ui->lineEditPayloadChannelTimeout->text().toInt();
     _settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
     _settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();

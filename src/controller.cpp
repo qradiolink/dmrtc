@@ -183,10 +183,14 @@ void Controller::run()
                          gateway_udpclient, SLOT(writeDMRData(CDMRData&)));
         _gateway_channels.append(gateway_udpclient);
     }
+    if(_gateway_channels.size() < 1)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("No DMR Gateways configured"));
+    }
 
     if(_settings->gateway_enabled)
     {
-        for(int i=0;i<_settings->gateway_number;i++)
+        for(int i=0;i<_gateway_channels.size();i++)
         {
             _gateway_channels.at(i)->enable(true);
         }
@@ -262,14 +266,17 @@ void Controller::run()
             {
                 unsigned int gateway_id = 0;
                 bool route_found = _gateway_router->findRoute(dmr_data_net, gateway_id);
-                if(route_found)
+                if((gateway_id + 1 <= (unsigned int)_gateway_channels.size()) && _settings->gateway_enabled)
                 {
-                    _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
-                }
-                else
-                {
-                    // send on default route, gateway 0
-                    _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+                    if(route_found)
+                    {
+                        _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+                    }
+                    else
+                    {
+                        // send on default route, gateway 0
+                        _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+                    }
                 }
             }
 
@@ -283,19 +290,19 @@ void Controller::run()
     ///
 
 
-    for(int i=0; i<_logical_channels.size(); i++)
+    for(int i=0; i < _logical_channels.size(); i++)
     {
         _logical_channels.at(i)->stopTimeoutTimer();
     }
-    for(int i=0; i<_settings->channel_number; i++)
+    for(int i=0; i < _udp_channels.size(); i++)
     {
         _udp_channels.at(i)->enable(false);
     }
-    for(int i=0;i<_settings->gateway_number;i++)
+    for(int i=0;i<_gateway_channels.size();i++)
     {
         _gateway_channels.at(i)->enable(false);
     }
-    for(int i=0; i<_settings->channel_number; i++)
+    for(int i=0; i<_udp_channels.size(); i++)
     {
         delete _udp_channels.at(i);
     }
@@ -303,7 +310,7 @@ void Controller::run()
     {
         delete _logical_channels[i];
     }
-    for(int i=0;i<_settings->gateway_number;i++)
+    for(int i=0;i<_gateway_channels.size();i++)
     {
         delete _gateway_channels[i];
     }
@@ -2888,7 +2895,7 @@ void Controller::writeDMRConfig()
     {
         config.push_back(_mmdvm_config->at(i));
     }
-    for(int i=0;i<_settings->gateway_number;i++)
+    for(int i=0;i<_gateway_channels.size();i++)
     {
         _gateway_channels[i]->writeDMRConfig(config);
     }

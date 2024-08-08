@@ -198,6 +198,11 @@ void Settings::readConfig()
     {
         channel_number = 4;
     }
+    if((channel_number < 1) || (channel_number > 7))
+    {
+        _logger->log(Logger::LogLevelFatal, "Number of channels needs to be at least 1 and at most 7.");
+        exit(EXIT_FAILURE);
+    }
     try
     {
         gateway_number = cfg.lookup("gateway_number");
@@ -205,6 +210,11 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
         gateway_number = 1;
+    }
+    if((gateway_number < 1) || (gateway_number > 30))
+    {
+        _logger->log(Logger::LogLevelFatal, "Number of gateways needs to be at least 1 and at most 30.");
+        exit(EXIT_FAILURE);
     }
     try
     {
