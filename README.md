@@ -57,8 +57,11 @@ Radio compatibility matrix
 tier III compatible radios tested and confirmed to work with this software:
 
 1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
-2. Hytera PD755: registration, talkgroup attachment, group voice calls, private voice calls (OACSU only), short text messages
+2. Hytera PD755: registration, talkgroup attachment, group voice calls, private voice calls (OACSU only), short text messages, the rest of features are not 100% confirmed to work yet
 3. Hytera PD785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
+4. Hytera PD685G: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
+5. Motorola SL4000e: only fixed channel plan hunt mode, Open Radio or Open System mode in RadioManager CapMax system settings, otherwise no registration possible, talkgroup and private voice calls work, short text messages partly work, everything else does not at this moment, regardless of settings. Also, one timing parameter needs to be adjusted in RadioManager, otherwise in about 30 minutes radio deregisters from dmrtc.
+6. Motorola DP4801e: same as Motorola SL4000e
 
 
 Known issues
