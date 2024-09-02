@@ -57,7 +57,7 @@ Radio compatibility matrix
 tier III compatible radios tested and confirmed to work with this software:
 
 1. Hytera HP785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
-2. Hytera PD755: registration, talkgroup attachment, group voice calls, private voice calls (OACSU only), short text messages, the rest of features are not 100% confirmed to work yet
+2. Hytera PD755: registration, talkgroup attachment, group voice calls, private voice calls (OACSU only, radio does not support FOACSU), short text messages, the rest of features are not 100% confirmed to work yet
 3. Hytera PD785: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
 4. Hytera PD685G: registration, talkgroup attachment, group voice calls, private voice calls (OACSU and FOACSU), short text messages, call divert, voice with location, DGNA, status transfer service, authentication, hunting in fixed or flexible channel plans, NMEA location polling via UDT
 5. Motorola SL4000e: only fixed channel plan hunt mode, Open Radio or Open System mode in RadioManager CapMax system settings, otherwise no registration possible, talkgroup and private voice calls work, short text messages partly work, everything else does not at this moment, regardless of settings. Also, one timing parameter needs to be adjusted in RadioManager, otherwise in about 30 minutes radio deregisters from dmrtc.
@@ -68,12 +68,12 @@ Known issues
 ====
 
 1. Private calls and private messages do not work when MS registration is disabled
-2. Site to site handover in RX and TX does not work
+2. Site to site handover in RX and TX does not work adequatly
 3. MS power control and transmit interrupt do not work
-4. RSSI indicated values are not accurate
+4. RSSI indicated values are not always accurate and may have large errors at times
 5. UDT short data polling other than NMEA location does not work
 6. Status polling from TS does not work
-7. Talkgroup call priorities not respected for all local calls
+7. Talkgroup call priorities are not respected for local calls, only for incoming network calls
 8. Absolute channel grants do not work when the MS is set to hunt with fixed channel plan
 9. TSCCAS support is incomplete / buggy
 
