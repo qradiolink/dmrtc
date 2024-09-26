@@ -249,6 +249,47 @@ void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
     updateStats(dmr_data);
 }
 
+void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData> &dmr_data_items, bool first)
+{
+    startLastFrameTimer();
+    for(int i=0;i<dmr_data_items.size();i++)
+    {
+        CDMRData dmr_data = dmr_data_items[i];
+        rewriteEmbeddedData(dmr_data);
+    }
+    _rf_queue_mutex.lock();
+    if(first)
+    {
+        for(int i=dmr_data_items.size()-1;i>=0;i--)
+        {
+            CDMRData dmr_data = dmr_data_items[i];
+            _rf_queue.prepend(dmr_data);
+        }
+    }
+    else
+    {
+        for(int i=0;i<dmr_data_items.size();i++)
+        {
+            CDMRData dmr_data = dmr_data_items[i];
+            _rf_queue.append(dmr_data);
+        }
+    }
+
+    _rf_queue_mutex.unlock();
+    _data_mutex.lock();
+    _call_in_progress = true;
+    _data_mutex.unlock();
+    for(int i=0;i<dmr_data_items.size();i++)
+    {
+        CDMRData dmr_data = dmr_data_items[i];
+        if(dmr_data.getFLCO() != FLCO_USER_USER)
+        {
+            dmr_data.setDstId(Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
+        }
+        updateStats(dmr_data);
+    }
+}
+
 bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
 {
     _rf_queue_mutex.lock();

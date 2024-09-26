@@ -81,6 +81,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     ui->channelTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setVisible(true);
+    ui->channelTableView->setGridStyle(Qt::PenStyle::SolidLine);
     ui->privateCallsTableWidget->setColumnCount(5);
     ui->groupCallsTableWidget->setColumnCount(5);
     ui->privateCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);

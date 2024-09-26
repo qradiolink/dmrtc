@@ -36,6 +36,7 @@ enum StandardAddreses
     DISPATI = 0xFFFECB,
     LINEI = 0xFFFEC2,
     IPI = 0xFFFEC3,
+    HDATA_GW = 0xFFFD02,
 };
 
 enum ServiceKind

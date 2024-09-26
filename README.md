@@ -34,6 +34,8 @@ DMR tier III services partly or completely implemented
 19. Status delivery service
 20. Status polling service
 21. NMEA location polling via UDT
+22. Individual packet data call service (single item, confirmed data, long SMS, 8 bit ASCII text unit-to-unit, unit-to-group)
+
 
 DMR tier III services NOT implemented
 ----
@@ -41,7 +43,7 @@ DMR tier III services NOT implemented
 1. MS dynamic power control
 2. MS pre-emption control
 3. All-MS call service
-4. Packet data call service
+4. Packet data call service (for unconfirmed data, raw data, defined data, group call, multi-item)
 5. IP bearer services
 6. Ambient listening service
 7. Suplimentary user data transfer service (additional data sent as part of the primary call setup)

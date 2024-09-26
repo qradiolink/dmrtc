@@ -94,6 +94,7 @@ bool CDMRDataHeader::put(const unsigned char* bytes)
 		CUtils::dump(1U, "DMR, Unconfirmed Data Header", m_data, 12U);
 		m_F = (m_data[8U] & 0x80U) == 0x80U;
 		m_blocks = m_data[8U] & 0x7FU;
+        m_padNibble = (((m_data[0U] >> 4) & 0x01) << 4) | (m_data[1U] & 0x0F);
 		break;
 
 	case DPF_CONFIRMED_DATA:
@@ -102,6 +103,8 @@ bool CDMRDataHeader::put(const unsigned char* bytes)
 		m_blocks = m_data[8U] & 0x7FU;
 		m_S = (m_data[9U] & 0x80U) == 0x80U;
 		m_Ns = (m_data[9U] >> 4) & 0x07U;
+        m_padNibble = (((m_data[0U] >> 4) & 0x01) << 4) | (m_data[1U] & 0x0F);
+        m_sap = (m_data[1U] >> 4) & 0x0FU;
 		break;
 
 	case DPF_RESPONSE:
@@ -157,12 +160,11 @@ void CDMRDataHeader::get(unsigned char* bytes) const
         // Table B.1: CSBK/MBC/UDT Opcode List
         // Convert to Unified Data Transport outbound Header
         m_data[9U] &= 0xFE;
-        CCRC::addCCITT162(m_data, 12U);
-        // Restore the checksum
-        m_data[10U] ^= DATA_HEADER_CRC_MASK[0U];
-        m_data[11U] ^= DATA_HEADER_CRC_MASK[1U];
     }
-
+    CCRC::addCCITT162(m_data, 12U);
+    // Restore the checksum
+    m_data[10U] ^= DATA_HEADER_CRC_MASK[0U];
+    m_data[11U] ^= DATA_HEADER_CRC_MASK[1U];
 	CBPTC19696 bptc;
 	bptc.encode(m_data, bytes);
 }
@@ -188,6 +190,15 @@ void CDMRDataHeader::construct()
     m_data[9] |= ((unsigned int)m_SF) << 7;
     m_data[9] |= ((unsigned int)m_PF) << 6;
     m_data[9] |= m_opcode;
+}
+
+void CDMRDataHeader::setData(unsigned char *data)
+{
+    ::memset(m_data, 0, 11U);
+    for(int i=0;i<10;i++)
+    {
+        m_data[i] = data[i];
+    }
 }
 
 bool CDMRDataHeader::getGI() const
@@ -330,6 +341,11 @@ void CDMRDataHeader::setPadNibble(unsigned int pad)
     m_padNibble = pad;
 }
 
+unsigned int  CDMRDataHeader::getSequenceNumber() const
+{
+    return m_Ns;
+}
+
 bool CDMRDataHeader::getUDT() const
 {
     return m_UDT;
@@ -355,6 +371,7 @@ CDMRDataHeader& CDMRDataHeader::operator=(const CDMRDataHeader& header)
         m_opcode = header.m_opcode;
         m_SF     = header.m_SF;
         m_PF     = header.m_PF;
+        m_padNibble = header.m_padNibble;
 	}
 
 	return *this;

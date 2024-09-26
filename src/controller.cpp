@@ -32,6 +32,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
     _gateway_router = new GatewayRouter(_settings, _logger);
     _signalling_generator = new Signalling(_settings);
+    _dmr_message_handler = new DMRMessageHandler(settings, logger);
     _stop_thread = false;
     _late_entry_announcing = false;
     _system_freqs_announcing = false;
@@ -39,11 +40,6 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
-    _data_msg_type = DPF_UDT;
-    _data_msg_size = 0;
-    _data_pad_nibble = 0;
-    _udt_format = 0;
-    memset(_data_message, 0, 1024U);
 }
 
 Controller::~Controller()
@@ -66,6 +62,7 @@ Controller::~Controller()
     delete _dmr_rewrite;
     delete _gateway_router;
     delete _signalling_generator;
+    delete _dmr_message_handler;
 }
 
 void Controller::stop()
@@ -339,7 +336,7 @@ void Controller::announceLateEntry()
         if(_logical_channels.at(i)->getBusy() && !(_logical_channels.at(i)->getDisabled())
                 && !(_logical_channels.at(i)->isControlChannel())
                 && (_logical_channels.at(i)->getDestination() != 0)
-                && (_logical_channels.at(i)->getCallType() < CallType::CALL_TYPE_INDIV_PACKET))
+                && (_logical_channels.at(i)->getCallType() < CallType::CALL_TYPE_INDIV_PACKET)) // No late entry for packet data
         {
             LogicalChannel *logical_channel = _logical_channels.at(i);
             CDMRCSBK csbk;
@@ -443,36 +440,17 @@ void Controller::announceSystemMessage()
 }
 
 
-void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId)
+void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message,
+                                              bool group)
 {
-    if(message.size() < 1)
-        return;
-    if(message.size() > 46)
-        message.truncate(46);
+    QVector<CDMRData> dmr_data_frames;
     unsigned int msg_size = message.size();
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
     _signalling_generator->getUABPadNibble(msg_size, blocks, pad_nibble);
-
-    if(dstId == 0)
-    {
-        // don't expect ACKU from all
-        dstId = StandardAddreses::ALLMSID;
-    }
-    else
-    {
-        // expect ACKU from target
-        _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
-        _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
-    }
-    if(srcId == 0)
-    {
-        srcId = StandardAddreses::SDMI;
-    }
-
-    CDMRData dmr_data_header = _signalling_generator->createUDTMessageHeader(srcId, dstId, blocks, pad_nibble);
+    CDMRData dmr_data_header = _signalling_generator->createUDTMessageHeader(srcId, dstId, blocks, pad_nibble, group);
     dmr_data_header.setSlotNo(_control_channel->getSlot());
-    _control_channel->putRFQueue(dmr_data_header);
+    dmr_data_frames.append(dmr_data_header);
 
     unsigned char *data_message = (unsigned char*)(message.toLocal8Bit().constData());
     unsigned char data[msg_size + pad_nibble / 2 + 2U];
@@ -501,7 +479,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         dmr_data.setDstId(dmr_data_header.getDstId());
         dmr_data.setSrcId(dmr_data_header.getSrcId());
         dmr_data.setData(payload_data[i]);
-        _control_channel->putRFQueue(dmr_data);
+        dmr_data_frames.append(dmr_data);
     }
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
@@ -524,7 +502,47 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     dmr_data3.setDstId(dmr_data_header.getDstId());
     dmr_data3.setSrcId(dmr_data_header.getSrcId());
     dmr_data3.setData(payload_data[3]);
-    _control_channel->putRFQueue(dmr_data3);
+    dmr_data_frames.append(dmr_data3);
+    _control_channel->putRFQueueMultiItem(dmr_data_frames);
+}
+
+void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId, bool group)
+{
+    unsigned int msg_size = message.size();
+    if(msg_size < 1)
+        return;
+    if(msg_size > 46)
+    {
+        int num_msg = msg_size / 45;
+        for(int i = 0;i<=num_msg;i++)
+        {
+            QString msg = message.mid(i * 45, 45);
+            sendUDTShortMessage(msg, dstId, srcId, group);
+        }
+        return;
+    }
+        //message.truncate(46);
+
+
+    if(dstId == 0)
+    {
+        // don't expect ACKU from all
+        dstId = StandardAddreses::ALLMSID;
+    }
+    else
+    {
+        // expect ACKU from target
+        if(!group)
+            _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+        unsigned int rDstId = group ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
+        _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(rDstId));
+    }
+    if(srcId == 0)
+    {
+        srcId = StandardAddreses::SDMI;
+    }
+
+    buildUDTShortMessageSequence(srcId, dstId, message, group);
 }
 
 void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
@@ -567,9 +585,10 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     _uplink_acks->insert(dstId, ServiceAction::ActionDGNARequest);
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
+    QVector<CDMRData> dmr_data_frames;
     CDMRData dmr_data_header = _signalling_generator->createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
     dmr_data_header.setSlotNo(_control_channel->getSlot());
-    _control_channel->putRFQueue(dmr_data_header);
+    dmr_data_frames.append(dmr_data_header);
 
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
     CCRC::addCCITT162(data, 48U);
@@ -594,7 +613,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         dmr_data.setDstId(dmr_data_header.getDstId());
         dmr_data.setSrcId(dmr_data_header.getSrcId());
         dmr_data.setData(payload_data[i]);
-        _control_channel->putRFQueue(dmr_data);
+        dmr_data_frames.append(dmr_data);
     }
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
@@ -617,7 +636,8 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     dmr_data3.setDstId(dmr_data_header.getDstId());
     dmr_data3.setSrcId(dmr_data_header.getSrcId());
     dmr_data3.setData(payload_data[3]);
-    _control_channel->putRFQueue(dmr_data3);
+    dmr_data_frames.append(dmr_data3);
+    _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
 void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap)
@@ -634,9 +654,10 @@ void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, u
     // don't expect ACKU from target
     _logger->log(Logger::LogLevelDebug, QString("Sending call divert information for radio: %1 to radio: %2").arg(dstId).arg(srcId));
 
+    QVector<CDMRData> dmr_data_frames;
     CDMRData dmr_data_header = _signalling_generator->createUDTCallDivertHeader(StandardAddreses::MSI, srcId, blocks, sap);
     dmr_data_header.setSlotNo(_control_channel->getSlot());
-    _control_channel->putRFQueue(dmr_data_header);
+    dmr_data_frames.append(dmr_data_header);
     // TODO: handle case where address is 2 blocks
     unsigned char payload_data[1][DMR_FRAME_LENGTH_BYTES];
     CCRC::addCCITT162(data, 12U);
@@ -658,7 +679,8 @@ void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, u
     dmr_data.setDstId(dmr_data_header.getDstId());
     dmr_data.setSrcId(dmr_data_header.getSrcId());
     dmr_data.setData(payload_data[0]);
-    _control_channel->putRFQueue(dmr_data);
+    dmr_data_frames.append(dmr_data);
+    _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
 void Controller::pingRadio(unsigned int target_id, bool group)
@@ -835,7 +857,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
     return nullptr;
 }
 
-LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int srcId)
+LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int srcId, bool dst_only)
 {
     for(int i=0; i<_logical_channels.size(); i++)
     {
@@ -848,7 +870,7 @@ LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int src
         if((!_logical_channels[i]->isControlChannel()) && ((_logical_channels[i]->getDestination() == dstId) ||
                                                            (_logical_channels[i]->getDestination() == srcId))
                 && _logical_channels[i]->getBusy()
-                && !(_logical_channels[i]->getDisabled()))
+                && !(_logical_channels[i]->getDisabled()) && !dst_only)
         {
             return _logical_channels[i];
         }
@@ -1020,11 +1042,12 @@ void Controller::updateSubscriptions(QList<unsigned int> tg_list, unsigned int s
     }
 }
 
-void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id)
+void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage,
+                                                      unsigned int udp_channel_id)
 {
-    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
-    memcpy(msg, _data_message, size);
+    memcpy(msg, dmessage->message, size);
     _uplink_acks->remove(srcId);
     bool existing_user = _registered_ms->contains(srcId);
     if(!existing_user)
@@ -1065,11 +1088,12 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     updateSubscriptions(tg_list, srcId);
 }
 
-void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id)
+void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage,
+                                          unsigned int udp_channel_id)
 {
-    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
-    memcpy(msg, _data_message, size);
+    memcpy(msg, dmessage->message, size);
     _uplink_acks->remove(srcId);
 
     unsigned int divert_id = 0;
@@ -1103,11 +1127,11 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     }
 }
 
-void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsigned int format)
+void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *dmessage)
 {
-    unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2;
+    unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
-    memcpy(msg, _data_message, size);
+    memcpy(msg, dmessage->message, size);
     uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
     uint16_t NMINF, EMINF, COG;
     C = msg[0] >> 7;
@@ -1131,12 +1155,12 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
     UTChh = (msg[8] >> 1) & 0x1F;
     UTCmm = (msg[8] & 0x01) << 5;
     UTCmm |= (msg[9] >> 3);
-    if(format == 1)
+    if(dmessage->size == 1)
     {
         UTCss = (msg[9] & 0x07);
         COG = 0;
     }
-    else if(format == 2)
+    else if(dmessage->size == 2)
     {
         UTCss = (msg[9] & 0x07) << 3;
         UTCss |= msg[10] >> 5;
@@ -1161,13 +1185,7 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
           .arg(message));
     if(dstId != StandardAddreses::SDMI)
     {
-        int size = message.size();
-        int num_msg = size / 45;
-        for(int i = 0;i<=num_msg;i++)
-        {
-            QString msg = message.mid(i * 45, 45);
-            sendUDTShortMessage(msg, dstId, srcId);
-        }
+        sendUDTShortMessage(message, dstId, srcId);
     }
     if(!_settings->headless_mode)
     {
@@ -1182,25 +1200,25 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, unsi
     }
 }
 
-void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool group)
+void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group)
 {
-    if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+    if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
     {
-        unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
+        unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
         unsigned char msg[size];
-        memcpy(msg, _data_message, size);
+        memcpy(msg, dmessage->message, size);
         QString text_message;
         // last character seems to be null termination
-        if(_udt_format == 4)
+        if(dmessage->udt_format == 4)
             text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
-        else if(_udt_format == 3)
+        else if(dmessage->udt_format == 3)
         {
             unsigned int bit7_size = 8 * size / 7;
             unsigned char converted[bit7_size];
             Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
             text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
         }
-        else if(_udt_format == 7)
+        else if(dmessage->udt_format == 7)
         {
             Utils::parseUTF16(text_message, size - 1, msg);
             text_message = text_message.trimmed();
@@ -1239,7 +1257,120 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, bool
     }
 }
 
-void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id)
+void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slotNo,
+                                            DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
+{
+    QVector<CDMRData> dmr_data_frames;
+    LogicalChannel *data_rcv_channel = findChannelByPhysicalIdAndSlot(udp_channel_id, slotNo);
+    CDMRData dmr_response = _signalling_generator->createConfirmedMessageResponseHeader(StandardAddreses::HDATA_GW,
+                                                    srcId, dmessage->seq_no, 1, dmessage->sap, false);
+    dmr_response.setSlotNo(slotNo);
+    CDMRData second_header(dmr_response);
+    dmr_data_frames.append(dmr_response);
+
+    CDMRData dmr_data = _signalling_generator->createConfirmedDataResponsePayload(StandardAddreses::HDATA_GW, srcId);
+    dmr_data.setSlotNo(slotNo);
+    dmr_data_frames.append(dmr_data);
+    dmr_data_frames.append(second_header);
+    data_rcv_channel->putRFQueueMultiItem(dmr_data_frames);
+    data_rcv_channel->setText(QString("Response confirmation to: %1").arg(srcId));
+}
+
+void Controller::replayPacketData(unsigned int srcId, unsigned int dstId, unsigned int slotNo)
+{
+    CDMRCSBK csbk;
+    bool channel_grant = true;
+    LogicalChannel *logical_channel = nullptr;
+    handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo,
+                                       StandardAddreses::HDATA_GW, dstId, channel_grant, true);
+    transmitCSBK(csbk, logical_channel, logical_channel->getSlot(), _control_channel->getPhysicalChannel(), channel_grant, false);
+    CDMRCSBK csbk2;
+    bool valid = false;
+
+    if((csbk.getCSBKO() == CSBKO_PD_GRANT) || (csbk.getCSBKO() == CSBKO_PD_GRANT_MI))
+        valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+
+    if(valid)
+    {
+        transmitCSBK(csbk2, logical_channel, logical_channel->getSlot(), _control_channel->getPhysicalChannel(), channel_grant, false);
+    }
+    _logger->log(Logger::LogLevelInfo, QString("Sending packet data"
+                                                " from %1, slot %2 to destination %3")
+                 .arg(srcId).arg(slotNo).arg(dstId));
+    QVector<CDMRData> *dmr_data_frames = _dmr_message_handler->getDataFromBuffer(srcId);
+    if(dmr_data_frames != nullptr)
+    {
+        QVector<CDMRData> dmr_message_frames;
+        for(int i=0;i<dmr_data_frames->size();i++)
+        {
+            CDMRData dmr_outbound_data = dmr_data_frames->at(i);
+            dmr_outbound_data.setSrcId(StandardAddreses::HDATA_GW);
+            dmr_outbound_data.setDstId(dstId);
+            dmr_outbound_data.setSlotNo(logical_channel->getSlot());
+            dmr_message_frames.append(dmr_outbound_data);
+        }
+        logical_channel->putRFQueueMultiItem(dmr_message_frames);
+        _dmr_message_handler->clearDataBuffer(srcId);
+    }
+}
+
+void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int srcId,
+                                            DMRMessageHandler::data_message *dmessage,
+                                            unsigned int udp_channel_id, unsigned int slotNo)
+{
+    if(dmessage->udt == false)
+    {
+        srcId = dmessage->real_src;
+        dstId = dmessage->real_dst;
+        QString text_message;
+        text_message = QString::fromUtf8((const char*)dmessage->payload, dmessage->payload_len).trimmed();
+
+        ///** Sending the message on the control channel
+        int size = text_message.size();
+        if(size > 0)
+        {
+            sendUDTShortMessage(text_message, dstId, srcId, dmessage->group);
+        }
+        //*/
+
+        ///** TODO: replay received packet data on dedicated channel
+        //replayPacketData(srcId, dstId, slotNo);
+
+        if(dmessage->group)
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received group data protocol message from %1 to %2: %3")
+                  .arg(srcId)
+                  .arg(Utils::convertBase11GroupNumberToBase10(dstId))
+                  .arg(text_message));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received private data protocol message from %1 to %2: %3")
+                      .arg(srcId)
+                      .arg(dstId)
+                      .arg(text_message));
+        }
+        if(!_settings->headless_mode)
+        {
+            if(dmessage->group)
+            {
+                emit updateMessageLog(srcId,
+                                   Utils::convertBase11GroupNumberToBase10(dstId), text_message, true);
+            }
+            else
+            {
+                emit updateMessageLog(srcId, dstId, text_message, false);
+            }
+        }
+        confirmPDPMessageReception(srcId, slotNo, dmessage, udp_channel_id);
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
+    }
+}
+
+void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
 {
     /// Used for testing and debug purposes
     ///
@@ -1258,13 +1389,7 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
             it.next();
             message += QString("%1: %2;\n").arg(it.key()).arg(it.value());
         }
-        int size = message.size();
-        int num_msg = size / 45;
-        for(int i = 0;i<=num_msg;i++)
-        {
-            QString msg = message.mid(i * 45, 45);
-            sendUDTShortMessage(msg, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
-        }
+        sendUDTShortMessage(message, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
         _control_channel->setText(QString("Help message: %1").arg(srcId));
         if(!_settings->headless_mode)
         {
@@ -1277,23 +1402,23 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+        if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
         {
-            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
+            unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
             unsigned char msg[size];
-            memcpy(msg, _data_message, size);
+            memcpy(msg, dmessage->message, size);
             QString text_message;
             // last character seems to be null termination
-            if(_udt_format == 4)
+            if(dmessage->udt_format == 4)
                 text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
-            else if(_udt_format == 3)
+            else if(dmessage->udt_format == 3)
             {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[bit7_size];
                 Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             }
-            else if(_udt_format == 7)
+            else if(dmessage->udt_format == 7)
             {
                 Utils::parseUTF16(text_message, size - 1, msg);
                 text_message = text_message.trimmed();
@@ -1334,23 +1459,23 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+        if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
         {
-            unsigned int size = _data_msg_size * 12 - _data_pad_nibble / 2 - 2; // size does not include CRC16
+            unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
             unsigned char msg[size];
-            memcpy(msg, _data_message, size);
+            memcpy(msg, dmessage->message, size);
             QString text_message;
             // last character seems to be null termination
-            if(_udt_format == 4)
+            if(dmessage->udt_format == 4)
                 text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
-            else if(_udt_format == 3)
+            else if(dmessage->udt_format == 3)
             {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[bit7_size];
                 Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             }
-            else if(_udt_format == 7)
+            else if(dmessage->udt_format == 7)
             {
                 Utils::parseUTF16(text_message, size - 1, msg);
                 text_message = text_message.trimmed();
@@ -1370,206 +1495,114 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_
 
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
+    if(from_gateway)
+    {
+        return;
+    }
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
-
+    DMRMessageHandler::data_message *message = nullptr;
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
-        if(dmr_data.getDataType() == DT_DATA_HEADER)
+        message = _dmr_message_handler->processData(dmr_data);
+        if(message != nullptr)
         {
-            unsigned char data[DMR_FRAME_LENGTH_BYTES];
-            dmr_data.getData(data);
-            CDMRDataHeader header;
-            header.put(data);
-            // FIXME: this value should be per channel instead of global
-            _data_msg_type = header.getDPF();
-            if(header.getUDT())
+            if(message->crc_valid)
             {
-                _data_msg_size = header.getBlocks();
-                _data_pad_nibble = header.getPadNibble();
-                _data_block = _data_msg_size;
-                _udt_format = header.getUDTFormat();
-                qDebug() << "A: " << header.getA() << " GI: " << header.getGI() << " Format: " << header.getFormat()
-                         << " UDTFormat: " << header.getUDTFormat() << " Opcode: " << header.getOpcode() << " RSVD: " << header.getRSVD()
-                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
-                         << " Blocks: " << header.getBlocks();
-            }
-            else if(_data_msg_type == DPF_CONFIRMED_DATA)
-            {
-                _data_msg_size = header.getBlocks();
-                _data_pad_nibble = 0;
-                _data_block = _data_msg_size;
-                qDebug() << "SrcId:" << header.getSrcId() << " DstId:" << header.getDstId() <<
-                            " Format:" << header.getFormat() << " Blocks: " << _data_msg_size;
-            }
-        }
-        else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
-        {
-            unsigned char block[12];
-            memset(block, 0, 12U);
-            unsigned char data[DMR_FRAME_LENGTH_BYTES];
-            dmr_data.getData(data);
-            CBPTC19696 bptc;
-            bptc.decode(data, block);
-            memcpy(_data_message + ((_data_msg_size - _data_block) * 12) , block, 12U);
-            if(_data_block == 1 && _data_msg_type == DPF_UDT)
-            {
-                bool valid = CCRC::checkCCITT162(_data_message, _data_msg_size*12);
-                if(valid)
+                if(message->udt)
                 {
-                    if(_udt_format == 5)
+                    /// Location upload
+                    if(message->udt_format == 5)
                     {
-                        processNMEAMessage(srcId, dstId, _data_msg_size);
+                        processNMEAMessage(srcId, dstId, message);
                     }
 
                     /// Text message
-                    if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
+                    else if((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7))
                     {
-                        processTextMessage(dstId, srcId, dmr_data.getFLCO() == FLCO_GROUP);
+                        processTextMessage(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP);
                     }
+                    _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
+                                 .arg(dmr_data.getSlotNo()).arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+
+                    CDMRCSBK csbk;
+                    _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
+                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
                 }
                 else
                 {
-                    CDMRCSBK csbk;
-                    _signalling_generator->createReplyUDTCRCError(csbk, srcId);
-                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-                    _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
+                    processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
                 }
-                _data_msg_size = 0;
             }
-            else if(_data_block == 1 && _data_msg_type == DPF_CONFIRMED_DATA)
-            {
-                _logger->log(Logger::LogLevelInfo, QString("Confirmed data message from %1: %2").arg(srcId).
-                             arg(QString::fromLocal8Bit((const char*)_data_message, _data_msg_size*12)));
-            }
-            _data_block -= 1;
-        }
-        _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
-                     .arg(dmr_data.getSlotNo()).arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
-        if(_short_data_messages.contains(srcId))
-        {
-            unsigned int num_blocks = _short_data_messages.value(srcId);
-            if(num_blocks == 0)
+            else if(message->udt)
             {
                 CDMRCSBK csbk;
-                _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
-                transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
-                _short_data_messages.remove(srcId);
-            }
-            else
-            {
-                _short_data_messages[srcId] = num_blocks - 1;
+                _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+                transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+                _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
             }
         }
+
     }
     else if(dmr_data.getFLCO() == FLCO_USER_USER)
     {
-        if(dmr_data.getDataType() == DT_DATA_HEADER)
+        message = _dmr_message_handler->processData(dmr_data);
+        if(message != nullptr)
         {
-            unsigned char data[DMR_FRAME_LENGTH_BYTES];
-            dmr_data.getData(data);
-            CDMRDataHeader header;
-            header.put(data);
-            // FIXME: this value should be per channel instead of global
-            _data_msg_type = header.getDPF();
-            if(header.getUDT())
+            if(message->crc_valid)
             {
-                _data_msg_size = header.getBlocks();
-                _data_pad_nibble = header.getPadNibble();
-                _data_block = _data_msg_size;
-                _udt_format = header.getUDTFormat();
-                qDebug() << "A: " << header.getA() << " GI: " << header.getGI() << " Format: " << header.getFormat()
-                         << " UDTFormat: " << header.getUDTFormat() << " Opcode: " << header.getOpcode() << " RSVD: " << header.getRSVD()
-                         << " PF: " << header.getPF() << " SF: " << header.getSF() << " SAP: " << header.getSAP()
-                         << " Blocks: " << header.getBlocks();
-            }
-            else if(_data_msg_type == DPF_CONFIRMED_DATA)
-            {
-                _data_msg_size = header.getBlocks();
-                _data_pad_nibble = 0;
-                _data_block = _data_msg_size;
-                qDebug() << "SrcId:" << header.getSrcId() << " DstId:" << header.getDstId() <<
-                            " Format:" << header.getFormat() << " Blocks: " << _data_msg_size;
-            }
-        }
-        else if((dmr_data.getDataType() == DT_RATE_12_DATA) && (_data_msg_size > 0))
-        {
-            unsigned char block[12];
-            memset(block, 0, 12U);
-            unsigned char data[DMR_FRAME_LENGTH_BYTES];
-            dmr_data.getData(data);
-            CBPTC19696 bptc;
-            bptc.decode(data, block);
-            qDebug() << "Data block: " << _data_block;
-            memcpy(_data_message + ((_data_msg_size - _data_block) * 12) , block, 12U);
-            if(_data_block == 1 && _data_msg_type == DPF_UDT)
-            {
-                bool valid = CCRC::checkCCITT162(_data_message, _data_msg_size*12);
-
-                if(valid)
+                /// Talkgroup attachment list
+                if(_uplink_acks->contains(srcId) &&
+                        (_uplink_acks->value(srcId) == ServiceAction::RegistrationWithAttachment) &&
+                        (message->udt) &&
+                        (message->udt_format==1))
                 {
-                    /// Talkgroup attachment list
-                    if(_uplink_acks->contains(srcId) &&
-                            (_uplink_acks->value(srcId) == ServiceAction::RegistrationWithAttachment) &&
-                            (_udt_format==1))
-                    {
-                        processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
-                    }
-                    /// Talkgroup attachment list
-                    else if(_uplink_acks->contains(srcId) &&
-                            (_uplink_acks->value(srcId) == ServiceAction::CallDivert) &&
-                            (_udt_format==1))
-                    {
-                        processCallDivertMessage(srcId, dmr_data.getSlotNo(), udp_channel_id);
-                    }
-                    /// Text message
-                    else
-                    {
-                        if((_udt_format == 4) || (_udt_format == 3) || (_udt_format == 7))
-                        {
-                            processTextMessage(dstId, srcId, false);
-                        }
-                        if(_settings->service_ids.values().contains(dstId))
-                        {
-                            processTextServiceRequest(dmr_data, udp_channel_id);
-                        }
-                        if(_udt_format == 5)
-                        {
-                            processNMEAMessage(srcId, dstId, _data_msg_size);
-                        }
-                    }
+                    processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
+                /// Talkgroup attachment list
+                else if(_uplink_acks->contains(srcId) &&
+                        (_uplink_acks->value(srcId) == ServiceAction::CallDivert) &&
+                        message->udt &&
+                        (message->udt_format==1))
+                {
+                    processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
+                }
+                /// Text message
                 else
                 {
-                    CDMRCSBK csbk;
-                    _signalling_generator->createReplyUDTCRCError(csbk, srcId);
-                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-                    _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
+                    if(message->udt) // UDT message on control channel
+                    {
+                        if((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7))
+                        {
+                            processTextMessage(dstId, srcId, message, false);
+                            if(_settings->service_ids.values().contains(dstId))
+                            {
+                                processTextServiceRequest(dmr_data, message, udp_channel_id);
+                            }
+                        }
+                        else if(message->udt_format == 5)
+                        {
+                            processNMEAMessage(srcId, dstId, message);
+                        }
+                    }
+                    else
+                    {
+                        processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
+                    }
                 }
-                _data_msg_size = 0;
             }
-            else if(_data_block == 1 && _data_msg_type == DPF_CONFIRMED_DATA)
+            else if(message->udt)
             {
-                _logger->log(Logger::LogLevelInfo, QString("Confirmed data message from %1: %2").arg(srcId).
-                             arg(QString::fromLocal8Bit((const char*)_data_message, _data_msg_size*12)));
-            }
-            _data_block -= 1;
-        }
-        _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to MS from %2 to %3")
-                     .arg(dmr_data.getSlotNo()).arg(srcId).arg(dstId));
-        if(_short_data_messages.contains(srcId))
-        {
-            unsigned int num_blocks = _short_data_messages.value(srcId);
-            if(num_blocks == 0)
-            {
-                _short_data_messages.remove(srcId);
-            }
-            else
-            {
-                _short_data_messages[srcId] = num_blocks - 1;
+                CDMRCSBK csbk;
+                _signalling_generator->createReplyUDTCRCError(csbk, srcId);
+                transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+                _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
             }
         }
     }
+    if(message != nullptr)
+        delete message;
+
     /// Rewriting destination to match DMR tier III flat numbering
     if(from_gateway)
     {
@@ -1993,7 +2026,7 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
     _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private packet data call request from %2 to destination %3")
                  .arg(slotNo).arg(srcId).arg(dstId));
 
-    logical_channel = findCallChannel(dstId, srcId);
+    logical_channel = findCallChannel(dstId, srcId, true);
     if(logical_channel != nullptr)
     {
         _signalling_generator->createPrivatePacketDataGrant(csbk, logical_channel, srcId, dstId);
@@ -2022,6 +2055,50 @@ void Controller::handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChann
         _signalling_generator->createPrivatePacketDataGrant(csbk, logical_channel, srcId, dstId);
         channel_grant = true;
         logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_INDIV_PACKET, local);
+        enableLogicalChannel(logical_channel);
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
+        return;
+    }
+}
+
+void Controller::handleGroupPacketDataCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+                            unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local)
+{
+    _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received group packet data call request from %2 to destination %3")
+                 .arg(slotNo).arg(srcId).arg(dstId));
+
+    logical_channel = findCallChannel(dstId, srcId);
+    if(logical_channel != nullptr)
+    {
+        _signalling_generator->createGroupPacketDataGrant(csbk, logical_channel, srcId, dstId);
+        if(srcId == logical_channel->getSource())
+            channel_grant = true;
+        logical_channel->setDestination(dstId);
+        logical_channel->setSource(srcId);
+        logical_channel->startTimeoutTimer();
+        return;
+    }
+
+    // Next try to find a free payload channel to allocate
+    logical_channel = findNextFreePayloadChannel(dstId, srcId, local);
+    if(logical_channel == nullptr)
+    {
+        _logger->log(Logger::LogLevelWarning, "Could not find any free logical channels, telling MS to wait");
+        _signalling_generator->createReplyCallDenied(csbk, srcId);
+        if(!_settings->headless_mode)
+        {
+            emit updateRejectedCallsList(srcId, dstId, local);
+        }
+        return;
+    }
+    else
+    {
+        _signalling_generator->createGroupPacketDataGrant(csbk, logical_channel, srcId, dstId);
+        channel_grant = true;
+        logical_channel->allocateChannel(srcId, dstId, CallType::CALL_TYPE_GROUP_PACKET, local);
         enableLogicalChannel(logical_channel);
         if(!_settings->headless_mode)
         {
@@ -2627,7 +2704,6 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            qDebug() << "FID: " << csbk.getFID() << " data1: " << csbk.getData1() << " data2: " << csbk.getCBF();
             handlePrivatePacketDataCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
             CDMRCSBK csbk2;
             bool valid = false;
@@ -2643,6 +2719,30 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                          .arg(srcId).arg(slotNo).arg(dstId));
         }
         _control_channel->setText(QString("Individual packet data call: %1").arg(srcId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
+    }
+    /// Group packet data call
+    else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::GroupPacketDataCall))
+    {
+
+        handleGroupPacketDataCallRequest(csbk, logical_channel, slotNo, srcId, dstId, channel_grant, true);
+        CDMRCSBK csbk2;
+        bool valid = false;
+        if((csbk.getCSBKO() == CSBKO_TD_GRANT) || (csbk.getCSBKO() == CSBKO_TD_GRANT_MI))
+            valid = _signalling_generator->createAbsoluteParameters(csbk, csbk2, logical_channel);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        if(valid)
+        {
+            transmitCSBK(csbk2, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        }
+        _logger->log(Logger::LogLevelInfo, QString("Received group packet data call request"
+                                                    " from %1, slot %2 to destination %3")
+                     .arg(srcId).arg(slotNo).arg(dstId));
+
+        _control_channel->setText(QString("Group packet data call: %1").arg(srcId));
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);

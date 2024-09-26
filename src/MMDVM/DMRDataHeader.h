@@ -34,6 +34,7 @@ public:
 
 	bool put(const unsigned char* bytes);
     void construct();
+    void setData(unsigned char *data);
 
 	void get(unsigned char* bytes) const;
 
@@ -76,6 +77,7 @@ public:
     void          setBlocks(unsigned int blocks);
     unsigned int  getPadNibble() const;
     void          setPadNibble(unsigned int pad);
+    unsigned int  getSequenceNumber() const;
     bool          getUDT() const;
 
 	CDMRDataHeader& operator=(const CDMRDataHeader& header);

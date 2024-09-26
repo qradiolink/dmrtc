@@ -84,8 +84,10 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
     }
     case Qt::FontRole:
     {
-        QFont boldFont;
+        QFont boldFont, normalFont;
         boldFont.setBold(true);
+        boldFont.setPixelSize(14);
+        normalFont.setPixelSize(14);
         if(_state[row][col] == ChannelState::ChannelControl)
         {
             return boldFont;
@@ -94,6 +96,7 @@ QVariant ChannelViewModel::data(const QModelIndex &index, int role) const
         {
             return boldFont;
         }
+        return normalFont;
         break;
     }
     case Qt::BackgroundRole:

@@ -87,6 +87,7 @@ public:
     QString getGPSInfo();
     void putRFQueue(CDMRData &dmr_data, bool first=false);
     bool getRFQueue(CDMRData &dmr_data);
+    void putRFQueueMultiItem(QVector<CDMRData> &dmr_data_items, bool first=false);
     void putNetQueue(CDMRData &dmr_data);
     bool getNetQueue(CDMRData &dmr_data);
     void clearRFQueue();

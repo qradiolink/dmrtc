@@ -36,6 +36,7 @@
 #include "src/dmridlookup.h"
 #include "src/gatewayrouter.h"
 #include "src/signalling.h"
+#include "src/dmrmessagehandler.h"
 #include "src/dmr_commands.h"
 #include "MMDVM/DMRDefines.h"
 #include "MMDVM/DMRData.h"
@@ -85,7 +86,7 @@ public slots:
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
-    void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0);
+    void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0, bool group=false);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
@@ -121,7 +122,7 @@ private:
     LogicalChannel* findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local);
     LogicalChannel* findLowerPriorityChannel(unsigned int dstId, unsigned int srcId, bool local);
     LogicalChannel* findChannelByPhysicalIdAndSlot(unsigned int physical_id, unsigned int slot);
-    LogicalChannel* findCallChannel(unsigned int dstId, unsigned int srcId);
+    LogicalChannel* findCallChannel(unsigned int dstId, unsigned int srcId, bool dst_only=false);
     LogicalChannel* getControlOrAlternateChannel();
     void disableLogicalChannel(LogicalChannel *&logical_channel);
     void enableLogicalChannel(LogicalChannel *&logical_channel);
@@ -142,6 +143,8 @@ private:
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
     void handlePrivatePacketDataCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
+    void handleGroupPacketDataCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
+                                unsigned int srcId, unsigned int dstId, bool &channel_grant, bool local=false);
     void contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId, bool local=false);
     void contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
@@ -150,13 +153,18 @@ private:
                               unsigned int slotNo, LogicalChannel *&logical_channel, CDMRCSBK &csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway);
-    void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
-    void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, unsigned int udp_channel_id);
-    void processNMEAMessage(unsigned int srcId, unsigned int dstId, unsigned int format);
-    void processTextServiceRequest(CDMRData &dmr_data, unsigned int udp_channel_id);
-    void processTextMessage(unsigned int dstId, unsigned int srcId, bool group);
+    void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
+    void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
+    void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *message);
+    void processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
+    void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group);
+    void processDataProtocolMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id, unsigned int slotNo);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
     void resetPing();
+    void buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message, bool group);
+    void confirmPDPMessageReception(unsigned int srcId, unsigned int slotNo,
+                                    DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
+    void replayPacketData(unsigned int srcId, unsigned int dstId, unsigned int slotNo);
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;
@@ -166,6 +174,7 @@ private:
     GatewayRouter *_gateway_router;
     DMRRewrite *_dmr_rewrite;
     Signalling *_signalling_generator;
+    DMRMessageHandler *_dmr_message_handler;
     QVector<unsigned char> *_mmdvm_config;
     QMutex _control_mutex;
     QVector<UDPClient*> _udp_channels;
@@ -188,13 +197,8 @@ private:
     bool _system_freqs_announcing;
     bool _adjacent_sites_announcing;
     unsigned int _minute;
-    unsigned char _data_message[1024];
-    unsigned int _data_msg_size;
-    unsigned int _data_msg_type;
-    unsigned int _data_block;
-    unsigned int _data_pad_nibble;
-    unsigned int _udt_format;
     unsigned int _simi;
+
 };
 
 #endif // CONTROLLER_H

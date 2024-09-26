@@ -53,11 +53,11 @@ void Signalling::rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId)
 }
 
 CDMRData Signalling::createUDTMessageHeader(unsigned int srcId, unsigned int dstId,
-                                     unsigned int blocks, unsigned int pad_nibble)
+                                     unsigned int blocks, unsigned int pad_nibble, bool group)
 {
     CDMRDataHeader header;
     header.setA(false);
-    header.setGI(false);
+    header.setGI(group);
     header.setRSVD(0x00);
     header.setFormat(0x00);
     header.setSAP(0x00);
@@ -158,6 +158,86 @@ CDMRData Signalling::createUDTCallDivertHeader(unsigned int srcId, unsigned int 
     dmr_data_header.setData(header_data);
 
     return dmr_data_header;
+}
+
+CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
+                                     unsigned int blocks, unsigned int sap, bool group)
+{
+    CDMRDataHeader header;
+    unsigned char data[10];
+    memset(data, 0U, 10U);
+    data[0] |= DPF_RESPONSE;
+    data[1] |= (sap & 0x0F) << 4;
+    data[2] = dstId >> 16;
+    data[3] = (dstId >> 8) & 0xFF;
+    data[4] = (dstId & 0xFF);
+    data[5] = srcId >> 16;
+    data[6] = (srcId >> 8) & 0xFF;
+    data[7] = (srcId & 0xFF);
+    data[8] |= blocks;
+    data[9] |= 0 << 6; // TODO: class
+    data[9] |= 1 << 3; // TODO: type
+    data[9] |= 0;      // TODO: status
+    header.setData(data);
+    unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
+    header.get(header_data);
+    CDMRSlotType slotType;
+    slotType.setColorCode(1);
+    slotType.setDataType(DT_DATA_HEADER);
+    slotType.getData(header_data);
+    CSync::addDMRDataSync(header_data, true);
+    CDMRData dmr_data_header;
+    dmr_data_header.setSeqNo(0);
+    dmr_data_header.setN(0);
+    dmr_data_header.setDataType(DT_DATA_HEADER);
+    dmr_data_header.setDstId(header.getDstId());
+    dmr_data_header.setSrcId(header.getSrcId());
+    dmr_data_header.setFLCO((group ? FLCO_GROUP : FLCO_USER_USER));
+    dmr_data_header.setData(header_data);
+    return dmr_data_header;
+}
+
+CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId)
+{
+    // TODO: set retry block no. bits
+    unsigned char dblock[12U];
+    unsigned char crc_data[8U];
+    memset(dblock, 0xFF, 5U);
+    dblock[0U] = 0xFF;
+    dblock[2U] = dblock[2U] & 0x0F;
+    dblock[3U] = dblock[3U] & 0x07;
+    dblock[4U] = dblock[4U] & 0x03;
+    memset(dblock + 5U, 0, 4U);
+    for(uint i =0;i < 8U;i=i+2)
+    {
+        crc_data[i] = dblock[i+1];
+        crc_data[i+1] = dblock[i];
+    }
+    crc_t crc = crc32_init();
+    crc = crc32_update(crc, crc_data, 8U);
+    crc = crc32_finalize(crc);
+    dblock[8U] = (crc >> 24) & 0xFF;
+    dblock[9U] = (crc >> 16) & 0xFF;
+    dblock[10U] = (crc >> 8) & 0xFF;
+    dblock[11U] = crc & 0xFF;
+    unsigned char payload_data[DMR_FRAME_LENGTH_BYTES];
+    CBPTC19696 bptc;
+    bptc.encode(dblock, payload_data);
+    CDMRSlotType slotType;
+    slotType.putData(payload_data);
+    slotType.setColorCode(1);
+    slotType.setDataType(DT_RATE_12_DATA);
+    slotType.getData(payload_data);
+    CSync::addDMRDataSync(payload_data, true);
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(DT_RATE_12_DATA);
+    dmr_data.setDstId(dstId);
+    dmr_data.setSrcId(srcId);
+    dmr_data.setFLCO(FLCO_USER_USER);
+    dmr_data.setData(payload_data);
+    return dmr_data;
 }
 
 void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk)

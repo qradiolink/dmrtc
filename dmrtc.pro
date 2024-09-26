@@ -20,6 +20,9 @@ linux-g++ {
 
 
 SOURCES += src/main.cpp \
+    src/crc32.cpp \
+    src/crc9.cpp \
+    src/dmrmessagehandler.cpp \
     src/rc4.cpp \
     src/channelviewmodel.cpp \
     src/dmridlookup.cpp \
@@ -38,8 +41,11 @@ SOURCES += $$files(src/MMDVM/*.cpp)
 
 HEADERS += src/settings.h \
     src/channelviewmodel.h \
+    src/crc32.h \
+    src/crc9.h \
     src/dmr_commands.h \
     src/dmridlookup.h \
+    src/dmrmessagehandler.h \
     src/dmrrewrite.h \
     src/gatewayrouter.h \
     src/logger.h \

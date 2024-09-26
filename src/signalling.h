@@ -25,6 +25,7 @@
 #include "src/utils.h"
 #include "src/standard_PDU.h"
 #include "src/settings.h"
+#include "src/crc32.h"
 #include "MMDVM/DMRCSBK.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRDataHeader.h"
@@ -74,9 +75,12 @@ public:
     void createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId);
     void createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type);
-    CDMRData createUDTMessageHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble);
+    CDMRData createUDTMessageHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int pad_nibble, bool group=false);
     CDMRData createUDTDGNAHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks);
     CDMRData createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int sap=0);
+    CDMRData createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
+                                                  unsigned int blocks, unsigned int sap, bool group);
+    CDMRData createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId);
     void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
 
 
