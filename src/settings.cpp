@@ -53,6 +53,7 @@ Settings::Settings(Logger *logger)
     prevent_mmdvm_overflows = 1;
     receive_tg_attach = 0;
     registration_required = 1; // some of the functionality like private call will not work correctly when registration is disabled
+    authentication_required = 0;
     transmit_subscribed_tg_only = 0;
     announce_system_freqs_interval = 120;
     announce_adjacent_bs_interval = 30;
@@ -370,6 +371,14 @@ void Settings::readConfig()
     }
     try
     {
+        authentication_required = cfg.lookup("authentication_required");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        authentication_required = 0;
+    }
+    try
+    {
         transmit_subscribed_tg_only = cfg.lookup("transmit_subscribed_tg_only");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -600,6 +609,7 @@ void Settings::saveConfig()
     root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
     root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
     root.add("registration_required",libconfig::Setting::TypeInt) = registration_required;
+    root.add("authentication_required",libconfig::Setting::TypeInt) = authentication_required;
     root.add("transmit_subscribed_tg_only",libconfig::Setting::TypeInt) = transmit_subscribed_tg_only;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_adjacent_bs_interval",libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;

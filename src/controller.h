@@ -93,7 +93,7 @@ public slots:
     void pollData(unsigned int target_id, unsigned int poll_format, unsigned int srcId=0);
     void timeoutPingResponse();
     void resetAuth();
-    void sendAuthCheck(unsigned int target_id);
+    bool sendAuthCheck(unsigned int target_id);
     void pollStatus(unsigned int target_id);
     void announceLocalTime();
     void announceSystemFreqs();
@@ -135,6 +135,7 @@ private:
     void transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
                           unsigned int udp_channel_id, bool channel_grant=false, bool priority_queue=false, bool announce_priority=false);
     void processVoice(CDMRData &dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway=false);
+    void processRegistration(unsigned int srcId, unsigned int dstId, CDMRCSBK &csbk);
     bool handleRegistration(CDMRCSBK &csbk, unsigned int slotNo, unsigned int srcId,
                             unsigned int dstId, unsigned int &uab);
     void handleGroupCallRequest(CDMRCSBK &csbk, LogicalChannel *&logical_channel, unsigned int slotNo,
@@ -165,6 +166,7 @@ private:
     void confirmPDPMessageReception(unsigned int srcId, unsigned int slotNo,
                                     DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void replayPacketData(unsigned int srcId, unsigned int dstId, unsigned int slotNo);
+    void sendRSSIInfo(float rssi, float ber, unsigned int srcId);
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;
@@ -188,6 +190,7 @@ private:
     QSet<unsigned int> *_rejected_calls;
     QSet<unsigned int> *_subscribed_talkgroups;
     QMap<unsigned int, unsigned int> *_auth_responses;
+    QMap<unsigned int, CDMRCSBK> _auth_user;
 
     std::chrono::high_resolution_clock::time_point t1_ping_ms;
 

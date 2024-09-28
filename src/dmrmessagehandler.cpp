@@ -109,6 +109,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
         msg->size = header.getBlocks();
         msg->block = msg->size;
         msg->pad_nibble = header.getPadNibble();
+        msg->rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
+        msg->ber_accumulator += float(dmr_data.getBER()) / 1.41f;
         if(header.getUDT())
         {
             msg->udt_format = header.getUDTFormat();
@@ -148,6 +150,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
 
             if(msg->size > 0)
             {
+                msg->rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
+                msg->ber_accumulator += float(dmr_data.getBER()) / 1.41f;
                 addDataToBuffer(srcId, dmr_data);
                 unsigned int block_size = 12U;
                 if((dmr_data.getDataType() == DT_RATE_1_DATA))
@@ -207,8 +211,12 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                     }
 
                 }
+
+                // If last block has been received, build the message
                 if((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT))
                 {
+                    msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
+                    msg->ber = msg->ber_accumulator / float(msg->size + 1);
                     msg->crc_valid = CCRC::checkCCITT162(msg->message, msg->size*block_size);
                     data_message *finished_message = new data_message(msg);
                     clearMessage(srcId);
@@ -227,6 +235,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                         clearMessage(srcId);
                         return nullptr;
                     }
+                    msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
+                    msg->ber = msg->ber_accumulator / float(msg->size + 1);
                     if(msg->group)
                     {
                         dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
@@ -327,7 +337,6 @@ bool DMRMessageHandler::processHConfirmedMessage(data_message *msg, unsigned int
 
     if(type == 0x0201)
     {
-
         if((msg->size*(block_size - 2) - 4) < 40)
             return false;
 

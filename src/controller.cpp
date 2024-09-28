@@ -444,7 +444,7 @@ void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int d
                                               bool group)
 {
     QVector<CDMRData> dmr_data_frames;
-    unsigned int msg_size = message.size();
+    unsigned int msg_size = message.size() + 1;
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
     _signalling_generator->getUABPadNibble(msg_size, blocks, pad_nibble);
@@ -683,6 +683,18 @@ void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, u
     _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
+void Controller::sendRSSIInfo(float rssi, float ber, unsigned int srcId)
+{
+    QThread::sleep(2);
+    QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
+    sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
+    _control_channel->setText(QString("Signal report message: %1").arg(srcId));
+    if(!_settings->headless_mode)
+    {
+        emit updateLogicalChannels(&_logical_channels);
+    }
+}
+
 void Controller::pingRadio(unsigned int target_id, bool group)
 {
     if(target_id == 0)
@@ -746,12 +758,12 @@ void Controller::pollStatus(unsigned int target_id)
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
 }
 
-void Controller::sendAuthCheck(unsigned int target_id)
+bool Controller::sendAuthCheck(unsigned int target_id)
 {
     if(target_id == 0 || !_settings->auth_keys.contains(target_id))
     {
         _logger->log(Logger::LogLevelInfo, QString("No valid authentication key stored for radio: %1").arg(target_id));
-        return;
+        return false;
     }
     _logger->log(Logger::LogLevelInfo, QString("Sending AUTH check to radio: %1").arg(target_id));
     _uplink_acks->insert(target_id, ServiceAction::ActionAuthCheck);
@@ -766,6 +778,7 @@ void Controller::sendAuthCheck(unsigned int target_id)
     _signalling_generator->createAuthCheckAhoy(csbk, target_id, random_number);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
     emit startAuthTimer();
+    return true;
 }
 
 void Controller::resetAuth()
@@ -1223,6 +1236,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, DMRM
             Utils::parseUTF16(text_message, size - 1, msg);
             text_message = text_message.trimmed();
         }
+        sendUDTShortMessage(text_message, dstId, srcId, group);
         if(group)
         {
             _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
@@ -1443,15 +1457,7 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-        int rssi = dmr_data.getRSSI() * -1;
-        float ber = float(dmr_data.getBER()) / 1.41f;
-        QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
-        sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
-        _control_channel->setText(QString("Signal report message: %1").arg(srcId));
-        if(!_settings->headless_mode)
-        {
-            emit updateLogicalChannels(&_logical_channels);
-        }
+        QtConcurrent::run(this, &Controller::sendRSSIInfo, dmessage->rssi, dmessage->ber, srcId);
     }
     /// DGNA
     else if(dstId == (unsigned int)_settings->service_ids.value("dgna", 0))
@@ -1823,6 +1829,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
                                     unsigned int &uab)
 {
     bool sub = false;
+    dstId = csbk.getDstId();
     if((csbk.getServiceOptions() & 0x01) == 1)
     {
         unsigned int target_addr_cnts = (csbk.getCBF() >> 6) & 0x03;
@@ -2170,6 +2177,31 @@ void Controller::handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, un
     transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false);
 }
 
+void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDMRCSBK &csbk)
+{
+    bool existing_user = _registered_ms->contains(srcId);
+    unsigned int uab = 0;
+    LogicalChannel* logical_channel = nullptr;
+    bool sub = handleRegistration(csbk, _control_channel->getSlot(), srcId, dstId, uab);
+    if(sub)
+    {
+        // FIXME: order is wrong
+        _uplink_acks->insert(srcId, ServiceAction::RegistrationWithAttachment);
+        _signalling_generator->createRequestToUploadTgAttachments(csbk, srcId, uab);
+        _short_data_messages.insert(srcId, uab);
+        transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
+    }
+    else
+    {
+        transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
+        if(!existing_user && _settings->announce_system_message)
+        {
+            QString message1 = QString("Welcome %1, there are %2 users online").arg(_id_lookup->getCallsign(srcId)).arg(_registered_ms->size());
+            sendUDTShortMessage(message1, srcId);
+        }
+    }
+}
+
 void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
 {
     unsigned int srcId = dmr_data.getSrcId();
@@ -2196,30 +2228,79 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// Registration or deregistration request
     if (csbko == CSBKO_RAND && csbk.getServiceKind() == ServiceKind::RegiAuthMSCheck)
     {
-        bool existing_user = _registered_ms->contains(srcId);
-        unsigned int uab = 0;
-        bool sub = handleRegistration(csbk, slotNo, srcId, dstId, uab);
-        if(sub)
+        if(_settings->authentication_required && !_registered_ms->contains(srcId))
         {
-            // FIXME: order is wrong
-            _uplink_acks->insert(srcId, ServiceAction::RegistrationWithAttachment);
-            _signalling_generator->createRequestToUploadTgAttachments(csbk, srcId, uab);
-            _short_data_messages.insert(srcId, uab);
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _logger->log(Logger::LogLevelInfo, QString("User %1 is required to authenticate")
+                         .arg(srcId));
+            bool key_valid = sendAuthCheck(srcId);
+            if(!key_valid)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("User %1 does not have a registration key stored in config."
+                            " Registration denied.").arg(srcId));
+                _signalling_generator->createReplyRegistrationDenied(csbk, srcId);
+                transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            }
+            else
+            {
+                _auth_user.insert(srcId, csbk);
+            }
         }
         else
         {
-            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, true);
-            if(!existing_user && _settings->announce_system_message)
+            processRegistration(srcId, dstId, csbk);
+            _control_channel->setText(QString("Registration / deregistration: %1").arg(srcId));
+            if(!_settings->headless_mode)
             {
-                QString message1 = QString("Welcome %1, there are %2 users online").arg(_id_lookup->getCallsign(srcId)).arg(_registered_ms->size());
-                sendUDTShortMessage(message1, srcId);
+                emit updateLogicalChannels(&_logical_channels);
             }
         }
-        _control_channel->setText(QString("Registration / deregistration: %1").arg(srcId));
-        if(!_settings->headless_mode)
+    }
+    /// MS authentication response
+    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&
+             _uplink_acks->contains(srcId) &&
+             _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
+    {
+        _uplink_acks->remove(srcId);
+        if(_auth_responses->contains(srcId))
         {
-            emit updateLogicalChannels(&_logical_channels);
+            if((dstId == _auth_responses->value(srcId)))
+            {
+                if(_auth_user.contains(srcId))
+                {
+                    CDMRCSBK csbk = _auth_user[srcId];
+                    processRegistration(srcId, dstId, csbk);
+                    _auth_user.remove(srcId);
+                }
+                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
+                             .arg(srcId).arg(slotNo));
+                if(!_settings->headless_mode)
+                    emit authSuccess(true);
+                _control_channel->setText(QString("Successful authentication reply: %1").arg(srcId));
+                if(!_settings->headless_mode)
+                {
+                    emit updateLogicalChannels(&_logical_channels);
+                }
+            }
+            else
+            {
+                if(_auth_user.contains(srcId))
+                {
+                    _signalling_generator->createReplyRegistrationDenied(csbk, srcId);
+                    transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+                    _auth_user.remove(srcId);
+                }
+                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (FAILED) from %1, slot %2")
+                             .arg(srcId).arg(slotNo));
+                if(!_settings->headless_mode)
+                    emit authSuccess(false);
+                _control_channel->setText(QString("Failed authentication reply: %1").arg(srcId));
+                if(!_settings->headless_mode)
+                {
+                    emit updateLogicalChannels(&_logical_channels);
+                }
+            }
+            _auth_responses->remove(srcId);
+            emit stopAuthTimer();
         }
     }
     /// Service requested while not registered
@@ -2779,42 +2860,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
 
     }
-    /// MS authentication response
-    else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
-    {
-        _uplink_acks->remove(srcId);
-        if(_auth_responses->contains(srcId))
-        {
-            if((dstId == _auth_responses->value(srcId)))
-            {
-                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
-                             .arg(srcId).arg(slotNo));
-                if(!_settings->headless_mode)
-                    emit authSuccess(true);
-                _control_channel->setText(QString("Successful authentication reply: %1").arg(srcId));
-                if(!_settings->headless_mode)
-                {
-                    emit updateLogicalChannels(&_logical_channels);
-                }
-            }
-            else
-            {
-                _logger->log(Logger::LogLevelInfo, QString("Received authentication reply (FAILED) from %1, slot %2")
-                             .arg(srcId).arg(slotNo));
-                if(!_settings->headless_mode)
-                    emit authSuccess(false);
-                _control_channel->setText(QString("Failed authentication reply: %1").arg(srcId));
-                if(!_settings->headless_mode)
-                {
-                    emit updateLogicalChannels(&_logical_channels);
-                }
-            }
-            _auth_responses->remove(srcId);
-            emit stopAuthTimer();
-        }
-    }
+
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88))
     {
         _logger->log(Logger::LogLevelDebug, QString("Received unhandled ACKU from %1, slot %2 to destination %3")
@@ -3042,6 +3088,10 @@ void Controller::setCallStats(unsigned int srcId, unsigned int dstId, float rssi
     if(!_settings->headless_mode)
     {
         emit updateCallLog(srcId, dstId, rssi, ber, private_call);
+    }
+    if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
+    {
+        QtConcurrent::run(this, &Controller::sendRSSIInfo, rssi, ber, srcId);
     }
 }
 

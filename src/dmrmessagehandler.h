@@ -38,13 +38,16 @@ public:
     struct data_message
     {
         data_message() : size(0), type(0), pad_nibble(0), block(0), udt_format(0), sap(0),
-            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(true), crc_valid(false) {
+            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(true), crc_valid(false),
+            rssi_accumulator(0.0f), ber_accumulator(0.0f), rssi(0.0f), ber(0.0f) {
             memset(message, 0, 1024);
             memset(payload, 0, 1024);
         }
         data_message(data_message *msg) : size(msg->size), type(msg->type), pad_nibble(msg->pad_nibble), block(msg->block),
             udt_format(msg->udt_format), sap(msg->sap), payload_len(msg->payload_len),
-            real_src(msg->real_src), real_dst(msg->real_dst), seq_no(msg->seq_no), group(msg->group), udt(msg->udt), crc_valid(msg->crc_valid){
+            real_src(msg->real_src), real_dst(msg->real_dst), seq_no(msg->seq_no), group(msg->group), udt(msg->udt),
+            crc_valid(msg->crc_valid), rssi_accumulator(msg->rssi_accumulator), ber_accumulator(msg->ber_accumulator),
+            rssi(msg->rssi), ber(msg->ber) {
             memcpy(message, msg->message, 1024);
             memcpy(payload, msg->payload, 1024);
         }
@@ -63,6 +66,10 @@ public:
         bool group;
         bool udt;
         bool crc_valid;
+        float rssi_accumulator;
+        float ber_accumulator;
+        float rssi;
+        float ber;
     };
     explicit DMRMessageHandler(Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~DMRMessageHandler();

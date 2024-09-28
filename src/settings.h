@@ -79,6 +79,7 @@ public:
     int prevent_mmdvm_overflows;
     int receive_tg_attach;
     int registration_required;
+    int authentication_required;
     int transmit_subscribed_tg_only;
     int location_service_id;
     int announce_system_freqs_interval;

@@ -48,6 +48,8 @@ public:
     void createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options=0x00);
     void createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId=StandardAddreses::SDMI, bool from_ts=true);
     void createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyRegistrationRefused(CDMRCSBK &csbk, unsigned int dstId);
+    void createReplyRegistrationDenied(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId);
     void createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId);

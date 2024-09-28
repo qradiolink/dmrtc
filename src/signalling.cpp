@@ -501,6 +501,36 @@ void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int ds
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
+void Signalling::createReplyRegistrationRefused(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 0x2A; // reason code 0010 1010 registration refused
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::REGI);
+}
+
+void Signalling::createReplyRegistrationDenied(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_ACKD);
+    unsigned int response_info = 0;
+    unsigned int reason_code = 0x2B; // reason code 0010 1011 registration denied
+    unsigned char data1 = 0x00;
+    data1 |= response_info << 1;
+    data1 |= (reason_code >> 7) & 0xFF;
+    csbk.setData1(data1);
+    unsigned char data2 = (reason_code << 1) & 0xFF;
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::REGI);
+}
+
 void Signalling::createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
