@@ -35,6 +35,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonSaveSettings, SIGNAL(clicked(bool)), this, SLOT(saveConfig()));
     QObject::connect(ui->pushButtonSendSystemMessage, SIGNAL(clicked(bool)), this, SLOT(sendSystemMessage()));
     QObject::connect(ui->pushButtonSendMessageToRadio, SIGNAL(clicked(bool)), this, SLOT(sendMessageToRadio()));
+    QObject::connect(ui->pushButtonSendMessageToGroup, SIGNAL(clicked(bool)), this, SLOT(sendMessageToGroup()));
     QObject::connect(ui->pushButtonSendDGNA, SIGNAL(clicked(bool)), this, SLOT(addDGNA()));
     QObject::connect(ui->pushButtonNMEAPoll, SIGNAL(clicked(bool)), this, SLOT(sendNMEAPoll()));
     QObject::connect(ui->pushButtonStatusPoll, SIGNAL(clicked(bool)), this, SLOT(sendStatusPoll()));
@@ -831,8 +832,10 @@ void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int> *subscribed_
     while(it.hasNext())
     {
         QIcon icon = QIcon(":/res/system-users.png");
-        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(it.next()));
+        unsigned int id = it.next();
+        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(id));
         ui->listWidgetSubscribedTalkgroups->addItem(item);
+        ui->comboBoxRegisteredGroups->addItem(icon, QString::number(id));
     }
     subscribed_talkgroups->clear();
     delete subscribed_talkgroups;
@@ -869,6 +872,7 @@ void MainWindow::deleteSubscribedTalkgroupList()
         delete item;
     }
     ui->listWidgetSubscribedTalkgroups->clear();
+    ui->comboBoxRegisteredGroups->clear();
 }
 
 void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
@@ -966,13 +970,19 @@ void MainWindow::requestRegistration()
 
 void MainWindow::sendSystemMessage()
 {
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0);
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0, 0, false);
 }
 
 void MainWindow::sendMessageToRadio()
 {
     unsigned int radio = ui->comboBoxRegisteredMS->currentText().toInt();
-    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio);
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), radio, 0, false);
+}
+
+void MainWindow::sendMessageToGroup()
+{
+    unsigned int group = ui->comboBoxRegisteredGroups->currentText().toInt();
+    emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), group, 0, true);
 }
 
 void MainWindow::addDGNA()

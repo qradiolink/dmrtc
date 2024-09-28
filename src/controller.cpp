@@ -443,8 +443,9 @@ void Controller::announceSystemMessage()
 void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message,
                                               bool group)
 {
+    dstId = group ? Utils::convertBase10ToBase11GroupNumber(dstId) : dstId;
     QVector<CDMRData> dmr_data_frames;
-    unsigned int msg_size = message.size() + 1;
+    unsigned int msg_size = message.size();
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
     _signalling_generator->getUABPadNibble(msg_size, blocks, pad_nibble);
@@ -513,10 +514,10 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         return;
     if(msg_size > 46)
     {
-        int num_msg = msg_size / 45;
+        int num_msg = msg_size / 46;
         for(int i = 0;i<=num_msg;i++)
         {
-            QString msg = message.mid(i * 45, 45);
+            QString msg = message.mid(i * 46, 46);
             sendUDTShortMessage(msg, dstId, srcId, group);
         }
         return;
@@ -533,9 +534,14 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     {
         // expect ACKU from target
         if(!group)
+        {
             _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
-        unsigned int rDstId = group ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
-        _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(rDstId));
+            _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to group: %2").arg(message).arg(dstId));
+        }
     }
     if(srcId == 0)
     {
@@ -1215,6 +1221,8 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRM
 
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group)
 {
+    if(group || dmessage->group)
+        dstId = Utils::convertBase11GroupNumberToBase10(dstId);
     if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
     {
         unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
@@ -1241,7 +1249,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, DMRM
         {
             _logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
                   .arg(srcId)
-                  .arg(Utils::convertBase11GroupNumberToBase10(dstId))
+                  .arg(dstId)
                   .arg(text_message));
         }
         else
@@ -1255,8 +1263,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId, DMRM
         {
             if(group)
             {
-                emit updateMessageLog(srcId,
-                                   Utils::convertBase11GroupNumberToBase10(dstId), text_message, true);
+                emit updateMessageLog(srcId, dstId, text_message, true);
             }
             else
             {
@@ -1335,7 +1342,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
     if(dmessage->udt == false)
     {
         srcId = dmessage->real_src;
-        dstId = dmessage->real_dst;
+        dstId = dmessage->group ? Utils::convertBase11GroupNumberToBase10(dmessage->real_dst) : dmessage->real_dst;
         QString text_message;
         text_message = QString::fromUtf8((const char*)dmessage->payload, dmessage->payload_len).trimmed();
 
@@ -1354,7 +1361,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
         {
             _logger->log(Logger::LogLevelInfo, QString("Received group data protocol message from %1 to %2: %3")
                   .arg(srcId)
-                  .arg(Utils::convertBase11GroupNumberToBase10(dstId))
+                  .arg(dstId)
                   .arg(text_message));
         }
         else
@@ -1368,8 +1375,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
         {
             if(dmessage->group)
             {
-                emit updateMessageLog(srcId,
-                                   Utils::convertBase11GroupNumberToBase10(dstId), text_message, true);
+                emit updateMessageLog(srcId, dstId, text_message, true);
             }
             else
             {
