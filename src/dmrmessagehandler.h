@@ -87,7 +87,7 @@ private:
     Logger *_logger;
     bool block_crc(unsigned char *block, unsigned int block_size, uint8_t &dbsn);
     bool message_crc32(data_message *msg, unsigned int type, unsigned int block_size);
-    bool processHConfirmedMessage(data_message *msg, unsigned int block_size);
+    bool processConfirmedMessage(data_message *msg, unsigned int block_size);
     void clearMessage(unsigned int srcId);
 
     QMap<unsigned int, data_message*> _messages;

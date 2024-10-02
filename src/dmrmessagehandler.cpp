@@ -229,7 +229,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                         clearMessage(srcId);
                         return nullptr;
                     }
-                    bool valid = processHConfirmedMessage(msg, block_size);
+                    bool valid = processConfirmedMessage(msg, block_size);
                     if(!valid)
                     {
                         clearMessage(srcId);
@@ -294,7 +294,7 @@ bool DMRMessageHandler::message_crc32(data_message *msg, unsigned int type, unsi
     unsigned int crc_msg_size;
     unsigned int crc_sent = 0;
     uint index = 0;
-    if((type == 0x0201) || (type == 0x0101))
+    if((msg->sap == 9) && ((type == 0x0201) || (type == 0x0101)))
     {
         // Last block does not contain CRC32 and is not decodable
         crc_msg_size = msg->size*(block_size - 2) - 14 - index;
@@ -323,60 +323,64 @@ bool DMRMessageHandler::message_crc32(data_message *msg, unsigned int type, unsi
     return valid;
 }
 
-bool DMRMessageHandler::processHConfirmedMessage(data_message *msg, unsigned int block_size)
+bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int block_size)
 {
     if(!msg->crc_valid)
         return false;
-    uint16_t type = (msg->message[0] << 8) | msg->message[1];
-    /*//print payload
-    for(uint i=0;i<msg->size * (block_size - 2);i++)
+    uint16_t type = 0;
+    if(msg->sap == 9)
     {
-        qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
-    }
-    */
+        type = (msg->message[0] << 8) | msg->message[1];
+        /*//print payload
+        for(uint i=0;i<msg->size * (block_size - 2);i++)
+        {
+            qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
+        }
+        */
 
-    if(type == 0x0201)
-    {
-        if((msg->size*(block_size - 2) - 4) < 40)
-            return false;
+        if(type == 0x0201)
+        {
+            if((msg->size*(block_size - 2) - 4) < 40)
+                return false;
 
-        msg->payload_len |= msg->message[38];
-        msg->payload_len = (msg->payload_len << 8) | msg->message[39];
-        if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
-            return false;
-        memcpy(msg->payload, msg->message + 40, msg->payload_len);
-        msg->group = (msg->message[26] & 0x80) == 0x80;
-        msg->real_dst = msg->message[27];
-        msg->real_dst = (msg->real_dst << 8) | msg->message[28];
-        msg->real_dst = (msg->real_dst << 8) | msg->message[29];
+            msg->payload_len |= msg->message[38];
+            msg->payload_len = (msg->payload_len << 8) | msg->message[39];
+            if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
+                return false;
+            memcpy(msg->payload, msg->message + 40, msg->payload_len);
+            msg->group = (msg->message[26] & 0x80) == 0x80;
+            msg->real_dst = msg->message[27];
+            msg->real_dst = (msg->real_dst << 8) | msg->message[28];
+            msg->real_dst = (msg->real_dst << 8) | msg->message[29];
 
-        msg->real_src = msg->message[19];
-        msg->real_src = (msg->real_src << 8) | msg->message[20];
-        msg->real_src = (msg->real_src << 8) | msg->message[21];
+            msg->real_src = msg->message[19];
+            msg->real_src = (msg->real_src << 8) | msg->message[20];
+            msg->real_src = (msg->real_src << 8) | msg->message[21];
 
-        return message_crc32(msg, type, block_size);
-    }
-    else if(type == 0x0101)
-    {
+            return message_crc32(msg, type, block_size);
+        }
+        else if(type == 0x0101)
+        {
 
-        if((msg->size*(block_size - 2) - 4) < 40)
-            return false;
+            if((msg->size*(block_size - 2) - 4) < 40)
+                return false;
 
-        msg->payload_len |= msg->message[36];
-        msg->payload_len = (msg->payload_len << 8) | msg->message[37];
-        if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
-            return false;
-        memcpy(msg->payload, msg->message + 38, msg->payload_len);
-        msg->group = (msg->message[24] & 0x80) == 0x80;
-        msg->real_dst = msg->message[25];
-        msg->real_dst = (msg->real_dst << 8) | msg->message[26];
-        msg->real_dst = (msg->real_dst << 8) | msg->message[27];
+            msg->payload_len |= msg->message[36];
+            msg->payload_len = (msg->payload_len << 8) | msg->message[37];
+            if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
+                return false;
+            memcpy(msg->payload, msg->message + 38, msg->payload_len);
+            msg->group = (msg->message[24] & 0x80) == 0x80;
+            msg->real_dst = msg->message[25];
+            msg->real_dst = (msg->real_dst << 8) | msg->message[26];
+            msg->real_dst = (msg->real_dst << 8) | msg->message[27];
 
-        msg->real_src = msg->message[17];
-        msg->real_src = (msg->real_src << 8) | msg->message[18];
-        msg->real_src = (msg->real_src << 8) | msg->message[19];
+            msg->real_src = msg->message[17];
+            msg->real_src = (msg->real_src << 8) | msg->message[18];
+            msg->real_src = (msg->real_src << 8) | msg->message[19];
 
-        return message_crc32(msg, type, block_size);
+            return message_crc32(msg, type, block_size);
+        }
     }
     else
     {
