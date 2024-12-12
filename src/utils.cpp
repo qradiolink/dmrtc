@@ -116,6 +116,8 @@ void Utils::parseISO7bitToISO8bit(unsigned char *msg, unsigned char *converted, 
         if(mask == 0x7F)
         {
             k = k + 1;
+            if(k>=bit7_size)
+                break;
             converted[k] = remainder & 0x7F;
             remainder = 0;
         }
