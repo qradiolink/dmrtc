@@ -95,6 +95,8 @@ bool CDMRDataHeader::put(const unsigned char* bytes)
 		m_F = (m_data[8U] & 0x80U) == 0x80U;
 		m_blocks = m_data[8U] & 0x7FU;
         m_padNibble = (((m_data[0U] >> 4) & 0x01) << 4) | (m_data[1U] & 0x0F);
+        m_sap = (m_data[1U] >> 4) & 0x0FU;
+        m_Ns = m_data[9U] & 0x0FU;
 		break;
 
 	case DPF_CONFIRMED_DATA:

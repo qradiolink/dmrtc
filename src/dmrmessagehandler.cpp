@@ -14,6 +14,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <QHostAddress>
 #include "dmrmessagehandler.h"
 
 
@@ -83,7 +86,7 @@ void DMRMessageHandler::clearDataBuffer(unsigned int srcId)
     }
 }
 
-DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_data)
+DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_data, bool from_gateway)
 {
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
@@ -133,6 +136,23 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
             msg->udt = false;
             msg->seq_no = header.getSequenceNumber();
             _logger->log(Logger::LogLevelDebug, QString("Received confirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
+                    "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                    " Data packet format: %13")
+                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                         .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
+                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+        }
+        else if(msg->type == DPF_UNCONFIRMED_DATA)
+        {
+            if(msg->size > 64)
+            {
+                clearMessage(srcId);
+                return nullptr;
+            }
+            msg->crc_valid = true;
+            msg->udt = false;
+            msg->seq_no = header.getSequenceNumber();
+            _logger->log(Logger::LogLevelDebug, QString("Received unconfirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
                     "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
                     " Data packet format: %13")
                          .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
@@ -211,6 +231,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                     }
 
                 }
+                else if(msg->type == DPF_UNCONFIRMED_DATA)
+                {
+                    memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                }
 
                 // If last block has been received, build the message
                 if((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT))
@@ -237,11 +261,31 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                     }
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
-                    if(msg->group)
+                    if(msg->group && !from_gateway)
                     {
                         dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
                     _logger->log(Logger::LogLevelInfo, QString("Received confirmed data message from %1 to %2 of length %3.")
+                                     .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
+                    data_message *finished_message = new data_message(msg);
+                    clearMessage(srcId);
+                    return finished_message;
+                }
+                else if(msg->block == 1 && msg->type == DPF_UNCONFIRMED_DATA)
+                {
+                    bool valid = processUnconfirmedMessage(msg, block_size);
+                    if(!valid)
+                    {
+                        clearMessage(srcId);
+                        return nullptr;
+                    }
+                    msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
+                    msg->ber = msg->ber_accumulator / float(msg->size + 1);
+                    if(msg->group && !from_gateway)
+                    {
+                        dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
+                    }
+                    _logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
                                      .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
                     data_message *finished_message = new data_message(msg);
                     clearMessage(srcId);
@@ -298,6 +342,10 @@ bool DMRMessageHandler::message_crc32(data_message *msg, unsigned int type, unsi
     {
         // Last block does not contain CRC32 and is not decodable
         crc_msg_size = msg->size*(block_size - 2) - 14 - index;
+    }
+    else if((type == 0) && (msg->sap == 4)) // Unconfirmed standard ETSI
+    {
+        crc_msg_size = msg->size * block_size - 4;
     }
     else
     {
@@ -385,6 +433,52 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
     else
     {
         msg->payload_len = msg->size*(block_size - 2) - 4;
+        memcpy(msg->payload, msg->message, msg->payload_len);
+        return message_crc32(msg, type, block_size);
+    }
+    return false;
+}
+
+bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned int block_size)
+{
+    /// Only Anytone standard UDP message protocol ATM
+    if(!msg->crc_valid)
+        return false;
+    uint16_t type = 0;
+    if(msg->sap == 4)
+    {
+        msg->payload_len = msg->size * block_size - 4;
+        memcpy(msg->payload, msg->message, msg->payload_len);
+
+        //print payload
+        /*
+        for(uint i=0;i<msg->size * block_size - 4;i++)
+        {
+            qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
+        }
+        */
+        unsigned int ip_hdr_size = sizeof(struct ip);
+        const struct ip *ip_hdr = (struct ip*) msg->payload;
+        _logger->log(Logger::LogLevelInfo, QString("IP frame from %1 to %2 with protocol %3.")
+                         .arg(QHostAddress(ip_hdr->ip_src.s_addr).toString())
+                     .arg(QHostAddress(ip_hdr->ip_dst.s_addr).toString()).arg(ip_hdr->ip_p));
+
+        if(ip_hdr->ip_p == 17) // UDP
+        {
+            unsigned int udp_hdr_size = sizeof(struct udphdr);
+            const struct udphdr *udp = (struct udphdr*) (msg->payload + ip_hdr_size);
+            _logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
+                                                       " with length %3.")
+                             .arg(udp->source).arg(udp->dest).arg(udp->len));
+            msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
+            memcpy(msg->payload, msg->message + ip_hdr_size + udp_hdr_size, msg->payload_len);
+            return message_crc32(msg, type, block_size);
+        }
+
+    }
+    else
+    {
+        msg->payload_len = msg->size * block_size - 4;
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
     }

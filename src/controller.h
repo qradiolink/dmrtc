@@ -160,6 +160,8 @@ private:
     void processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group);
     void processDataProtocolMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id, unsigned int slotNo);
+    void processUDPProtocolMessage(unsigned int dstId, unsigned int srcId,
+                                   DMRMessageHandler::data_message *dmessage, bool from_gateway);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
     void resetPing();
     void buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message, bool group);

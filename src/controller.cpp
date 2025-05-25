@@ -545,7 +545,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     }
     if(srcId == 0)
     {
-        srcId = StandardAddreses::SDMI;
+        srcId = StandardAddreses::DISPATI;
     }
 
     buildUDTShortMessageSequence(srcId, dstId, message, group);
@@ -1390,6 +1390,59 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
     }
 }
 
+void Controller::processUDPProtocolMessage(unsigned int dstId, unsigned int srcId,
+                                            DMRMessageHandler::data_message *dmessage, bool from_gateway)
+{
+    dstId = (dmessage->group && !from_gateway) ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
+    QString text_message;
+    for(uint i=0;i<dmessage->payload_len;i++)
+    {
+        char x = dmessage->payload[i];
+        if(x != 0x00)
+        {
+           text_message.append(QChar(x));
+        }
+    }
+    text_message = text_message.trimmed();
+
+    ///** Sending the message on the control channel
+    int size = text_message.size();
+    if(size > 0)
+    {
+        sendUDTShortMessage(text_message, dstId, srcId, dmessage->group);
+    }
+
+    if(dmessage->group)
+    {
+        _logger->log(Logger::LogLevelInfo, QString("Received group UDP protocol message from %1 to %2: %3")
+              .arg(srcId)
+              .arg(dstId)
+              .arg(text_message));
+    }
+    else
+    {
+        _logger->log(Logger::LogLevelInfo, QString("Received private UDP protocol message from %1 to %2: %3")
+                  .arg(srcId)
+                  .arg(dstId)
+                  .arg(text_message));
+    }
+    if(!_settings->headless_mode)
+    {
+        if(dmessage->group)
+        {
+            emit updateMessageLog(srcId, dstId, text_message, true);
+        }
+        else
+        {
+            emit updateMessageLog(srcId, dstId, text_message, false);
+        }
+    }
+    if(!_settings->headless_mode)
+    {
+        emit updateLogicalChannels(&_logical_channels);
+    }
+}
+
 void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
 {
     /// Used for testing and debug purposes
@@ -1507,16 +1560,12 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
 
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
-    if(from_gateway)
-    {
-        return;
-    }
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
     DMRMessageHandler::data_message *message = nullptr;
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
-        message = _dmr_message_handler->processData(dmr_data);
+        message = _dmr_message_handler->processData(dmr_data, from_gateway);
         if(message != nullptr)
         {
             if(message->crc_valid)
@@ -1536,17 +1585,23 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     }
                     _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
                                  .arg(dmr_data.getSlotNo()).arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
-
-                    CDMRCSBK csbk;
-                    _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
-                    transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
+                    if(!from_gateway)
+                    {
+                        CDMRCSBK csbk;
+                        _signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId());
+                        transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
+                    }
+                }
+                else if(message->sap == 4)
+                {
+                    processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 }
                 else
                 {
                     processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
                 }
             }
-            else if(message->udt)
+            else if(message->udt && !from_gateway)
             {
                 CDMRCSBK csbk;
                 _signalling_generator->createReplyUDTCRCError(csbk, srcId);
@@ -1558,7 +1613,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     }
     else if(dmr_data.getFLCO() == FLCO_USER_USER)
     {
-        message = _dmr_message_handler->processData(dmr_data);
+        message = _dmr_message_handler->processData(dmr_data, from_gateway);
         if(message != nullptr)
         {
             if(message->crc_valid)
@@ -1597,13 +1652,17 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                             processNMEAMessage(srcId, dstId, message);
                         }
                     }
+                    else if(message->sap == 4)
+                    {
+                        processUDPProtocolMessage(dstId, srcId, message, from_gateway);
+                    }
                     else
                     {
                         processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
                     }
                 }
             }
-            else if(message->udt)
+            else if(message->udt && !from_gateway)
             {
                 CDMRCSBK csbk;
                 _signalling_generator->createReplyUDTCRCError(csbk, srcId);
@@ -1618,6 +1677,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
     /// Rewriting destination to match DMR tier III flat numbering
     if(from_gateway)
     {
+        return; // cannot handle this type of data here
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {
             if(_settings->receive_tg_attach &&
