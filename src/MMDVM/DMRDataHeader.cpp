@@ -128,6 +128,10 @@ bool CDMRDataHeader::put(const unsigned char* bytes)
 	case DPF_DEFINED_SHORT:
 		CUtils::dump(1U, "DMR, Defined Short Data Header", m_data, 12U);
 		m_blocks = (m_data[0U] & 0x30U) + (m_data[1U] & 0x0FU);
+        m_format = m_data[0U] & 0x0F;
+        m_sap = (m_data[1U] >> 4) & 0x0FU;
+        m_padNibble = m_data[9U];
+        m_UDTFormat = (m_data[8U] >> 2);
 		m_F = (m_data[8U] & 0x01U) == 0x01U;
 		m_S = (m_data[8U] & 0x02U) == 0x02U;
 		break;

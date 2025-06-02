@@ -89,6 +89,7 @@ private:
     bool message_crc32(data_message *msg, unsigned int type, unsigned int block_size);
     bool processConfirmedMessage(data_message *msg, unsigned int block_size);
     bool processUnconfirmedMessage(data_message *msg, unsigned int block_size);
+    bool processDefinedDataMessage(data_message *msg, unsigned int block_size);
     void clearMessage(unsigned int srcId);
 
     QMap<unsigned int, data_message*> _messages;

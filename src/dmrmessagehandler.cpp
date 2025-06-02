@@ -159,6 +159,22 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                          .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
                          .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
         }
+        else if(msg->type == DPF_DEFINED_SHORT)
+        {
+            if(msg->size > 64)
+            {
+                clearMessage(srcId);
+                return nullptr;
+            }
+            msg->crc_valid = true;
+            msg->udt = false;
+            _logger->log(Logger::LogLevelDebug, QString("Received defined short data header from %1 to %2 --- A: %3, GI:%4, "
+                    "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                    " Data packet format: %13")
+                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                         .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getUDTFormat()).arg(header.getPF())
+                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+        }
     }
     else if((dmr_data.getDataType() == DT_RATE_12_DATA) ||
             (dmr_data.getDataType() == DT_RATE_1_DATA) ||
@@ -235,6 +251,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 {
                     memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
                 }
+                else if(msg->type == DPF_DEFINED_SHORT)
+                {
+                    memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                }
 
                 // If last block has been received, build the message
                 if((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT))
@@ -274,6 +294,26 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 else if(msg->block == 1 && msg->type == DPF_UNCONFIRMED_DATA)
                 {
                     bool valid = processUnconfirmedMessage(msg, block_size);
+                    if(!valid)
+                    {
+                        clearMessage(srcId);
+                        return nullptr;
+                    }
+                    msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
+                    msg->ber = msg->ber_accumulator / float(msg->size + 1);
+                    if(msg->group && !from_gateway)
+                    {
+                        dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
+                    }
+                    _logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
+                                     .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
+                    data_message *finished_message = new data_message(msg);
+                    clearMessage(srcId);
+                    return finished_message;
+                }
+                else if(msg->block == 1 && msg->type == DPF_DEFINED_SHORT)
+                {
+                    bool valid = processDefinedDataMessage(msg, block_size);
                     if(!valid)
                     {
                         clearMessage(srcId);
@@ -441,7 +481,10 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
 
 bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned int block_size)
 {
-    /// Only Anytone standard UDP message protocol ATM
+    /// Anytone M-format and DMR-standard messages
+    /// The implementation is based on protocol description from:
+    /// https://github.com/carpaldolor/DMRText
+    /// by KY4YI – John Finn
     if(!msg->crc_valid)
         return false;
     uint16_t type = 0;
@@ -507,6 +550,35 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
         msg->payload_len = msg->size * block_size - 4;
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
+    }
+    return false;
+}
+
+bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned int block_size)
+{
+    if(!msg->crc_valid)
+        return false;
+    uint16_t type = 0;
+    /// Anytone H-format message
+    if(msg->sap == 10 && msg->type == 13)
+    {
+        //print payload
+        /*
+        for(uint i=0;i<msg->size * block_size;i++)
+        {
+            qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
+        }
+        */
+        msg->payload_len = msg->size * block_size - 2 - (msg->pad_nibble / 8);
+        memcpy(msg->payload, msg->message + 2, msg->payload_len);
+        /// No CRC
+        return true;
+    }
+    else
+    {
+        msg->payload_len = msg->size * block_size - (msg->pad_nibble / 8);
+        memcpy(msg->payload, msg->message, msg->payload_len);
+        return true;
     }
     return false;
 }

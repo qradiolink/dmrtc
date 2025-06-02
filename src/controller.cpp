@@ -1596,6 +1596,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 {
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 }
+                else if(message->sap == 10 && message->type == 13)
+                {
+                    processUDPProtocolMessage(dstId, srcId, message, from_gateway);
+                }
                 else
                 {
                     processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
