@@ -463,14 +463,15 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
                          .arg(QHostAddress(ip_hdr->ip_src.s_addr).toString())
                      .arg(QHostAddress(ip_hdr->ip_dst.s_addr).toString()).arg(ip_hdr->ip_p));
 
-        if(ip_hdr->ip_p == 17) // UDP
+        if(ip_hdr->ip_p == 0x11) // UDP
         {
             unsigned int udp_hdr_size = sizeof(struct udphdr);
             const struct udphdr *udp = (struct udphdr*) (msg->payload + ip_hdr_size);
             _logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
                                                        " with length %3.")
                              .arg(udp->source).arg(udp->dest).arg(udp->len));
-
+            // strip IP and UDP headers
+            msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
             // test standard format option
             if(msg->payload_len > 4)
             {
@@ -478,7 +479,7 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
                         | (msg->message[30] << 8) | (msg->message[31] << 0);
                 if(msg_hdr == 0x000D000A)
                 {
-                    msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size - 4;
+                    msg->payload_len = msg->payload_len - 4;
                     memcpy(msg->payload, msg->message + 32, msg->payload_len);
                     return message_crc32(msg, type, block_size);
                 }
@@ -490,13 +491,12 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
                         | (msg->message[36] << 8) | (msg->message[37] << 0);
                 if(msg_hdr == 0x0D000A00)
                 {
-                    msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size - 10;
+                    msg->payload_len = msg->payload_len - 10;
                     memcpy(msg->payload, msg->message + 38, msg->payload_len);
                     return message_crc32(msg, type, block_size);
                 }
             }
             // unknown
-            msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
             memcpy(msg->payload, msg->message + ip_hdr_size + udp_hdr_size, msg->payload_len);
             return message_crc32(msg, type, block_size);
         }
