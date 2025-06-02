@@ -470,6 +470,32 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
             _logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
                                                        " with length %3.")
                              .arg(udp->source).arg(udp->dest).arg(udp->len));
+
+            // test standard format option
+            if(msg->payload_len > 4)
+            {
+                uint64_t msg_hdr = (msg->message[28] << 24) | (msg->message[29] << 16)
+                        | (msg->message[30] << 8) | (msg->message[31] << 0);
+                if(msg_hdr == 0x000D000A)
+                {
+                    msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size - 4;
+                    memcpy(msg->payload, msg->message + 32, msg->payload_len);
+                    return message_crc32(msg, type, block_size);
+                }
+            }
+            // test M format option
+            if(msg->payload_len > 10)
+            {
+                uint64_t msg_hdr = (msg->message[34] << 24) | (msg->message[35] << 16)
+                        | (msg->message[36] << 8) | (msg->message[37] << 0);
+                if(msg_hdr == 0x0D000A00)
+                {
+                    msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size - 10;
+                    memcpy(msg->payload, msg->message + 38, msg->payload_len);
+                    return message_crc32(msg, type, block_size);
+                }
+            }
+            // unknown
             msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
             memcpy(msg->payload, msg->message + ip_hdr_size + udp_hdr_size, msg->payload_len);
             return message_crc32(msg, type, block_size);
