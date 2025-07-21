@@ -137,8 +137,9 @@ void UDPClient::readPendingDatagrams()
             bool ok = parseNetworkData(payload, size);
             if(!ok)
             {
-                //_logger->log(Logger::LogLevelWarning, QString("Could not parse payload %1")
-                //             .arg(QString::fromLocal8Bit((const char*)payload, size)));
+                _logger->log(Logger::LogLevelWarning, QString("Could not parse payload from %1 port %2")
+                             .arg(datagram.senderAddress().toString()).arg(datagram.senderPort()));
+                delete[] payload;
             }
         }
     }
@@ -161,16 +162,38 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
         return false;
     if (memcmp(payload, "DMRD", 4U) == 0)
     {
+        if(size != HOMEBREW_DATA_PACKET_LENGTH)
+            return false;
         emit dmrData(payload, _channel_id, _gateway_connection);
         return true;
     }
     if (memcmp(payload, "DMRC", 4U) == 0)
     {
-        if(size < 12)
+        if(size < 12 || _gateway_connection)
         {
             return false;
         }
         emit newMMDVMConfig(payload, size);
+        return true;
+    }
+    if (memcmp(payload, "DMRP", 4U) == 0)
+    {
+        delete[] payload;
+        return true;
+    }
+    if (memcmp(payload, "DMRG", 4U) == 0)
+    {
+        delete[] payload;
+        return true;
+    }
+    if (memcmp(payload, "DMRA", 4U) == 0)
+    {
+        delete[] payload;
+        return true;
+    }
+    if (memcmp(payload, "DMRB", 4U) == 0)
+    {
+        delete[] payload;
         return true;
     }
     return false;

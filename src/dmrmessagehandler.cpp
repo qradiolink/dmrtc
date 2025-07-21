@@ -16,6 +16,7 @@
 
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#include <arpa/inet.h>
 #include <QHostAddress>
 #include "dmrmessagehandler.h"
 
@@ -168,6 +169,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
             }
             msg->crc_valid = true;
             msg->udt = false;
+            msg->udt_format = header.getUDTFormat();
             _logger->log(Logger::LogLevelDebug, QString("Received defined short data header from %1 to %2 --- A: %3, GI:%4, "
                     "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
                     " Data packet format: %13")
@@ -503,8 +505,8 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
         unsigned int ip_hdr_size = sizeof(struct ip);
         const struct ip *ip_hdr = (struct ip*) msg->payload;
         _logger->log(Logger::LogLevelInfo, QString("IP frame from %1 to %2 with protocol %3.")
-                         .arg(QHostAddress(ip_hdr->ip_src.s_addr).toString())
-                     .arg(QHostAddress(ip_hdr->ip_dst.s_addr).toString()).arg(ip_hdr->ip_p));
+                         .arg(QHostAddress(ntohl(ip_hdr->ip_src.s_addr)).toString())
+                     .arg(QHostAddress(ntohl(ip_hdr->ip_dst.s_addr)).toString()).arg(ip_hdr->ip_p));
 
         if(ip_hdr->ip_p == 0x11) // UDP
         {
@@ -512,7 +514,7 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
             const struct udphdr *udp = (struct udphdr*) (msg->payload + ip_hdr_size);
             _logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
                                                        " with length %3.")
-                             .arg(udp->source).arg(udp->dest).arg(udp->len));
+                             .arg(ntohs(udp->source)).arg(ntohs(udp->dest)).arg(ntohs(udp->len)));
             // strip IP and UDP headers
             msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
             // test standard format option
