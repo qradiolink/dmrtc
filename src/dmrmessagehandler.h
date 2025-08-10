@@ -20,6 +20,7 @@
 #include <QObject>
 #include <QMap>
 #include <QVector>
+#include <cstdint>
 #include "settings.h"
 #include "logger.h"
 #include "crc9.h"
@@ -38,18 +39,28 @@ public:
     struct data_message
     {
         data_message() : size(0), type(0), pad_nibble(0), block(0), udt_format(0), sap(0),
-            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(true), crc_valid(false),
+            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(true), crc_valid(false), retry(false),
             rssi_accumulator(0.0f), ber_accumulator(0.0f), rssi(0.0f), ber(0.0f) {
-            memset(message, 0, 1024);
-            memset(payload, 0, 1024);
+            memset(message, 0, 4096);
+            memset(payload, 0, 4096);
+            memset(missed_blocks, 0, 2*sizeof(uint64_t));
+            for(int i=0;i<128;i++)
+            {
+                memset(data[i], 0, 24 * sizeof(unsigned char));
+            }
         }
         data_message(data_message *msg) : size(msg->size), type(msg->type), pad_nibble(msg->pad_nibble), block(msg->block),
             udt_format(msg->udt_format), sap(msg->sap), payload_len(msg->payload_len),
             real_src(msg->real_src), real_dst(msg->real_dst), seq_no(msg->seq_no), group(msg->group), udt(msg->udt),
-            crc_valid(msg->crc_valid), rssi_accumulator(msg->rssi_accumulator), ber_accumulator(msg->ber_accumulator),
+            crc_valid(msg->crc_valid), retry(msg->retry), rssi_accumulator(msg->rssi_accumulator), ber_accumulator(msg->ber_accumulator),
             rssi(msg->rssi), ber(msg->ber) {
-            memcpy(message, msg->message, 1024);
-            memcpy(payload, msg->payload, 1024);
+            memcpy(message, msg->message, 4096);
+            memcpy(payload, msg->payload, 4096);
+            memcpy(missed_blocks, msg->missed_blocks, 2*sizeof(uint64_t));
+            for(int i=0;i<128;i++)
+            {
+                memcpy(data[i], msg->data[i], 24 * sizeof(unsigned char));
+            }
         }
         unsigned int size;
         unsigned int type;
@@ -57,8 +68,6 @@ public:
         unsigned int block;
         unsigned int udt_format;
         unsigned int sap;
-        unsigned char message[1024];
-        unsigned char payload[1024];
         unsigned int payload_len;
         unsigned int real_src;
         unsigned int real_dst;
@@ -66,10 +75,15 @@ public:
         bool group;
         bool udt;
         bool crc_valid;
+        bool retry;
         float rssi_accumulator;
         float ber_accumulator;
         float rssi;
         float ber;
+        uint64_t missed_blocks[2];
+        unsigned char message[4096];
+        unsigned char payload[4096];
+        unsigned char data[128][24];
     };
     explicit DMRMessageHandler(Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~DMRMessageHandler();
@@ -91,9 +105,11 @@ private:
     bool processUnconfirmedMessage(data_message *msg, unsigned int block_size);
     bool processDefinedDataMessage(data_message *msg, unsigned int block_size);
     void clearMessage(unsigned int srcId);
+    void clearRetryMessage(unsigned int srcId);
 
     QMap<unsigned int, data_message*> _messages;
     QMap<unsigned int, QVector<CDMRData>*> _dmr_data_buffer;
+    QMap<unsigned int, data_message*> _retry_messages;
 
 };
 

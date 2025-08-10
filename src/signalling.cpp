@@ -161,8 +161,17 @@ CDMRData Signalling::createUDTCallDivertHeader(unsigned int srcId, unsigned int 
 }
 
 CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
-                                     unsigned int blocks, unsigned int sap, bool group)
+                                     unsigned int &blocks, unsigned int sap, bool group, uint64_t *failed_blocks)
 {
+    bool retry = false;
+    for(uint8_t i=0;i< 2;i++)
+    {
+        if(failed_blocks[i])
+        {
+            if(i > 0) blocks = 2;
+            retry = true;
+        }
+    }
     CDMRDataHeader header;
     unsigned char data[10];
     memset(data, 0U, 10U);
@@ -175,9 +184,18 @@ CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, un
     data[6] = (srcId >> 8) & 0xFF;
     data[7] = (srcId & 0xFF);
     data[8] |= blocks;
-    data[9] |= 0 << 6; // TODO: class
-    data[9] |= 1 << 3; // TODO: type
-    data[9] |= 0;      // TODO: status
+    if(!retry)
+    {
+        data[9] |= 0 << 6;
+        data[9] |= 1 << 3;
+    }
+    else
+    {
+        // FIXME: radio will reply with just a data header and unreadable data block for some reason????
+        data[9] |= 2 << 6;
+        data[9] |= 0 << 3;
+    }
+    data[9] |= seq_no & 0x07;      // TODO: status
     header.setData(data);
     unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
     header.get(header_data);
@@ -197,17 +215,20 @@ CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, un
     return dmr_data_header;
 }
 
-CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId)
+CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t *failed_blocks, uint8_t block)
 {
-    // TODO: set retry block no. bits
     unsigned char dblock[12U];
     unsigned char crc_data[8U];
-    memset(dblock, 0xFF, 5U);
-    dblock[0U] = 0xFF;
-    dblock[2U] = dblock[2U] & 0x0F;
-    dblock[3U] = dblock[3U] & 0x07;
-    dblock[4U] = dblock[4U] & 0x03;
-    memset(dblock + 5U, 0, 4U);
+    memset(dblock, 0xFF, 8U);
+    for(uint8_t i=0;i< 64;i++)
+    {
+        uint8_t block_failed = (failed_blocks[block] >> i) & 0x01;
+        if (block_failed)
+        {
+            dblock[i/8U] &= ~(1 << (i % 8));
+        }
+    }
+    memset(dblock + 8U, 0, 4U);
     for(uint i =0;i < 8U;i=i+2)
     {
         crc_data[i] = dblock[i+1];

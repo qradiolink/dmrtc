@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QDateTime>
 #include <iostream>
+#include <cstdint>
 
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)

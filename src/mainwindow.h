@@ -22,6 +22,7 @@
 #include <QTableWidgetItem>
 #include <QList>
 #include <QSet>
+#include <cstdint>
 #include "src/channelviewmodel.h"
 #include "src/logicalchannel.h"
 #include "src/settings.h"

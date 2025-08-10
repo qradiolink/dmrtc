@@ -24,6 +24,7 @@
 #include <QMutex>
 #include <QByteArray>
 #include <QSysInfo>
+#include <cstdint>
 #include "src/logger.h"
 #include "src/settings.h"
 #include "src/utils.h"

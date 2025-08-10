@@ -27,6 +27,7 @@
 #include <QListIterator>
 #include <QList>
 #include <QFileInfo>
+#include <cstdint>
 #include <libconfig.h++>
 #include "logger.h"
 

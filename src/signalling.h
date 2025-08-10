@@ -81,8 +81,8 @@ public:
     CDMRData createUDTDGNAHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks);
     CDMRData createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId, unsigned int blocks, unsigned int sap=0);
     CDMRData createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
-                                                  unsigned int blocks, unsigned int sap, bool group);
-    CDMRData createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId);
+                                                  unsigned int &blocks, unsigned int sap, bool group, uint64_t *failed_blocks);
+    CDMRData createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t *failed_blocks, uint8_t block=0);
     void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
 
 

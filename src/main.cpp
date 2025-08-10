@@ -26,6 +26,7 @@
 #include <QtGlobal>
 #include <string>
 #include <csignal>
+#include <cstdint>
 #include "src/mainwindow.h"
 #include "src/controller.h"
 #include "src/udpclient.h"

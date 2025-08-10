@@ -26,6 +26,7 @@
 #include <QDateTime>
 #include <QCoreApplication>
 #include <QtConcurrent/QtConcurrent>
+#include <cstdint>
 #include "src/settings.h"
 #include "src/logger.h"
 #include "src/udpclient.h"

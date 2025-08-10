@@ -1283,15 +1283,22 @@ void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slo
 {
     QVector<CDMRData> dmr_data_frames;
     LogicalChannel *data_rcv_channel = findChannelByPhysicalIdAndSlot(udp_channel_id, slotNo);
-    CDMRData dmr_response = _signalling_generator->createConfirmedMessageResponseHeader(StandardAddreses::HDATA_GW,
-                                                    srcId, dmessage->seq_no, 1, dmessage->sap, false);
+    unsigned int blocks = 1;
+    CDMRData dmr_response = _signalling_generator->createConfirmedMessageResponseHeader(
+                StandardAddreses::HDATA_GW, srcId, dmessage->seq_no,
+                blocks, dmessage->sap, false, dmessage->missed_blocks);
     dmr_response.setSlotNo(slotNo);
     CDMRData second_header(dmr_response);
     dmr_data_frames.append(dmr_response);
 
-    CDMRData dmr_data = _signalling_generator->createConfirmedDataResponsePayload(StandardAddreses::HDATA_GW, srcId);
-    dmr_data.setSlotNo(slotNo);
-    dmr_data_frames.append(dmr_data);
+    for(uint8_t i=0;i<blocks;i++)
+    {
+        CDMRData dmr_data = _signalling_generator->createConfirmedDataResponsePayload(
+                    StandardAddreses::HDATA_GW, srcId, dmessage->missed_blocks, i);
+        dmr_data.setSlotNo(slotNo);
+        dmr_data_frames.append(dmr_data);
+    }
+
     dmr_data_frames.append(second_header);
     data_rcv_channel->putRFQueueMultiItem(dmr_data_frames);
     data_rcv_channel->setText(QString("Response confirmation to: %1").arg(srcId));
@@ -1562,6 +1569,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
 {
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
+
     DMRMessageHandler::data_message *message = nullptr;
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
@@ -1611,6 +1619,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 _signalling_generator->createReplyUDTCRCError(csbk, srcId);
                 transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
                 _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
+            }
+            else if((message->type == DPF_CONFIRMED_DATA) && !from_gateway)
+            {
+                confirmPDPMessageReception(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
             }
         }
 
@@ -1676,6 +1688,10 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 _signalling_generator->createReplyUDTCRCError(csbk, srcId);
                 transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
                 _logger->log(Logger::LogLevelWarning, QString("Invalid UDT message CRC16 from %1").arg(srcId));
+            }
+            else if((message->type == DPF_CONFIRMED_DATA) && !from_gateway)
+            {
+                confirmPDPMessageReception(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
             }
         }
     }

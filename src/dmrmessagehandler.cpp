@@ -48,6 +48,17 @@ void DMRMessageHandler::clearMessage(unsigned int srcId)
     }
 }
 
+void DMRMessageHandler::clearRetryMessage(unsigned int srcId)
+{
+    if(_retry_messages.contains(srcId))
+    {
+        data_message *msg = _retry_messages[srcId];
+        if(msg != nullptr)
+            delete msg;
+        _retry_messages.remove(srcId);
+    }
+}
+
 void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData &dmr_data)
 {
     if(_dmr_data_buffer.contains(srcId))
@@ -95,15 +106,28 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
 
     if(dmr_data.getDataType() == DT_DATA_HEADER)
     {
-        clearDataBuffer(srcId);
-        addDataToBuffer(srcId, dmr_data);
-        clearMessage(srcId);
-        msg = new data_message;
-        _messages.insert(srcId, msg);
         unsigned char data[DMR_FRAME_LENGTH_BYTES];
         dmr_data.getData(data);
         CDMRDataHeader header;
         header.put(data);
+
+
+        clearDataBuffer(srcId);
+        addDataToBuffer(srcId, dmr_data);
+        clearMessage(srcId);
+        if(_retry_messages.contains(srcId) && (header.getDPF() == DPF_CONFIRMED_DATA))
+        {
+            // TODO: update retried blocks
+            _logger->log(Logger::LogLevelWarning, QString("Retry confirmed message header from %1 received!")
+                         .arg(srcId));
+            msg = _retry_messages[srcId];
+        }
+        else
+        {
+            msg = new data_message;
+            _messages.insert(srcId, msg);
+        }
+
         // FIXME: this value should be per channel instead of global
         msg->type = header.getDPF();
         msg->real_dst = dstId;
@@ -128,7 +152,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
         }
         else if(msg->type == DPF_CONFIRMED_DATA)
         {
-            if(msg->size > 64)
+            if(msg->size > 128)
             {
                 clearMessage(srcId);
                 return nullptr;
@@ -219,15 +243,18 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 {
                     memcpy(block, data, block_size);
                 }
+                // build message
                 if((msg->type == DPF_UDT) && (dmr_data.getDataType() == DT_RATE_12_DATA))
                 {
                     memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                    memcpy(msg->data[msg->size - msg->block], block, block_size);
                 }
                 else if(msg->type == DPF_CONFIRMED_DATA)
                 {
                     memcpy(msg->message + ((msg->size - msg->block) * (block_size - 2U)) , block + 2U, block_size - 2U);
                     uint8_t dbsn = 0;
                     bool crc_valid = block_crc(block, block_size, dbsn);
+                    memcpy(msg->data[dbsn], block + 2U, block_size - 2U);
                     if(!crc_valid)
                     {
                         if(msg->sap == 9) // proprietary data
@@ -236,6 +263,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                             if(msg->block > 1)
                             {
                                 msg->crc_valid = false;
+                                if(dbsn < 64)
+                                    msg->missed_blocks[0] |= 1 << dbsn;
+                                else
+                                    msg->missed_blocks[1] |= 1 << (dbsn - 64);
                                 _logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
                                              .arg(dbsn));
                             }
@@ -243,6 +274,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                         else
                         {
                             msg->crc_valid = false;
+                            if(dbsn < 64)
+                                msg->missed_blocks[0] |= 1 << dbsn;
+                            else
+                                msg->missed_blocks[1] |= 1 << (dbsn - 64);
                             _logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
                                          .arg(dbsn));
                         }
@@ -252,10 +287,12 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 else if(msg->type == DPF_UNCONFIRMED_DATA)
                 {
                     memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                    memcpy(msg->data[msg->size - msg->block], block, block_size);
                 }
                 else if(msg->type == DPF_DEFINED_SHORT)
                 {
                     memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                    memcpy(msg->data[msg->size - msg->block], block, block_size);
                 }
 
                 // If last block has been received, build the message
@@ -272,8 +309,29 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 {
                     if(!msg->crc_valid)
                     {
-                        clearMessage(srcId);
-                        return nullptr;
+                        bool retry = false;
+                        for(uint8_t i=0;i<2;i++)
+                            if(msg->missed_blocks[i])
+                                retry = true;
+                        if(retry && !msg->retry)
+                        {
+                            msg->retry = true;
+                            data_message *finished_message = new data_message(msg);
+                            _retry_messages.insert(srcId, finished_message);
+                            clearMessage(srcId);
+                            return finished_message; // for notifying retry blocks
+                        }
+                        else if(retry && msg->retry)
+                        {
+                            clearRetryMessage(srcId);
+                            clearMessage(srcId);
+                            return nullptr;
+                        }
+                        else
+                        {
+                            clearMessage(srcId);
+                            return nullptr;
+                        }
                     }
                     bool valid = processConfirmedMessage(msg, block_size);
                     if(!valid)
@@ -345,7 +403,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
 
 bool DMRMessageHandler::block_crc(unsigned char *block, unsigned int block_size, uint8_t &dbsn)
 {
-    dbsn = (block[0] >> 1);
+    dbsn = (block[0] >> 1) & 0x7F;
     uint16_t crc_sent = (((block[0] & 1) << 8) | block[1]) ^ 0x0F0;
     unsigned char data[block_size - 1];
     memset(data, 0, block_size - 1);
@@ -494,14 +552,6 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
     {
         msg->payload_len = msg->size * block_size - 4;
         memcpy(msg->payload, msg->message, msg->payload_len);
-
-        //print payload
-        /*
-        for(uint i=0;i<msg->size * block_size - 4;i++)
-        {
-            qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
-        }
-        */
         unsigned int ip_hdr_size = sizeof(struct ip);
         const struct ip *ip_hdr = (struct ip*) msg->payload;
         _logger->log(Logger::LogLevelInfo, QString("IP frame from %1 to %2 with protocol %3.")
@@ -564,13 +614,6 @@ bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned in
     /// Anytone H-format message
     if(msg->sap == 10 && msg->type == 13)
     {
-        //print payload
-        /*
-        for(uint i=0;i<msg->size * block_size;i++)
-        {
-            qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
-        }
-        */
         msg->payload_len = msg->size * block_size - 2 - (msg->pad_nibble / 8);
         memcpy(msg->payload, msg->message + 2, msg->payload_len);
         /// No CRC
