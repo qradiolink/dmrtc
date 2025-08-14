@@ -127,7 +127,7 @@ void UDPClient::readPendingDatagrams()
 {
     while (_udp_socket_tx->hasPendingDatagrams())
     {
-        QNetworkDatagram datagram = _udp_socket_tx->receiveDatagram();
+        QNetworkDatagram datagram = _udp_socket_tx->receiveDatagram(8192);
         if(datagram.isValid())
         {
             QByteArray data = datagram.data();

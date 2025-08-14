@@ -83,6 +83,7 @@ public:
     CDMRData createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
                                                   unsigned int &blocks, unsigned int sap, bool group, uint64_t *failed_blocks);
     CDMRData createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t *failed_blocks, uint8_t block=0);
+    CDMRData createDataTerminatorLC(unsigned int srcId, unsigned int dstId, bool group, uint8_t A, uint8_t F, uint8_t NS);
     void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
 
 

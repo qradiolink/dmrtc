@@ -261,6 +261,44 @@ CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsi
     return dmr_data;
 }
 
+
+CDMRData Signalling::createDataTerminatorLC(unsigned int srcId, unsigned int dstId, bool group, uint8_t A, uint8_t F, uint8_t NS)
+{
+    unsigned char bytes[9U];
+    memset(bytes, 0x00, 9U);
+    bytes[0U] |= 0x30;
+    bytes[2U] |= (dstId >> 16U) & 0xFF;
+    bytes[3U] |= (dstId >> 8U) & 0xFF;
+    bytes[4U] |= dstId & 0xFF;
+    bytes[5U] |= (srcId >> 16U) & 0xFF;
+    bytes[6U] |= (srcId >> 8U) & 0xFF;
+    bytes[7U] |= srcId & 0xFF;
+    bytes[8U] |= (group ? 1 : 0) << 7U;
+    bytes[8U] |= (A & 0x01) << 6U;
+    bytes[8U] |= (F & 0x01) << 5U;
+    bytes[8U] |= (NS & 0x03);
+    CDMRLC lc(bytes);
+    unsigned char payload_data[DMR_FRAME_LENGTH_BYTES];
+    CDMRFullLC fullLC;
+    fullLC.encode(lc, payload_data, DT_TERMINATOR_WITH_LC);
+    CDMRSlotType slotType;
+    slotType.putData(payload_data);
+    slotType.setColorCode(1);
+    slotType.setDataType(DT_TERMINATOR_WITH_LC);
+    slotType.getData(payload_data);
+    CSync::addDMRDataSync(payload_data, true);
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(DT_TERMINATOR_WITH_LC);
+    dmr_data.setDstId(dstId);
+    dmr_data.setSrcId(srcId);
+    dmr_data.setFLCO(FLCO_USER_USER);
+    dmr_data.setData(payload_data);
+    return dmr_data;
+}
+
+
 void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk)
 {
     uint8_t emergency_call = 0; // TODO

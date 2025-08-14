@@ -1288,7 +1288,6 @@ void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slo
                 StandardAddreses::HDATA_GW, srcId, dmessage->seq_no,
                 blocks, dmessage->sap, false, dmessage->missed_blocks);
     dmr_response.setSlotNo(slotNo);
-    CDMRData second_header(dmr_response);
     dmr_data_frames.append(dmr_response);
 
     for(uint8_t i=0;i<blocks;i++)
@@ -1299,7 +1298,12 @@ void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slo
         dmr_data_frames.append(dmr_data);
     }
 
-    dmr_data_frames.append(second_header);
+    CDMRData terminator = _signalling_generator->createDataTerminatorLC(
+                StandardAddreses::HDATA_GW, srcId, dmessage->group, 1, 1, dmessage->seq_no);
+    for(int i=0;i<10;i++)
+    {
+        dmr_data_frames.append(terminator);
+    }
     data_rcv_channel->putRFQueueMultiItem(dmr_data_frames);
     data_rcv_channel->setText(QString("Response confirmation to: %1").arg(srcId));
 }
@@ -1567,8 +1571,52 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
 
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
-    unsigned int srcId = dmr_data.getSrcId();
+    bool local_data = !from_gateway;
     unsigned int dstId = dmr_data.getDstId();
+    unsigned int srcId = dmr_data.getSrcId();
+    unsigned int dstIdRewritten;
+    /// Rewriting destination to match DMR tier III flat numbering
+    if(local_data)
+    {
+        if(dmr_data.getFLCO() == FLCO_GROUP)
+            dstIdRewritten = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+        else
+            dstIdRewritten = dmr_data.getDstId();
+    }
+    else
+    {
+        dstIdRewritten = dmr_data.getDstId();
+        _dmr_rewrite->rewriteSource(dmr_data);
+    }
+    LogicalChannel *logical_channel;
+    logical_channel = findCallChannel(dstIdRewritten, srcId);
+    if(logical_channel != nullptr)
+    {
+        bool update_gui = false;
+        if(logical_channel->getLocalCall() != local_data)
+        {
+            logical_channel->setLocalCall(local_data);
+            update_gui = true;
+        }
+        if(logical_channel->getSource() != srcId)
+        {
+            logical_channel->setSource(srcId);
+            update_gui = true;
+        }
+        if(logical_channel->getDestination() != dstIdRewritten)
+        {
+            logical_channel->setDestination(dstIdRewritten);
+            update_gui = true;
+        }
+        logical_channel->startTimeoutTimer();
+        logical_channel->startLastFrameTimer();
+        logical_channel->updateStats(dmr_data);
+
+        if(update_gui && !_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
+    }
 
     DMRMessageHandler::data_message *message = nullptr;
     if(dmr_data.getFLCO() == FLCO_GROUP)

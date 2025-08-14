@@ -20,6 +20,7 @@
 #include <QObject>
 #include <QMap>
 #include <QVector>
+#include <QTimer>
 #include <cstdint>
 #include "settings.h"
 #include "logger.h"
@@ -94,7 +95,10 @@ public:
 
 
 signals:
+    void internalStartTimer();
 
+private slots:
+    void removeMessages();
 
 private:
     Settings *_settings;
@@ -110,6 +114,7 @@ private:
     QMap<unsigned int, data_message*> _messages;
     QMap<unsigned int, QVector<CDMRData>*> _dmr_data_buffer;
     QMap<unsigned int, data_message*> _retry_messages;
+    QTimer _message_timeout_timer;
 
 };
 

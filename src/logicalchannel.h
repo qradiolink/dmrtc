@@ -63,6 +63,7 @@ public:
     void updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
     void startTimeoutTimer();
     void stopTimeoutTimer();
+    void updateStats(CDMRData &dmr_data, bool end_call=false);
     void setBusy(bool busy);
     void setDisabled(bool disabled);
     void setDestination(unsigned int destination);
@@ -113,7 +114,6 @@ signals:
 
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data);
-    void updateStats(CDMRData &dmr_data, bool end_call=false);
     void processTalkerAlias();
 
     Settings *_settings;

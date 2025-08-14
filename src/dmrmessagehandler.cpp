@@ -25,6 +25,10 @@ DMRMessageHandler::DMRMessageHandler(Settings *settings, Logger *logger, QObject
 {
     _settings = settings;
     _logger = logger;
+    _message_timeout_timer.setInterval(1000);
+    _message_timeout_timer.setSingleShot(true);
+    QObject::connect(&_message_timeout_timer, SIGNAL(timeout()), this, SLOT(removeMessages()), Qt::DirectConnection);
+    QObject::connect(this, SIGNAL(internalStartTimer()), &_message_timeout_timer, SLOT(start()));
 }
 
 DMRMessageHandler::~DMRMessageHandler()
@@ -34,6 +38,16 @@ DMRMessageHandler::~DMRMessageHandler()
     {
         clearMessage(keys[i]);
         clearDataBuffer(keys[i]);
+    }
+}
+
+void DMRMessageHandler::removeMessages()
+{
+    QVector ids = _messages.keys().toVector();
+    for(int i=0;i<ids.size();i++)
+    {
+        clearMessage(i);
+        clearRetryMessage(i);
     }
 }
 
@@ -100,9 +114,12 @@ void DMRMessageHandler::clearDataBuffer(unsigned int srcId)
 
 DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_data, bool from_gateway)
 {
+    emit internalStartTimer();
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
     data_message *msg = nullptr;
+    _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received data packet from %2 to %3")
+                 .arg(dmr_data.getSlotNo()).arg(srcId).arg(dstId));
 
     if(dmr_data.getDataType() == DT_DATA_HEADER)
     {
@@ -395,8 +412,6 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
             }
         }
     }
-    _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received data packet from %2 to %3")
-                 .arg(dmr_data.getSlotNo()).arg(srcId).arg(dstId));
 
     return nullptr;
 }
