@@ -66,6 +66,14 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
                      this, SLOT(deleteServiceId()));
     QObject::connect(ui->pushButtonAddServiceId, SIGNAL(clicked(bool)),
                      this, SLOT(addServiceId()));
+    QObject::connect(ui->pushButtonRemoveGateway, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteGateway()));
+    QObject::connect(ui->pushButtonAddGateway, SIGNAL(clicked(bool)),
+                     this, SLOT(addGateway()));
+    QObject::connect(ui->pushButtonRemoveLocalTG, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteLocalTalkgroup()));
+    QObject::connect(ui->pushButtonAddLocalTG, SIGNAL(clicked(bool)),
+                     this, SLOT(addLocalTalkgroup()));
     QObject::connect(ui->pushButtonGroupFirst, SIGNAL(clicked(bool)),
                      ui->groupCallsTableWidget, SLOT(scrollToTop()));
     QObject::connect(ui->pushButtonGroupLast, SIGNAL(clicked(bool)),
@@ -196,6 +204,8 @@ void MainWindow::setConfig()
     loadLogicalPhysicalChannels();
     loadAdjacentSites();
     loadServiceIds();
+    loadGateways();
+    loadLocalTalkgroups();
 }
 
 void MainWindow::saveConfig()
@@ -237,6 +247,8 @@ void MainWindow::saveConfig()
     saveLogicalPhysicalChannels();
     saveAdjacentSites();
     saveServiceIds();
+    saveGateways();
+    saveLocalTalkgroups();
     _settings->saveConfig();
 }
 
@@ -721,6 +733,139 @@ void MainWindow::deleteServiceId()
     for(int row : rows)
     {
         ui->tableWidgetServiceIds->removeRow(row);
+    }
+}
+
+void MainWindow::loadGateways()
+{
+    QMapIterator<unsigned int, QString> i(_settings->gateway_ids);
+    QStringList header_gateway_ids;
+    header_gateway_ids.append("Id");
+    header_gateway_ids.append("Name");
+    ui->tableWidgetGateways->setRowCount(_settings->gateway_ids.size());
+    ui->tableWidgetGateways->setColumnCount(2);
+    ui->tableWidgetGateways->setHorizontalHeaderLabels(header_gateway_ids);
+    ui->tableWidgetGateways->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetGateways->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+    while(i.hasNext())
+    {
+        i.next();
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem *name = new QTableWidgetItem(i.value());
+
+        ui->tableWidgetGateways->setItem(row, 0, id);
+        ui->tableWidgetGateways->setItem(row, 1, name);
+        row++;
+    }
+}
+
+void MainWindow::saveGateways()
+{
+    _settings->gateway_ids.clear();
+    int rows = ui->tableWidgetGateways->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetGateways->item(i, 0);
+        QTableWidgetItem *item2 = ui->tableWidgetGateways->item(i, 1);
+        bool ok2 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0)
+        {
+            item1->text().toInt(&ok2);
+        }
+        if(ok2)
+        {
+            _settings->gateway_ids.insert(item1->text().toInt(), item2->text());
+        }
+    }
+}
+
+void MainWindow::addGateway()
+{
+    ui->tableWidgetGateways->setRowCount(ui->tableWidgetGateways->rowCount() + 1);
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *name = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 0, id);
+    ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 1, name);
+    ui->tableWidgetGateways->scrollToBottom();
+}
+
+void MainWindow::deleteGateway()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetGateways->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetGateways->removeRow(row);
+    }
+}
+
+void MainWindow::loadLocalTalkgroups()
+{
+    QListIterator<unsigned int> i(_settings->local_tg_ids);
+    QStringList header_local_tgs;
+    header_local_tgs.append("Talkgroup");
+    ui->tableWidgetLocalTGs->setRowCount(_settings->local_tg_ids.size());
+    ui->tableWidgetLocalTGs->setColumnCount(1);
+    ui->tableWidgetLocalTGs->setHorizontalHeaderLabels(header_local_tgs);
+    ui->tableWidgetLocalTGs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetLocalTGs->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+    while(i.hasNext())
+    {
+
+        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.next()));
+        ui->tableWidgetLocalTGs->setItem(row, 0, id);
+        row++;
+    }
+}
+
+void MainWindow::saveLocalTalkgroups()
+{
+    _settings->local_tg_ids.clear();
+    int rows = ui->tableWidgetLocalTGs->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetLocalTGs->item(i, 0);
+        bool ok2 = false;
+        if(item1->text().size() > 0)
+        {
+            item1->text().toInt(&ok2);
+        }
+        if(ok2)
+        {
+            _settings->local_tg_ids.append(item1->text().toInt());
+        }
+    }
+}
+
+void MainWindow::addLocalTalkgroup()
+{
+    ui->tableWidgetLocalTGs->setRowCount(ui->tableWidgetLocalTGs->rowCount() + 1);
+    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetLocalTGs->setItem(ui->tableWidgetLocalTGs->rowCount() - 1, 0, id);
+    ui->tableWidgetLocalTGs->scrollToBottom();
+}
+
+void MainWindow::deleteLocalTalkgroup()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetLocalTGs->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetLocalTGs->removeRow(row);
     }
 }
 

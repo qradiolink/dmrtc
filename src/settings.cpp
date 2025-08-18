@@ -573,6 +573,36 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
     }
+    try
+    {
+        const libconfig::Setting &gw_ids = cfg.lookup("gateway_ids");
+        for(int i = 0; i < gw_ids.getLength(); ++i)
+        {
+            const libconfig::Setting &gw = gw_ids[i];
+            unsigned int id;
+            std::string name;
+            if(!(gw.lookupValue("id", id)
+                 && gw.lookupValue("name", name)))
+              continue;
+            gateway_ids.insert(id, QString::fromStdString(name));
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
+    try
+    {
+        const libconfig::Setting &tg_ids = cfg.lookup("local_tg_ids");
+        for(int i = 0; i < tg_ids.getLength(); ++i)
+        {
+          const libconfig::Setting &tg = tg_ids[i];
+          local_tg_ids.append(tg);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
+
 
 }
 
@@ -713,6 +743,29 @@ void Settings::saveConfig()
         id.add("id", libconfig::Setting::TypeInt) = (int)it_k.key();
         id.add("key", libconfig::Setting::TypeString) = it_k.value().toStdString();
     }
+
+    /// Gateway ids
+    root.add("gateway_ids",libconfig::Setting::TypeList);
+    libconfig::Setting &gw_ids = root["gateway_ids"];
+    QMapIterator<unsigned int, QString> it_gws(gateway_ids);
+    while(it_gws.hasNext())
+    {
+        it_gws.next();
+        libconfig::Setting &id = gw_ids.add(libconfig::Setting::TypeGroup);
+        id.add("id", libconfig::Setting::TypeInt) = (int)it_gws.key();
+        id.add("name", libconfig::Setting::TypeString) = it_gws.value().toStdString();
+    }
+
+    /// Local TG ids
+    root.add("local_tg_ids",libconfig::Setting::TypeList);
+    libconfig::Setting &tg_ids = root["local_tg_ids"];
+    QListIterator<unsigned int> it_tgs(local_tg_ids);
+    while(it_tgs.hasNext())
+    {
+        unsigned int tg_id = it_tgs.next();
+        tg_ids.add(libconfig::Setting::TypeInt) = (int32_t)tg_id;
+    }
+
 
     /// Write to file
     try

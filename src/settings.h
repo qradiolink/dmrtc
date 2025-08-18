@@ -71,6 +71,8 @@ public:
     QMap<unsigned int, unsigned int> call_priorities;
     QMap<unsigned int, unsigned int> call_diverts;
     QMap<unsigned int, QString> auth_keys; // Auth keys are 32 character hex strings, traducing to 16 byte key
+    QMap<unsigned int, QString> gateway_ids;
+    QList<unsigned int> local_tg_ids;
 
     int use_absolute_channel_grants;
     int use_fixed_channel_plan;

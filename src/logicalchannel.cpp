@@ -113,6 +113,22 @@ bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
     return true;
 }
 
+bool LogicalChannel::getEmbeddedDataTx(CDMRData &dmr_data)
+{
+    int gw_id = 0;
+    if(dmr_data.getFLCO() != FLCO_GROUP)
+        return true;
+    unsigned int dstId = dmr_data.getDstId();
+    if(_settings->talkgroup_routing_table.contains(dstId))
+    {
+        gw_id = _settings->talkgroup_routing_table.value(dstId);
+        if(_settings->gateway_ids.contains(gw_id))
+            return true;
+        return false;
+    }
+    return false;
+}
+
 void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type, bool local)
 {
     _data_mutex.lock();
@@ -232,7 +248,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
 {
     startLastFrameTimer();
-    rewriteEmbeddedData(dmr_data);
+    rewriteEmbeddedData(dmr_data, true);
     _rf_queue_mutex.lock();
     if(first)
         _rf_queue.prepend(dmr_data);
@@ -255,7 +271,7 @@ void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData> &dmr_data_items, bool
     for(int i=0;i<dmr_data_items.size();i++)
     {
         CDMRData dmr_data = dmr_data_items[i];
-        rewriteEmbeddedData(dmr_data);
+        rewriteEmbeddedData(dmr_data, true);
     }
     _rf_queue_mutex.lock();
     if(first)
@@ -338,7 +354,7 @@ void LogicalChannel::putNetQueue(CDMRData &dmr_data)
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
-    rewriteEmbeddedData(dmr_data);
+    rewriteEmbeddedData(dmr_data, getEmbeddedDataTx(dmr_data));
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);
     _net_queue_mutex.unlock();
@@ -364,6 +380,8 @@ bool LogicalChannel::getNetQueue(CDMRData &dmr_data)
     _net_queue_mutex.unlock();
     t1_net = std::chrono::high_resolution_clock::now();
     if(dmr_data.getDummy())
+        return false;
+    if((dmr_data.getFLCO() == FLCO_GROUP) && (_settings->local_tg_ids.contains(dmr_data.getDstId())))
         return false;
     return true;
 }
@@ -661,7 +679,7 @@ void LogicalChannel::processTalkerAlias()
     }
 }
 
-void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
+void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data)
 {
     _lc = CDMRLC(dmr_data.getFLCO(), dmr_data.getSrcId(), dmr_data.getDstId());
     unsigned int N = dmr_data.getN();
@@ -812,7 +830,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data)
         }
 
         // Regenerate the previous super blocks Embedded Data or substitude the LC for it
-        if (_embedded_data[_emb_read].isValid())
+        if (_embedded_data[_emb_read].isValid() && send_embedded_data)
         {
             lcss = _embedded_data[_emb_read].getData(data, N);
         }

@@ -113,8 +113,9 @@ signals:
     void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
 
 private:
-    void rewriteEmbeddedData(CDMRData &dmr_data);
+    void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
     void processTalkerAlias();
+    bool getEmbeddedDataTx(CDMRData &dmr_data);
 
     Settings *_settings;
     Logger *_logger;
@@ -164,7 +165,6 @@ private:
     float _ber_accumulator;
     float _ber;
     float _rssi;
-
 
 };
 

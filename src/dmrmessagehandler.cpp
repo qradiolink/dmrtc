@@ -268,6 +268,9 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 }
                 else if(msg->type == DPF_CONFIRMED_DATA)
                 {
+                    if(msg->retry)
+                    {
+                    }
                     memcpy(msg->message + ((msg->size - msg->block) * (block_size - 2U)) , block + 2U, block_size - 2U);
                     uint8_t dbsn = 0;
                     bool crc_valid = block_crc(block, block_size, dbsn);
@@ -312,7 +315,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                     memcpy(msg->data[msg->size - msg->block], block, block_size);
                 }
 
-                // If last block has been received, build the message
+                /// If last block has been received, build the message
                 if((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT))
                 {
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);

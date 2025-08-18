@@ -54,8 +54,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1584</width>
-         <height>717</height>
+         <width>1580</width>
+         <height>721</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -241,8 +241,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1584</width>
-         <height>717</height>
+         <width>1580</width>
+         <height>721</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -537,8 +537,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1584</width>
-         <height>717</height>
+         <width>1580</width>
+         <height>721</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -1100,8 +1100,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1587</width>
-         <height>740</height>
+         <width>1590</width>
+         <height>707</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -1125,7 +1125,7 @@
            <item>
             <widget class="QTabWidget" name="tabWidgetSettings">
              <property name="currentIndex">
-              <number>0</number>
+              <number>8</number>
              </property>
              <property name="iconSize">
               <size>
@@ -2304,6 +2304,158 @@ message</string>
                </item>
               </layout>
              </widget>
+             <widget class="QWidget" name="tabGateways">
+              <attribute name="icon">
+               <iconset>
+                <normalon>:/res/preferences-system-network.png</normalon>
+               </iconset>
+              </attribute>
+              <attribute name="title">
+               <string>Gateways</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_28">
+               <item>
+                <widget class="QFrame" name="frame_32">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_27">
+                  <item>
+                   <widget class="QTableWidget" name="tableWidgetGateways"/>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_33">
+                    <property name="frameShape">
+                     <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_19">
+                     <item>
+                      <widget class="QPushButton" name="pushButtonAddGateway">
+                       <property name="text">
+                        <string>Add</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-add.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="pushButtonRemoveGateway">
+                       <property name="text">
+                        <string>Delete</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-remove.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_18">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tabLocalTGs">
+              <attribute name="icon">
+               <iconset>
+                <normalon>:/res/system-users.png</normalon>
+               </iconset>
+              </attribute>
+              <attribute name="title">
+               <string>Local talkgroups</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_30">
+               <item>
+                <widget class="QFrame" name="frame_34">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_29">
+                  <item>
+                   <widget class="QTableWidget" name="tableWidgetLocalTGs"/>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_35">
+                    <property name="frameShape">
+                     <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_20">
+                     <item>
+                      <widget class="QPushButton" name="pushButtonAddLocalTG">
+                       <property name="text">
+                        <string>Add</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-add.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="pushButtonRemoveLocalTG">
+                       <property name="text">
+                        <string>Delete</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-remove.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_19">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
             </widget>
            </item>
            <item>
@@ -2370,7 +2522,7 @@ message</string>
      <x>0</x>
      <y>0</y>
      <width>1600</width>
-     <height>36</height>
+     <height>29</height>
     </rect>
    </property>
   </widget>
