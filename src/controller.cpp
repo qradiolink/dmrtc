@@ -709,7 +709,7 @@ void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, u
 void Controller::sendRSSIInfo(float rssi, float ber, unsigned int srcId)
 {
     QThread::sleep(2);
-    QString message = QString("Your RSSI: %1, BER: %2").arg(rssi).arg(ber);
+    QString message = QString("Your RSSI is %1, BER - %2").arg(rssi).arg(ber);
     sendUDTShortMessage(message, srcId, _settings->service_ids.value("signal_report", StandardAddreses::SDMI));
     _control_channel->setText(QString("Signal report message: %1").arg(srcId));
     if(!_settings->headless_mode)
@@ -1491,14 +1491,15 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-        QString message = "Commands: \n";
+        QList<QString> messages;
+        messages.append(QString("Available commands"));
         QMapIterator<QString, unsigned int> it(_settings->service_ids);
         while(it.hasNext())
         {
             it.next();
-            message += QString("%1: %2;\n").arg(it.key()).arg(it.value());
+            messages.append(QString("%1 - %2").arg(it.key()).arg(it.value()));
         }
-        sendUDTShortMessage(message, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI));
+        QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI), false);
         _control_channel->setText(QString("Help message: %1").arg(srcId));
         if(!_settings->headless_mode)
         {
