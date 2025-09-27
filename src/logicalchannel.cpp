@@ -116,8 +116,6 @@ bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
 bool LogicalChannel::getEmbeddedDataTx(CDMRData &dmr_data)
 {
     int gw_id = 0;
-    if(dmr_data.getFLCO() != FLCO_GROUP)
-        return true;
     unsigned int dstId = dmr_data.getDstId();
     if(_settings->talkgroup_routing_table.contains(dstId))
     {

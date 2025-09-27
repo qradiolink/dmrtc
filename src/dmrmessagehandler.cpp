@@ -48,6 +48,7 @@ void DMRMessageHandler::removeMessages()
     {
         clearMessage(i);
         clearRetryMessage(i);
+        clearDataBuffer(i);
     }
 }
 
@@ -270,6 +271,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 {
                     if(msg->retry)
                     {
+
                     }
                     memcpy(msg->message + ((msg->size - msg->block) * (block_size - 2U)) , block + 2U, block_size - 2U);
                     uint8_t dbsn = 0;
