@@ -90,6 +90,7 @@ public slots:
     void authSuccess(bool successful);
     void sendLocalTimeBroadcast();
     void sendFrequenciesBroadcast();
+    void announceSystemMessage();
 
 signals:
     void displayInitialized();
@@ -103,6 +104,7 @@ signals:
     void sendAuthCheck(unsigned int target_id);
     void broadcastLocalTime();
     void broadcastFrequencies();
+    void sendAnnouncement();
 
 private:
     Ui::MainWindow *ui;

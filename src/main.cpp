@@ -176,6 +176,7 @@ void connectGuiSignals(MainWindow *w, Controller *controller)
     QObject::connect(w, SIGNAL(sendAuthCheck(uint)), controller, SLOT(sendAuthCheck(uint)));
     QObject::connect(w, SIGNAL(broadcastLocalTime()), controller, SLOT(announceLocalTime()));
     QObject::connect(w, SIGNAL(broadcastFrequencies()), controller, SLOT(announceSystemFreqs()));
+    QObject::connect(w, SIGNAL(sendAnnouncement()), controller, SLOT(announceSystemMessage()));
 
 }
 

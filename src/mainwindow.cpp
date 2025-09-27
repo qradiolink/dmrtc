@@ -42,6 +42,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonAuthCheck, SIGNAL(clicked(bool)), this, SLOT(authCheck()));
     QObject::connect(ui->pushButtonBroadcastTime, SIGNAL(clicked(bool)), this, SLOT(sendLocalTimeBroadcast()));
     QObject::connect(ui->pushButtonBroadcastFrequencies, SIGNAL(clicked(bool)), this, SLOT(sendFrequenciesBroadcast()));
+    QObject::connect(ui->pushButtonAnnounceSystemMessage, SIGNAL(clicked(bool)), this, SLOT(announceSystemMessage()));
     QObject::connect(ui->pushButtonRemoveTalkgroupRoute, SIGNAL(clicked(bool)),
                      this, SLOT(deleteTalkgroupRow()));
     QObject::connect(ui->pushButtonAddTalkgroupRoute, SIGNAL(clicked(bool)),
@@ -1116,6 +1117,11 @@ void MainWindow::requestRegistration()
 void MainWindow::sendSystemMessage()
 {
     emit sendShortMessage(ui->textEditSystemMessageOnce->toPlainText(), 0, 0, false);
+}
+
+void MainWindow::announceSystemMessage()
+{
+    emit sendAnnouncement();
 }
 
 void MainWindow::sendMessageToRadio()

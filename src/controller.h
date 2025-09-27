@@ -73,7 +73,6 @@ public:
     ~Controller();
     QVector<LogicalChannel*>* getLogicalChannels();
     void announceLateEntry();
-    void announceSystemMessage();
     CDMRCSBK createRegistrationRequest();
 
 public slots:
@@ -88,6 +87,7 @@ public slots:
     void requestMassRegistration();
     void setChannelEnabled(unsigned int index, bool state);
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0, bool group=false);
+    void sendUDTMultipartMessage(QList<QString> messages, unsigned int dstId, unsigned int srcId=0, bool group=false);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach=true);
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap=0);
     void pingRadio(unsigned int target_id, bool group=false);
@@ -99,6 +99,7 @@ public slots:
     void announceLocalTime();
     void announceSystemFreqs();
     void announceAdjacentSites();
+    void announceSystemMessage();
 
 signals:
     void finished();

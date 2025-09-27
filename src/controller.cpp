@@ -433,15 +433,17 @@ void Controller::announceSystemMessage()
     if(_stop_thread)
         return;
     QVector<LogicalChannel*> active_calls = findActiveChannels();
-    QString message = QString("%1 - users: %2, channels: %3, calls: %4, text %5 for help")
-            .arg(_settings->system_announcement_message)
+    QList<QString> messages;
+    messages.append(QString("%1").arg(_settings->system_announcement_message));
+    messages.append(QString("IP connection - %1").arg(_settings->gateway_enabled ? "yes" : "no"));
+    messages.append(QString("Users - %1, channels - %2, active calls - %3")
             .arg(_registered_ms->size())
             .arg(_settings->logical_physical_channels.size())
-            .arg(active_calls.size())
-            .arg(_settings->service_ids.value("help"));
-    _logger->log(Logger::LogLevelInfo, QString("Announcing system message: %1").arg(message));
+            .arg(active_calls.size()));
+    messages.append(QString("Send SMS to %1 for command help")
+            .arg(_settings->service_ids.value("help")));
     unsigned int dstId = StandardAddreses::ALLMSID;
-    sendUDTShortMessage(message, dstId);
+    QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, dstId, StandardAddreses::DISPATI, false);
 }
 
 
@@ -458,7 +460,7 @@ void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int d
     dmr_data_header.setSlotNo(_control_channel->getSlot());
     dmr_data_frames.append(dmr_data_header);
 
-    unsigned char *data_message = (unsigned char*)(message.toLocal8Bit().constData());
+    unsigned char *data_message = (unsigned char*)(message.toUtf8().constData());
     unsigned char data[msg_size + pad_nibble / 2 + 2U];
     memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
     memcpy(data, data_message, msg_size);
@@ -554,6 +556,16 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     }
 
     buildUDTShortMessageSequence(srcId, dstId, message, group);
+}
+
+void Controller::sendUDTMultipartMessage(QList<QString> messages, unsigned int dstId, unsigned int srcId, bool group)
+{
+    for(int i=0;i<messages.size();i++)
+    {
+        QString msg = messages.at(i);
+        sendUDTShortMessage(msg, dstId, srcId, group);
+        QThread::sleep(2); // very crude workaround for bad design
+    }
 }
 
 void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
@@ -1087,13 +1099,15 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     if(!existing_user && _settings->announce_system_message)
     {
         QVector<LogicalChannel*> active_calls = findActiveChannels();
-        QString message = QString("Welcome %1, users: %2, channels: %3, calls: %4, text %5 for help")
-                .arg(_id_lookup->getCallsign(srcId))
+        QList<QString> messages;
+        messages.append(QString("Welcome %1").arg(_id_lookup->getCallsign(srcId)));
+        messages.append(QString("Users - %1, channels - %2, active calls - %3")
                 .arg(_registered_ms->size())
                 .arg(_settings->logical_physical_channels.size())
-                .arg(active_calls.size())
-                .arg(_settings->service_ids.value("help"));
-        sendUDTShortMessage(message, srcId);
+                .arg(active_calls.size()));
+        messages.append(QString("Send SMS to %1 for command help")
+                .arg(_settings->service_ids.value("help")));
+        QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false);
     }
 
     QList<unsigned int> tg_list;
@@ -2346,13 +2360,15 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
         if(!existing_user && _settings->announce_system_message)
         {
             QVector<LogicalChannel*> active_calls = findActiveChannels();
-            QString message1 = QString("Welcome %1, users: %2, channels: %3, calls: %4, text %5 for help")
-                    .arg(_id_lookup->getCallsign(srcId))
+            QList<QString> messages;
+            messages.append(QString("Welcome %1").arg(_id_lookup->getCallsign(srcId)));
+            messages.append(QString("Users - %1, channels - %2, calls - %3,")
                     .arg(_registered_ms->size())
                     .arg(_settings->logical_physical_channels.size())
-                    .arg(active_calls.size())
-                    .arg(_settings->service_ids.value("help"));
-            sendUDTShortMessage(message1, srcId);
+                    .arg(active_calls.size()));
+            messages.append(QString("Send SMS to %1 for command help")
+                    .arg(_settings->service_ids.value("help")));
+            QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false);
         }
     }
 }
