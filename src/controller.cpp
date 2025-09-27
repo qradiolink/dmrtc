@@ -432,12 +432,12 @@ void Controller::announceSystemMessage()
 {
     if(_stop_thread)
         return;
-    announceLocalTime();
+    QVector<LogicalChannel*> active_calls = findActiveChannels();
     QString message = QString("%1 - users: %2, channels: %3, calls: %4, text %5 for help")
             .arg(_settings->system_announcement_message)
             .arg(_registered_ms->size())
             .arg(_settings->logical_physical_channels.size())
-            .arg(_settings->logical_physical_channels.size() / 2 - 1)
+            .arg(active_calls.size())
             .arg(_settings->service_ids.value("help"));
     _logger->log(Logger::LogLevelInfo, QString("Announcing system message: %1").arg(message));
     unsigned int dstId = StandardAddreses::ALLMSID;
@@ -1086,11 +1086,12 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     transmitCSBK(csbk, nullptr, slotNo, udp_channel_id, false, false);
     if(!existing_user && _settings->announce_system_message)
     {
+        QVector<LogicalChannel*> active_calls = findActiveChannels();
         QString message = QString("Welcome %1, users: %2, channels: %3, calls: %4, text %5 for help")
                 .arg(_id_lookup->getCallsign(srcId))
                 .arg(_registered_ms->size())
                 .arg(_settings->logical_physical_channels.size())
-                .arg(_settings->logical_physical_channels.size() / 2 - 1)
+                .arg(active_calls.size())
                 .arg(_settings->service_ids.value("help"));
         sendUDTShortMessage(message, srcId);
     }
@@ -2344,11 +2345,12 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
         transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
         if(!existing_user && _settings->announce_system_message)
         {
+            QVector<LogicalChannel*> active_calls = findActiveChannels();
             QString message1 = QString("Welcome %1, users: %2, channels: %3, calls: %4, text %5 for help")
                     .arg(_id_lookup->getCallsign(srcId))
                     .arg(_registered_ms->size())
                     .arg(_settings->logical_physical_channels.size())
-                    .arg(_settings->logical_physical_channels.size() / 2 - 1)
+                    .arg(active_calls.size())
                     .arg(_settings->service_ids.value("help"));
             sendUDTShortMessage(message1, srcId);
         }
