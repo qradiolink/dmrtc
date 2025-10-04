@@ -449,66 +449,9 @@ void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int d
                                               bool group)
 {
     dstId = group ? Utils::convertBase10ToBase11GroupNumber(dstId) : dstId;
+    unsigned int slot_no = _control_channel->getSlot();
     QVector<CDMRData> dmr_data_frames;
-    unsigned int msg_size = message.size();
-    unsigned int blocks = 0;
-    unsigned int pad_nibble = 0;
-    _signalling_generator->getUABPadNibble(msg_size, blocks, pad_nibble);
-    CDMRData dmr_data_header = _signalling_generator->createUDTMessageHeader(srcId, dstId, blocks, pad_nibble, group);
-    dmr_data_header.setSlotNo(_control_channel->getSlot());
-    dmr_data_frames.append(dmr_data_header);
-
-    unsigned char *data_message = (unsigned char*)(message.toUtf8().constData());
-    unsigned char data[msg_size + pad_nibble / 2 + 2U];
-    memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
-    memcpy(data, data_message, msg_size);
-    unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
-    CCRC::addCCITT162(data, msg_size + pad_nibble / 2 + 2U);
-    unsigned int i;
-    for(i=0;i<blocks - 1;i++)
-    {
-        unsigned char payload[12];
-        memcpy(payload, data + i*12U, 12U);
-        CBPTC19696 bptc1;
-        bptc1.encode(payload, payload_data[i]);
-        CDMRSlotType slotType1;
-        slotType1.putData(payload_data[i]);
-        slotType1.setDataType(DT_RATE_12_DATA);
-        slotType1.setColorCode(1);
-        slotType1.getData(payload_data[i]);
-        CSync::addDMRDataSync(payload_data[i], true);
-        CDMRData dmr_data;
-        dmr_data.setSeqNo(0);
-        dmr_data.setN(0);
-        dmr_data.setDataType(DT_RATE_12_DATA);
-        dmr_data.setSlotNo(_control_channel->getSlot());
-        dmr_data.setDstId(dmr_data_header.getDstId());
-        dmr_data.setSrcId(dmr_data_header.getSrcId());
-        dmr_data.setData(payload_data[i]);
-        dmr_data_frames.append(dmr_data);
-    }
-    unsigned char final_block[12U];
-    memset(final_block, 0, 12U);
-    memcpy(final_block, data + i*12U, 10U);
-    final_block[10U] = data[msg_size + pad_nibble / 2];
-    final_block[11U] = data[msg_size + pad_nibble / 2 + 1U];
-    CBPTC19696 bptc3;
-    bptc3.encode(final_block, payload_data[3]);
-    CDMRSlotType slotType3;
-    slotType3.putData(payload_data[3]);
-    slotType3.setColorCode(1);
-    slotType3.setDataType(DT_RATE_12_DATA);
-    slotType3.getData(payload_data[3]);
-    CSync::addDMRDataSync(payload_data[3], true);
-    CDMRData dmr_data3;
-    dmr_data3.setSeqNo(0);
-    dmr_data3.setN(0);
-    dmr_data3.setDataType(DT_RATE_12_DATA);
-    dmr_data3.setSlotNo(_control_channel->getSlot());
-    dmr_data3.setDstId(dmr_data_header.getDstId());
-    dmr_data3.setSrcId(dmr_data_header.getSrcId());
-    dmr_data3.setData(payload_data[3]);
-    dmr_data_frames.append(dmr_data3);
+    _signalling_generator->buildUDTShortMessageSequence(dmr_data_frames, srcId, dstId, message, group, slot_no);
     _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
@@ -607,57 +550,8 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
     QVector<CDMRData> dmr_data_frames;
-    CDMRData dmr_data_header = _signalling_generator->createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
-    dmr_data_header.setSlotNo(_control_channel->getSlot());
-    dmr_data_frames.append(dmr_data_header);
-
-    unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
-    CCRC::addCCITT162(data, 48U);
-    unsigned int i;
-    for(i=0;i<blocks - 1;i++)
-    {
-        unsigned char payload[12];
-        memcpy(payload, data + i*12U, 12U);
-        CBPTC19696 bptc1;
-        bptc1.encode(payload, payload_data[i]);
-        CDMRSlotType slotType1;
-        slotType1.putData(payload_data[i]);
-        slotType1.setDataType(DT_RATE_12_DATA);
-        slotType1.setColorCode(1);
-        slotType1.getData(payload_data[i]);
-        CSync::addDMRDataSync(payload_data[i], true);
-        CDMRData dmr_data;
-        dmr_data.setSeqNo(0);
-        dmr_data.setN(0);
-        dmr_data.setDataType(DT_RATE_12_DATA);
-        dmr_data.setSlotNo(_control_channel->getSlot());
-        dmr_data.setDstId(dmr_data_header.getDstId());
-        dmr_data.setSrcId(dmr_data_header.getSrcId());
-        dmr_data.setData(payload_data[i]);
-        dmr_data_frames.append(dmr_data);
-    }
-    unsigned char final_block[12U];
-    memset(final_block, 0, 12U);
-    memcpy(final_block, data + i*12U, 10U);
-    final_block[10U] = data[46];
-    final_block[11U] = data[47];
-    CBPTC19696 bptc3;
-    bptc3.encode(final_block, payload_data[3]);
-    CDMRSlotType slotType3;
-    slotType3.putData(payload_data[3]);
-    slotType3.setColorCode(1);
-    slotType3.setDataType(DT_RATE_12_DATA);
-    slotType3.getData(payload_data[3]);
-    CSync::addDMRDataSync(payload_data[3], true);
-    CDMRData dmr_data3;
-    dmr_data3.setSeqNo(0);
-    dmr_data3.setN(0);
-    dmr_data3.setDataType(DT_RATE_12_DATA);
-    dmr_data3.setSlotNo(_control_channel->getSlot());
-    dmr_data3.setDstId(dmr_data_header.getDstId());
-    dmr_data3.setSrcId(dmr_data_header.getSrcId());
-    dmr_data3.setData(payload_data[3]);
-    dmr_data_frames.append(dmr_data3);
+    unsigned int slot_no = _control_channel->getSlot();
+    _signalling_generator->buildUDTDGNAShortMessageSequence(dmr_data_frames, dstId, data, blocks, slot_no);
     _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
@@ -676,31 +570,8 @@ void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, u
     _logger->log(Logger::LogLevelDebug, QString("Sending call divert information for radio: %1 to radio: %2").arg(dstId).arg(srcId));
 
     QVector<CDMRData> dmr_data_frames;
-    CDMRData dmr_data_header = _signalling_generator->createUDTCallDivertHeader(StandardAddreses::MSI, srcId, blocks, sap);
-    dmr_data_header.setSlotNo(_control_channel->getSlot());
-    dmr_data_frames.append(dmr_data_header);
-    // TODO: handle case where address is 2 blocks
-    unsigned char payload_data[1][DMR_FRAME_LENGTH_BYTES];
-    CCRC::addCCITT162(data, 12U);
-    unsigned char payload[12];
-    memcpy(payload, data, 12U);
-    CBPTC19696 bptc1;
-    bptc1.encode(payload, payload_data[0]);
-    CDMRSlotType slotType1;
-    slotType1.putData(payload_data[0]);
-    slotType1.setDataType(DT_RATE_12_DATA);
-    slotType1.setColorCode(1);
-    slotType1.getData(payload_data[0]);
-    CSync::addDMRDataSync(payload_data[0], true);
-    CDMRData dmr_data;
-    dmr_data.setSeqNo(0);
-    dmr_data.setN(0);
-    dmr_data.setDataType(DT_RATE_12_DATA);
-    dmr_data.setSlotNo(_control_channel->getSlot());
-    dmr_data.setDstId(dmr_data_header.getDstId());
-    dmr_data.setSrcId(dmr_data_header.getSrcId());
-    dmr_data.setData(payload_data[0]);
-    dmr_data_frames.append(dmr_data);
+    unsigned int slot_no = _control_channel->getSlot();
+    _signalling_generator->buildUDTCallDivertShortMessageSequence(dmr_data_frames, StandardAddreses::MSI, srcId, data, blocks, sap, slot_no);
     _control_channel->putRFQueueMultiItem(dmr_data_frames);
 }
 
@@ -1148,66 +1019,21 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRM
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
     memcpy(msg, dmessage->message, size);
-    uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
-    uint16_t NMINF, EMINF, COG;
-    C = msg[0] >> 7;
-    NS = (msg[0] >> 6) & 0x01;
-    EW = (msg[0] >> 5) & 0x01;
-    Q = (msg[0] >> 4) & 0x01;
-    SPEED = (msg[0] & 0x0F) << 3;
-    SPEED |= (msg[1] >> 5);
-    NDEG = (msg[1] & 0x1F) << 2;
-    NDEG |= (msg[2] >> 6);
-    NMIN = (msg[2] & 0x3F);
-    NMINF = msg[3] << 6;
-    NMINF |= msg[4] >> 2;
-    EDEG = (msg[4] & 0x03) << 6;
-    EDEG |= (msg[5] >> 2);
-    EMINmm = (msg[5] & 0x03) << 4;
-    EMINmm |= (msg[6] >> 4);
-    EMINF = (msg[6] & 0x0F) << 10;
-    EMINF |= (msg[7] << 2);
-    EMINF |= (msg[8] >> 6);
-    UTChh = (msg[8] >> 1) & 0x1F;
-    UTCmm = (msg[8] & 0x01) << 5;
-    UTCmm |= (msg[9] >> 3);
-    if(dmessage->size == 1)
-    {
-        UTCss = (msg[9] & 0x07);
-        COG = 0;
-    }
-    else if(dmessage->size == 2)
-    {
-        UTCss = (msg[9] & 0x07) << 3;
-        UTCss |= msg[10] >> 5;
-        COG = (msg[12] & 0x01) << 8;
-        COG |= msg[13];
-    }
-    else
-    {
-        UTCss = 0;
-        COG = 0;
-    }
-    QString lat = NS ? "N" : "S";
-    QString longit = EW ? "E" : "W";
-    QString message = QString("Position message: Encrypted: %1, Fix: %4, Speed: %5,"
-                                " Latitude: %2 %6 degrees %7.%8 minutes, Longitude: %3 %9 degrees %10.%11 minutes,"
-                                " Time: %12:%13:%14 UTC, Course: %15 degrees")
-            .arg(C ? "yes" : "no").arg(lat).arg(longit).arg(Q ? "valid" : "no fix").arg(SPEED).arg(NDEG).arg(NMIN).arg(NMINF).arg(EDEG).arg(EMINmm).arg(EMINF)
-            .arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG);
+    QList<QString> messages = Utils::readNMEA(msg , dmessage->size);
+    QStringList allmsg(messages);
     _logger->log(Logger::LogLevelInfo, QString("Received NMEA UDT location message from %1 to %2: %3")
           .arg(srcId)
           .arg(dstId)
-          .arg(message));
+          .arg(allmsg.join(", ")));
     if(dstId != StandardAddreses::SDMI)
     {
-        sendUDTShortMessage(message, dstId, srcId);
+        sendUDTMultipartMessage(messages, dstId, srcId, false);
     }
     if(!_settings->headless_mode)
     {
         if(dstId == StandardAddreses::SDMI)
-            emit positionResponse(srcId, message);
-        emit updateMessageLog(srcId, dstId, message, false);
+            emit positionResponse(srcId, allmsg.join(", "));
+        emit updateMessageLog(srcId, dstId, allmsg.join(", "), false);
     }
     _control_channel->setText(QString("Position message: %1").arg(srcId));
     if(!_settings->headless_mode)
@@ -3047,65 +2873,12 @@ void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
                 " dst: " << dstId << " src: " << srcId;
 }
 
-CDMRData Controller::createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk)
-{
-    unsigned char dataType = csbk.getDataType();
-    CDMRData dmr_data;
-    dmr_data.setSeqNo(0);
-    dmr_data.setN(0);
-    dmr_data.setDataType(dataType);
-    dmr_data.setSlotNo(slotNo);
-
-    unsigned char repacked_data[DMR_FRAME_LENGTH_BYTES];
-    // Regenerate the CSBK data
-    csbk.get(repacked_data);
-    CDMRSlotType slotType;
-    slotType.putData(repacked_data);
-    slotType.setColorCode(1);
-    slotType.setDataType(dataType);
-    slotType.getData(repacked_data);
-
-    CSync::addDMRDataSync(repacked_data, 1);
-    dmr_data.setDstId(csbk.getDstId());
-    dmr_data.setSrcId(csbk.getSrcId());
-    dmr_data.setData(repacked_data);
-
-    return dmr_data;
-}
-
-CDMRData Controller::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant)
-{
-    CDMRData dmr_data_wait;
-    if(channel_grant)
-    {
-        CDMRCSBK csbk_wait;
-        _signalling_generator->createReplyWaitForSignalling(csbk_wait, csbk.getDstId());
-        dmr_data_wait.setSeqNo(0);
-        dmr_data_wait.setN(0);
-        dmr_data_wait.setDataType(DT_CSBK);
-        dmr_data_wait.setSlotNo(slotNo);
-
-        unsigned char repacked_data_wait[DMR_FRAME_LENGTH_BYTES];
-        // Regenerate the CSBK data
-        csbk_wait.get(repacked_data_wait);
-        CDMRSlotType slotType;
-        slotType.setColorCode(1);
-        slotType.setDataType(DT_CSBK);
-        slotType.getData(repacked_data_wait);
-
-        CSync::addDMRDataSync(repacked_data_wait, 1);
-        dmr_data_wait.setDstId(csbk_wait.getDstId());
-        dmr_data_wait.setSrcId(csbk_wait.getSrcId());
-        dmr_data_wait.setData(repacked_data_wait);
-    }
-    return dmr_data_wait;
-}
 
 void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
                                   unsigned int udp_channel_id, bool channel_grant, bool priority_queue, bool announce_priority)
 {
-    CDMRData dmr_data_wait = createWaitForSignallingAnswer(slotNo, csbk, channel_grant);
-    CDMRData dmr_data = createDataFromCSBK(slotNo, csbk);
+    CDMRData dmr_data_wait = _signalling_generator->createWaitForSignallingAnswer(slotNo, csbk, channel_grant);
+    CDMRData dmr_data = _signalling_generator->createDataFromCSBK(slotNo, csbk);
     LogicalChannel *main_channel = findChannelByPhysicalIdAndSlot(udp_channel_id, slotNo);
 
     if (channel_grant)

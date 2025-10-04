@@ -123,3 +123,58 @@ void Utils::parseISO7bitToISO8bit(unsigned char *msg, unsigned char *converted, 
         }
     }
 }
+
+QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
+{
+    uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
+    uint16_t NMINF, EMINF, COG;
+    C = msg[0] >> 7;
+    NS = (msg[0] >> 6) & 0x01;
+    EW = (msg[0] >> 5) & 0x01;
+    Q = (msg[0] >> 4) & 0x01;
+    SPEED = (msg[0] & 0x0F) << 3;
+    SPEED |= (msg[1] >> 5);
+    NDEG = (msg[1] & 0x1F) << 2;
+    NDEG |= (msg[2] >> 6);
+    NMIN = (msg[2] & 0x3F);
+    NMINF = msg[3] << 6;
+    NMINF |= msg[4] >> 2;
+    EDEG = (msg[4] & 0x03) << 6;
+    EDEG |= (msg[5] >> 2);
+    EMINmm = (msg[5] & 0x03) << 4;
+    EMINmm |= (msg[6] >> 4);
+    EMINF = (msg[6] & 0x0F) << 10;
+    EMINF |= (msg[7] << 2);
+    EMINF |= (msg[8] >> 6);
+    UTChh = (msg[8] >> 1) & 0x1F;
+    UTCmm = (msg[8] & 0x01) << 5;
+    UTCmm |= (msg[9] >> 3);
+    if(dsize == 1)
+    {
+        UTCss = (msg[9] & 0x07);
+        COG = 0;
+    }
+    else if(dsize == 2)
+    {
+        UTCss = (msg[9] & 0x07) << 3;
+        UTCss |= msg[10] >> 5;
+        COG = (msg[12] & 0x01) << 8;
+        COG |= msg[13];
+    }
+    else
+    {
+        UTCss = 0;
+        COG = 0;
+    }
+    QString lat = NS ? "N" : "S";
+    QString longit = EW ? "E" : "W";
+    QList<QString> messages;
+    messages.append(QString("Position message: Encrypted: %1").arg(C ? "yes" : "no"));
+    messages.append(QString("Fix: %1, Speed: %2").arg(Q ? "valid" : "no fix").arg(SPEED));
+    messages.append(QString("Latitude: %1 %2 degrees %3.%4 minutes").arg(lat).arg(NDEG).arg(NMIN).arg(NMINF));
+    messages.append(QString("Longitude: %1 %2 degrees %3.%4 minutes").arg(longit).arg(EDEG).arg(EMINmm).arg(EMINF));
+    messages.append(QString("Time: %1:%2:%3 UTC, Course: %4 degrees").arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG));
+    return messages;
+}
+
+

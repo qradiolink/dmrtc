@@ -133,8 +133,6 @@ private:
     bool validateLocalSourceId(unsigned int srcId);
     void processSignalling(CDMRData &dmr_data, int udp_channel_id);
     void processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id);
-    CDMRData createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk);
-    CDMRData createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant);
     void transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int slotNo,
                           unsigned int udp_channel_id, bool channel_grant=false, bool priority_queue=false, bool announce_priority=false);
     void processVoice(CDMRData &dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway=false);

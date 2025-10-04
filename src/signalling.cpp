@@ -992,3 +992,210 @@ void Signalling::createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
+void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
+                                              unsigned int srcId, unsigned int dstId,
+                                              QString message, bool group, unsigned int slot_no)
+{
+    unsigned int msg_size = message.size();
+    unsigned int blocks = 0;
+    unsigned int pad_nibble = 0;
+    getUABPadNibble(msg_size, blocks, pad_nibble);
+    CDMRData dmr_data_header = createUDTMessageHeader(srcId, dstId, blocks, pad_nibble, group);
+    dmr_data_header.setSlotNo(slot_no);
+    dmr_data_frames.append(dmr_data_header);
+
+    unsigned char *data_message = (unsigned char*)(message.toUtf8().constData());
+    unsigned char data[msg_size + pad_nibble / 2 + 2U];
+    memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
+    memcpy(data, data_message, msg_size);
+    unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
+    CCRC::addCCITT162(data, msg_size + pad_nibble / 2 + 2U);
+    unsigned int i;
+    for(i=0;i<blocks - 1;i++)
+    {
+        unsigned char payload[12];
+        memcpy(payload, data + i*12U, 12U);
+        CBPTC19696 bptc1;
+        bptc1.encode(payload, payload_data[i]);
+        CDMRSlotType slotType1;
+        slotType1.putData(payload_data[i]);
+        slotType1.setDataType(DT_RATE_12_DATA);
+        slotType1.setColorCode(1);
+        slotType1.getData(payload_data[i]);
+        CSync::addDMRDataSync(payload_data[i], true);
+        CDMRData dmr_data;
+        dmr_data.setSeqNo(0);
+        dmr_data.setN(0);
+        dmr_data.setDataType(DT_RATE_12_DATA);
+        dmr_data.setSlotNo(slot_no);
+        dmr_data.setDstId(dmr_data_header.getDstId());
+        dmr_data.setSrcId(dmr_data_header.getSrcId());
+        dmr_data.setData(payload_data[i]);
+        dmr_data_frames.append(dmr_data);
+    }
+    unsigned char final_block[12U];
+    memset(final_block, 0, 12U);
+    memcpy(final_block, data + i*12U, 10U);
+    final_block[10U] = data[msg_size + pad_nibble / 2];
+    final_block[11U] = data[msg_size + pad_nibble / 2 + 1U];
+    CBPTC19696 bptc3;
+    bptc3.encode(final_block, payload_data[3]);
+    CDMRSlotType slotType3;
+    slotType3.putData(payload_data[3]);
+    slotType3.setColorCode(1);
+    slotType3.setDataType(DT_RATE_12_DATA);
+    slotType3.getData(payload_data[3]);
+    CSync::addDMRDataSync(payload_data[3], true);
+    CDMRData dmr_data3;
+    dmr_data3.setSeqNo(0);
+    dmr_data3.setN(0);
+    dmr_data3.setDataType(DT_RATE_12_DATA);
+    dmr_data3.setSlotNo(slot_no);
+    dmr_data3.setDstId(dmr_data_header.getDstId());
+    dmr_data3.setSrcId(dmr_data_header.getSrcId());
+    dmr_data3.setData(payload_data[3]);
+    dmr_data_frames.append(dmr_data3);
+}
+
+void Signalling::buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
+                                              unsigned int dstId,
+                                              unsigned char *data, unsigned int blocks, unsigned int slot_no)
+{
+    CDMRData dmr_data_header = createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
+    dmr_data_header.setSlotNo(slot_no);
+    dmr_data_frames.append(dmr_data_header);
+
+    unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
+    CCRC::addCCITT162(data, 48U);
+    unsigned int i;
+    for(i=0;i<blocks - 1;i++)
+    {
+        unsigned char payload[12];
+        memcpy(payload, data + i*12U, 12U);
+        CBPTC19696 bptc1;
+        bptc1.encode(payload, payload_data[i]);
+        CDMRSlotType slotType1;
+        slotType1.putData(payload_data[i]);
+        slotType1.setDataType(DT_RATE_12_DATA);
+        slotType1.setColorCode(1);
+        slotType1.getData(payload_data[i]);
+        CSync::addDMRDataSync(payload_data[i], true);
+        CDMRData dmr_data;
+        dmr_data.setSeqNo(0);
+        dmr_data.setN(0);
+        dmr_data.setDataType(DT_RATE_12_DATA);
+        dmr_data.setSlotNo(slot_no);
+        dmr_data.setDstId(dmr_data_header.getDstId());
+        dmr_data.setSrcId(dmr_data_header.getSrcId());
+        dmr_data.setData(payload_data[i]);
+        dmr_data_frames.append(dmr_data);
+    }
+    unsigned char final_block[12U];
+    memset(final_block, 0, 12U);
+    memcpy(final_block, data + i*12U, 10U);
+    final_block[10U] = data[46];
+    final_block[11U] = data[47];
+    CBPTC19696 bptc3;
+    bptc3.encode(final_block, payload_data[3]);
+    CDMRSlotType slotType3;
+    slotType3.putData(payload_data[3]);
+    slotType3.setColorCode(1);
+    slotType3.setDataType(DT_RATE_12_DATA);
+    slotType3.getData(payload_data[3]);
+    CSync::addDMRDataSync(payload_data[3], true);
+    CDMRData dmr_data3;
+    dmr_data3.setSeqNo(0);
+    dmr_data3.setN(0);
+    dmr_data3.setDataType(DT_RATE_12_DATA);
+    dmr_data3.setSlotNo(slot_no);
+    dmr_data3.setDstId(dmr_data_header.getDstId());
+    dmr_data3.setSrcId(dmr_data_header.getSrcId());
+    dmr_data3.setData(payload_data[3]);
+    dmr_data_frames.append(dmr_data3);
+}
+
+void Signalling::buildUDTCallDivertShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
+                                              unsigned int srcId, unsigned int dstId,
+                                              unsigned char *data, unsigned int blocks, unsigned int sap, unsigned int slot_no)
+{
+    CDMRData dmr_data_header = createUDTCallDivertHeader(srcId, dstId, blocks, sap);
+    dmr_data_header.setSlotNo(slot_no);
+    dmr_data_frames.append(dmr_data_header);
+    // TODO: handle case where address is 2 blocks
+    unsigned char payload_data[1][DMR_FRAME_LENGTH_BYTES];
+    CCRC::addCCITT162(data, 12U);
+    unsigned char payload[12];
+    memcpy(payload, data, 12U);
+    CBPTC19696 bptc1;
+    bptc1.encode(payload, payload_data[0]);
+    CDMRSlotType slotType1;
+    slotType1.putData(payload_data[0]);
+    slotType1.setDataType(DT_RATE_12_DATA);
+    slotType1.setColorCode(1);
+    slotType1.getData(payload_data[0]);
+    CSync::addDMRDataSync(payload_data[0], true);
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(DT_RATE_12_DATA);
+    dmr_data.setSlotNo(slot_no);
+    dmr_data.setDstId(dmr_data_header.getDstId());
+    dmr_data.setSrcId(dmr_data_header.getSrcId());
+    dmr_data.setData(payload_data[0]);
+    dmr_data_frames.append(dmr_data);
+}
+
+CDMRData Signalling::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant)
+{
+    CDMRData dmr_data_wait;
+    if(channel_grant)
+    {
+        CDMRCSBK csbk_wait;
+        createReplyWaitForSignalling(csbk_wait, csbk.getDstId());
+        dmr_data_wait.setSeqNo(0);
+        dmr_data_wait.setN(0);
+        dmr_data_wait.setDataType(DT_CSBK);
+        dmr_data_wait.setSlotNo(slotNo);
+
+        unsigned char repacked_data_wait[DMR_FRAME_LENGTH_BYTES];
+        // Regenerate the CSBK data
+        csbk_wait.get(repacked_data_wait);
+        CDMRSlotType slotType;
+        slotType.setColorCode(1);
+        slotType.setDataType(DT_CSBK);
+        slotType.getData(repacked_data_wait);
+
+        CSync::addDMRDataSync(repacked_data_wait, 1);
+        dmr_data_wait.setDstId(csbk_wait.getDstId());
+        dmr_data_wait.setSrcId(csbk_wait.getSrcId());
+        dmr_data_wait.setData(repacked_data_wait);
+    }
+    return dmr_data_wait;
+}
+
+CDMRData Signalling::createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk)
+{
+    unsigned char dataType = csbk.getDataType();
+    CDMRData dmr_data;
+    dmr_data.setSeqNo(0);
+    dmr_data.setN(0);
+    dmr_data.setDataType(dataType);
+    dmr_data.setSlotNo(slotNo);
+
+    unsigned char repacked_data[DMR_FRAME_LENGTH_BYTES];
+    // Regenerate the CSBK data
+    csbk.get(repacked_data);
+    CDMRSlotType slotType;
+    slotType.putData(repacked_data);
+    slotType.setColorCode(1);
+    slotType.setDataType(dataType);
+    slotType.getData(repacked_data);
+
+    CSync::addDMRDataSync(repacked_data, 1);
+    dmr_data.setDstId(csbk.getDstId());
+    dmr_data.setSrcId(csbk.getSrcId());
+    dmr_data.setData(repacked_data);
+
+    return dmr_data;
+}
+

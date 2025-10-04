@@ -29,6 +29,7 @@
 #include "MMDVM/DMRCSBK.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRDataHeader.h"
+#include "MMDVM/CRC.h"
 #include "MMDVM/DMRDefines.h"
 
 class Signalling
@@ -84,7 +85,16 @@ public:
                                                   unsigned int &blocks, unsigned int sap, bool group, uint64_t *failed_blocks);
     CDMRData createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t *failed_blocks, uint8_t block=0);
     CDMRData createDataTerminatorLC(unsigned int srcId, unsigned int dstId, bool group, uint8_t A, uint8_t F, uint8_t NS);
+    void buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames, unsigned int srcId, unsigned int dstId, QString message,
+                                 bool group, unsigned int slot_no);
+    void buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_frames, unsigned int dstId, unsigned char *data,
+                                          unsigned int blocks, unsigned int slot_no);
+    void buildUDTCallDivertShortMessageSequence(QVector<CDMRData>& dmr_data_frames, unsigned int srcId, unsigned int dstId,
+                                                unsigned char *data,
+                                          unsigned int blocks, unsigned int sap, unsigned int slot_no);
     void rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId);
+    CDMRData createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant);
+    CDMRData createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk);
 
 
 

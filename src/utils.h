@@ -19,6 +19,7 @@
 
 #include <QSysInfo>
 #include <QString>
+#include <QList>
 #include <string.h>
 
 class Utils
@@ -32,6 +33,7 @@ public:
     static unsigned int convertBase11GroupNumberToBase10(unsigned int group_number);
     static unsigned int convertBase10ToBase11GroupNumber(unsigned int gid);
     static unsigned int base11(unsigned int value);
+    static QList<QString> readNMEA(unsigned char *msg, unsigned int dsize);
 };
 
 #endif // UTILS_H
