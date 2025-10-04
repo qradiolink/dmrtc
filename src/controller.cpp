@@ -27,7 +27,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _rejected_calls = new QSet<unsigned int>;
     _subscribed_talkgroups = new QSet<unsigned int>;
     // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
-    _uplink_acks = new QMap<unsigned int, unsigned int>;
+    _ack_handler = new AckHandler;
     _auth_responses = new QMap<unsigned int, unsigned int>;
     _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
     _gateway_router = new GatewayRouter(_settings, _logger);
@@ -52,17 +52,15 @@ Controller::~Controller()
     delete _talkgroup_attachments;
     _rejected_calls->clear();
     delete _rejected_calls;
-    _uplink_acks->clear();
     _subscribed_talkgroups->clear();
     delete _subscribed_talkgroups;
-    _uplink_acks->clear();
-    delete _uplink_acks;
     _auth_responses->clear();
     delete _auth_responses;
     delete _dmr_rewrite;
     delete _gateway_router;
     delete _signalling_generator;
     delete _dmr_message_handler;
+    delete _ack_handler;
 }
 
 void Controller::stop()
@@ -542,7 +540,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         // expect ACKU from target
         if(!group)
         {
-            _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+            _ack_handler->addAck(dstId, ServiceAction::ActionMessageRequest);
             _logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
         }
         else
@@ -605,7 +603,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
     QList<unsigned int> unique_tgids = QSet<unsigned int>(registered_tg.begin(), registered_tg.end()).values();
     updateSubscriptions(unique_tgids, dstId);
     // expect ACKU from target
-    _uplink_acks->insert(dstId, ServiceAction::ActionDGNARequest);
+    _ack_handler->addAck(dstId, ServiceAction::ActionDGNARequest);
     _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
     QVector<CDMRData> dmr_data_frames;
@@ -725,7 +723,7 @@ void Controller::pingRadio(unsigned int target_id, bool group)
     _logger->log(Logger::LogLevelInfo, QString("Checking presence for target: %1").arg(target_id));
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     emit startPingTimer(3000);
-    _uplink_acks->insert(target_id, ServiceAction::ActionPingRequest);
+    _ack_handler->addAck(target_id, ServiceAction::ActionPingRequest);
     CDMRCSBK csbk;
     _signalling_generator->createPresenceCheckAhoy(csbk, target_id, group);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
@@ -733,20 +731,7 @@ void Controller::pingRadio(unsigned int target_id, bool group)
 
 void Controller::resetPing()
 {
-    QList<unsigned int> target_ids;
-    QMapIterator<unsigned int, unsigned int> it(*_uplink_acks);
-    while(it.hasNext())
-    {
-        it.next();
-        if(it.value() == ServiceAction::ActionPingRequest)
-        {
-            target_ids.append(it.key());
-        }
-    }
-    for(int i=0;i<target_ids.size();i++)
-    {
-        _uplink_acks->remove(target_ids[i]);
-    }
+    _ack_handler->removeAckType(ServiceAction::ActionPingRequest);
 }
 
 void Controller::timeoutPingResponse()
@@ -760,7 +745,7 @@ void Controller::pollData(unsigned int target_id, unsigned int poll_format, unsi
     if(target_id == 0)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Polling data from target: %1").arg(target_id));
-    _uplink_acks->insert(target_id, ServiceAction::UDTPoll);
+    _ack_handler->addAck(target_id, ServiceAction::UDTPoll);
     _short_data_messages.insert(target_id, 1);
     if(srcId == 0)
         srcId = StandardAddreses::SDMI;
@@ -775,7 +760,7 @@ void Controller::pollStatus(unsigned int target_id)
     if(target_id == 0)
         return;
     _logger->log(Logger::LogLevelInfo, QString("Polling status from target: %1").arg(target_id));
-    _uplink_acks->insert(target_id, ServiceAction::ActionStatusPoll);
+    _ack_handler->addAck(target_id, ServiceAction::ActionStatusPoll);
     CDMRCSBK csbk;
     _signalling_generator->createStatusPollAhoy(csbk, StandardAddreses::TSI, target_id, false);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
@@ -789,7 +774,7 @@ bool Controller::sendAuthCheck(unsigned int target_id)
         return false;
     }
     _logger->log(Logger::LogLevelInfo, QString("Sending AUTH check to radio: %1").arg(target_id));
-    _uplink_acks->insert(target_id, ServiceAction::ActionAuthCheck);
+    _ack_handler->addAck(target_id, ServiceAction::ActionAuthCheck);
     CDMRCSBK csbk;
     QString key = _settings->auth_keys.value(target_id);
     QByteArray ba_k = QByteArray::fromHex(key.toLatin1());
@@ -806,21 +791,8 @@ bool Controller::sendAuthCheck(unsigned int target_id)
 
 void Controller::resetAuth()
 {
-    QList<unsigned int> target_ids;
-    QMapIterator<unsigned int, unsigned int> it(*_uplink_acks);
-    while(it.hasNext())
-    {
-        it.next();
-        if(it.value() == ServiceAction::ActionAuthCheck)
-        {
-            target_ids.append(it.key());
-        }
-    }
-    for(int i=0;i<target_ids.size();i++)
-    {
-        _uplink_acks->remove(target_ids[i]);
-        _auth_responses->remove(target_ids[i]);
-    }
+    _ack_handler->removeAckType(ServiceAction::ActionAuthCheck);
+    _auth_responses->clear();
 }
 
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
@@ -1084,7 +1056,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
     memcpy(msg, dmessage->message, size);
-    _uplink_acks->remove(srcId);
+    _ack_handler->removeAck(srcId, ServiceAction::RegistrationWithAttachment);
     bool existing_user = _registered_ms->contains(srcId);
     if(!existing_user)
         _registered_ms->append(srcId);
@@ -1138,7 +1110,7 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[size];
     memcpy(msg, dmessage->message, size);
-    _uplink_acks->remove(srcId);
+    _ack_handler->removeAck(srcId, ServiceAction::CallDivert);
 
     unsigned int divert_id = 0;
     divert_id |= msg[1] << 16;
@@ -1709,16 +1681,14 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
             if(message->crc_valid)
             {
                 /// Talkgroup attachment list
-                if(_uplink_acks->contains(srcId) &&
-                        (_uplink_acks->value(srcId) == ServiceAction::RegistrationWithAttachment) &&
+                if(_ack_handler->hasAck(srcId, ServiceAction::RegistrationWithAttachment) &&
                         (message->udt) &&
                         (message->udt_format==1))
                 {
                     processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
                 /// Talkgroup attachment list
-                else if(_uplink_acks->contains(srcId) &&
-                        (_uplink_acks->value(srcId) == ServiceAction::CallDivert) &&
+                else if(_ack_handler->hasAck(srcId, ServiceAction::CallDivert) &&
                         message->udt &&
                         (message->udt_format==1))
                 {
@@ -2071,7 +2041,7 @@ void Controller::contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
                  .arg(slotNo).arg(srcId).arg(dstId));
     if(!_private_calls.contains(dstId))
         _private_calls.insert(dstId, srcId);
-    _uplink_acks->insert(dstId, ServiceAction::ActionPrivateVoiceCallRequest);
+    _ack_handler->addAck(dstId, ServiceAction::ActionPrivateVoiceCallRequest);
     _signalling_generator->createPrivateVoiceCallRequest(csbk, local, srcId, dstId);
     return;
 }
@@ -2083,7 +2053,7 @@ void Controller::contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
                  .arg(slotNo).arg(srcId).arg(dstId));
     if(!_private_calls.contains(dstId))
         _private_calls.insert(dstId, srcId);
-    _uplink_acks->insert(dstId, ServiceAction::ActionPrivatePacketCallRequest);
+    _ack_handler->addAck(dstId, ServiceAction::ActionPrivatePacketCallRequest);
     _signalling_generator->createPrivatePacketCallAhoy(csbk, srcId, dstId);
     return;
 }
@@ -2350,7 +2320,7 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
     if(sub)
     {
         // FIXME: order is wrong
-        _uplink_acks->insert(srcId, ServiceAction::RegistrationWithAttachment);
+        _ack_handler->addAck(srcId, ServiceAction::RegistrationWithAttachment);
         _signalling_generator->createRequestToUploadTgAttachments(csbk, srcId, uab);
         _short_data_messages.insert(srcId, uab);
         transmitCSBK(csbk, logical_channel, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, false);
@@ -2429,10 +2399,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS authentication response
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x90) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionAuthCheck)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionAuthCheck))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionAuthCheck);
         if(_auth_responses->contains(srcId))
         {
             if((dstId == _auth_responses->value(srcId)))
@@ -2493,13 +2462,12 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     ///
     /// MS ping reply
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionPingRequest)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionPingRequest))
     {
         std::chrono::high_resolution_clock::time_point t2_ping_ms = std::chrono::high_resolution_clock::now();
         uint64_t msec = std::chrono::duration_cast<std::chrono::nanoseconds>(t2_ping_ms - t1_ping_ms).count() / 1000000U;
         emit stopPingTimer();
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionPingRequest);
         emit pingResponse(srcId, msec);
         _control_channel->setText(QString("Presence check response: %1").arg(srcId));
         if(!_settings->headless_mode)
@@ -2590,13 +2558,12 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS acknowledgement of OACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionPrivateVoiceCallRequest)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest))
     {
 
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest);
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
@@ -2633,10 +2600,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// MS acknowledgement of FOACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8C))
     {
-        if(_uplink_acks->contains(srcId) &&
-                _uplink_acks->value(srcId) == ServiceAction::ActionPrivateVoiceCallRequest)
+        if(_ack_handler->hasAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest))
         {
-            _uplink_acks->remove(srcId);
+            _ack_handler->removeAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest);
         }
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
@@ -2734,10 +2700,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS acknowledgement of short data message
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionMessageRequest)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionMessageRequest))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionMessageRequest);
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
@@ -2755,10 +2720,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS acknowledgement of DGNA request
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionDGNARequest)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionDGNARequest))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionDGNARequest);
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
@@ -2779,7 +2743,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             sendUDTCallDivertInfo(srcId, _settings->call_diverts.value(dstId), 4); // FIXME: SAP 0100 for UDT causes radio to transmit with ID set to 0???
             return;
         }
-        _uplink_acks->insert(dstId, ServiceAction::ActionMessageRequest);
+        _ack_handler->addAck(dstId, ServiceAction::ActionMessageRequest);
         unsigned int number_of_blocks = _signalling_generator->createRequestToUploadMessage(csbk, csbk.getSrcId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
         _short_data_messages.insert(srcId, number_of_blocks);
@@ -2829,7 +2793,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         else
         {
-            _uplink_acks->insert(dstId, ServiceAction::ActionStatusMsg);
+            _ack_handler->addAck(dstId, ServiceAction::ActionStatusMsg);
             _signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, false);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             _logger->log(Logger::LogLevelInfo, QString("Received status transport request to MS from %1, slot %2 to destination %3")
@@ -2845,10 +2809,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS acknowledgement of status transport message
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x88) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionStatusMsg)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionStatusMsg))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionStatusMsg);
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
@@ -2863,10 +2826,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS status poll reply
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8E) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionStatusPoll)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionStatusPoll))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionStatusPoll);
         unsigned int status = csbk.getData1() >> 1;
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply %4 from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId).arg(status));
@@ -2878,10 +2840,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS status poll reply, service not supported
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionStatusPoll)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionStatusPoll))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionStatusPoll);
         _logger->log(Logger::LogLevelInfo, QString("Received status poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Status poll reply UNSUPPORTED: %1").arg(srcId));
@@ -2892,10 +2853,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS UDT data poll reply, service not supported
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x00) && ((csbk.getData1() & 0x01) == 0x00) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::UDTPoll)
+             _ack_handler->hasAck(srcId, ServiceAction::UDTPoll))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::UDTPoll);
         _short_data_messages.remove(srcId);
         _logger->log(Logger::LogLevelInfo, QString("Received UDT data poll reply UNSUPPORTED SERVICE from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
@@ -2915,7 +2875,7 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
             unsigned int number_of_blocks = _signalling_generator->createRequestToUploadDivertInfo(csbk, csbk.getSrcId());
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             _short_data_messages.insert(srcId, number_of_blocks);
-            _uplink_acks->insert(srcId, ServiceAction::CallDivert);
+            _ack_handler->addAck(srcId, ServiceAction::CallDivert);
             _logger->log(Logger::LogLevelInfo, QString("Received call diversion request request from %1, slot %2 to destination %3")
                          .arg(srcId).arg(slotNo).arg(dstId));
             _control_channel->setText(QString("Call diversion request: %1").arg(srcId));
@@ -3006,10 +2966,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     }
     /// MS acknowledgement of private packet data call
     else if ((csbko == CSBKO_ACKU) &&
-             _uplink_acks->contains(srcId) &&
-             _uplink_acks->value(srcId) == ServiceAction::ActionPrivatePacketCallRequest)
+             _ack_handler->hasAck(srcId, ServiceAction::ActionPrivatePacketCallRequest))
     {
-        _uplink_acks->remove(srcId);
+        _ack_handler->removeAck(srcId, ServiceAction::ActionPrivatePacketCallRequest);
         csbk.setCSBKO(CSBKO_ACKD);
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);

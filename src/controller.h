@@ -38,6 +38,7 @@
 #include "src/gatewayrouter.h"
 #include "src/signalling.h"
 #include "src/dmrmessagehandler.h"
+#include "src/ackhandler.h"
 #include "src/dmr_commands.h"
 #include "MMDVM/DMRDefines.h"
 #include "MMDVM/DMRData.h"
@@ -190,7 +191,7 @@ private:
     QMap<unsigned int, unsigned int> _short_data_messages;
     QList<unsigned int> *_registered_ms;
     QMap<unsigned int, QList<unsigned int>> *_talkgroup_attachments;
-    QMap<unsigned int, unsigned int> *_uplink_acks;
+    AckHandler *_ack_handler;
     QSet<unsigned int> *_rejected_calls;
     QSet<unsigned int> *_subscribed_talkgroups;
     QMap<unsigned int, unsigned int> *_auth_responses;

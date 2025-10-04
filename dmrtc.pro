@@ -20,6 +20,7 @@ linux-g++ {
 
 
 SOURCES += src/main.cpp \
+    src/ackhandler.cpp \
     src/crc32.cpp \
     src/crc9.cpp \
     src/dmrmessagehandler.cpp \
@@ -40,6 +41,7 @@ SOURCES += $$files(src/MMDVM/*.cpp)
 
 
 HEADERS += src/settings.h \
+    src/ackhandler.h \
     src/channelviewmodel.h \
     src/crc32.h \
     src/crc9.h \
