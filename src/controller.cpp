@@ -2742,6 +2742,9 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         csbk.setDstId(dstId);
         csbk.setSrcId(srcId);
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
+        csbk.setDstId(srcId);
+        csbk.setSrcId(StandardAddreses::SDMI);
+        transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _logger->log(Logger::LogLevelInfo, QString("Received read receipt for message request from %1, slot %2 to destination %3")
                      .arg(srcId).arg(slotNo).arg(dstId));
         _control_channel->setText(QString("Short message acknowledge: %1").arg(srcId));

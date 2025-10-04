@@ -282,7 +282,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                         if(msg->sap == 9) // proprietary data
                         {
                             // Last data block seems to contain gibberish, CRC9 check will fail, DBSN also invalid
-                            if(msg->block > 1)
+                            if((msg->block > 1) && (msg->size > 1))
                             {
                                 msg->crc_valid = false;
                                 if(dbsn < 64)
@@ -329,7 +329,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                 }
                 else if(msg->block == 1 && msg->type == DPF_CONFIRMED_DATA)
                 {
-                    if(!msg->crc_valid)
+                    if(!msg->crc_valid && (msg->size > 1))
                     {
                         bool retry = false;
                         for(uint8_t i=0;i<2;i++)
@@ -354,6 +354,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                             clearMessage(srcId);
                             return nullptr;
                         }
+                    }
+                    else if(!msg->crc_valid && (msg->size == 1))
+                    {
+                        msg->crc_valid = true; // in case last block contains unparseable data
                     }
                     bool valid = processConfirmedMessage(msg, block_size);
                     if(!valid)
@@ -505,6 +509,7 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
             qDebug() << "Byte " << i << " :" << QString::number(msg->message[i], 16) << QString(msg->message[i]);
         }
         */
+
 
         if(type == 0x0201)
         {
