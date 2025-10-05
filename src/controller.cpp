@@ -439,7 +439,7 @@ void Controller::announceSystemMessage()
             .arg(_settings->logical_physical_channels.size())
             .arg(active_calls.size()));
     messages.append(QString("Send SMS to %1 for command help")
-            .arg(_settings->service_ids.value("help")));
+            .arg(_settings->service_ids.value("help", 0)));
     unsigned int dstId = StandardAddreses::ALLMSID;
     QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, dstId, StandardAddreses::DISPATI, false, 0);
 }
@@ -470,8 +470,6 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         }
         return;
     }
-        //message.truncate(46);
-
 
     if(dstId == 0)
     {
@@ -704,7 +702,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                           .arg(_logical_channels[i]->getDestination())
                           .arg(srcId)
                           .arg(dstId));
-                    /* TODO
+                    /* // TODO
                     if(_logical_channels[i]->getLocalCall())
                     {
                         CDMRData dmr_control_data;
@@ -715,6 +713,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                         return nullptr;
                     }
                     */
+
                     _logical_channels[i]->setDestination(0);
                     _logical_channels[i]->clearNetQueue();
                     _logical_channels[i]->clearRFQueue();
@@ -950,7 +949,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
                 .arg(_settings->logical_physical_channels.size())
                 .arg(active_calls.size()));
         messages.append(QString("Send SMS to %1 for command help")
-                .arg(_settings->service_ids.value("help")));
+                .arg(_settings->service_ids.value("help", 0)));
         QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false, 2);
     }
 
@@ -1297,6 +1296,10 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         {
             it.next();
             messages.append(QString("%1 - %2").arg(it.key()).arg(it.value()));
+        }
+        if(messages.size() < 2)
+        {
+            messages.append(QString("The site does not offer any user services"));
         }
         QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, _settings->service_ids.value("help", StandardAddreses::SDMI), false, 5);
         _control_channel->setText(QString("Help message: %1").arg(srcId));
@@ -2165,7 +2168,7 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
                     .arg(_settings->logical_physical_channels.size())
                     .arg(active_calls.size()));
             messages.append(QString("Send SMS to %1 for command help")
-                    .arg(_settings->service_ids.value("help")));
+                    .arg(_settings->service_ids.value("help", 0)));
             QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false, 1);
         }
     }

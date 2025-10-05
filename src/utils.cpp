@@ -170,10 +170,10 @@ QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
     QString longit = EW ? "E" : "W";
     QList<QString> messages;
     messages.append(QString("Position message: Encrypted: %1").arg(C ? "yes" : "no"));
-    messages.append(QString("Fix: %1, Speed: %2").arg(Q ? "valid" : "no fix").arg(SPEED));
+    messages.append(QString("Fix: %1, Speed: %2, Course: %3 degrees").arg(Q ? "valid" : "no fix").arg(SPEED).arg(COG));
     messages.append(QString("Latitude: %1 %2 degrees %3.%4 minutes").arg(lat).arg(NDEG).arg(NMIN).arg(NMINF));
     messages.append(QString("Longitude: %1 %2 degrees %3.%4 minutes").arg(longit).arg(EDEG).arg(EMINmm).arg(EMINF));
-    messages.append(QString("Time: %1:%2:%3 UTC, Course: %4 degrees").arg(UTChh).arg(UTCmm).arg(UTCss).arg(COG));
+    messages.append(QString("Time: %1:%2:%3 UTC").arg(UTChh).arg(UTCmm).arg(UTCss));
     return messages;
 }
 
