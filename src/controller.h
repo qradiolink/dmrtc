@@ -39,6 +39,7 @@
 #include "src/signalling.h"
 #include "src/dmrmessagehandler.h"
 #include "src/ackhandler.h"
+#include "src/networksignalling.h"
 #include "src/dmr_commands.h"
 #include "MMDVM/DMRDefines.h"
 #include "MMDVM/DMRData.h"
@@ -79,8 +80,9 @@ public:
 public slots:
     void run();
     void stop();
-    void processDMRPayload(unsigned char *payload, int udp_channel_id, bool from_gateway);
+    void processDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway);
     void updateMMDVMConfig(unsigned char* payload, int size);
+    void processDMRNetworkMessage(unsigned char* payload ,unsigned int size);
     void writeDMRConfig();
     void updateChannelsToGUI();
     void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
@@ -179,6 +181,7 @@ private:
     GatewayRouter *_gateway_router;
     DMRRewrite *_dmr_rewrite;
     Signalling *_signalling_generator;
+    NetworkSignalling *_network_signalling;
     DMRMessageHandler *_dmr_message_handler;
     QVector<unsigned char> *_mmdvm_config;
     QMutex _control_mutex;

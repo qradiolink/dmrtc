@@ -357,6 +357,7 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
 void LogicalChannel::putNetQueue(CDMRData &dmr_data)
 {
     startLastFrameTimer();
+    setUUID(dmr_data);
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
@@ -851,4 +852,27 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_
         emb.getData(data);
     }
     dmr_data.setData(data);
+}
+
+void LogicalChannel::setUUID(CDMRData &dmr_data)
+{
+    unsigned int dataType = dmr_data.getDataType();
+    if(dataType == DT_TERMINATOR_WITH_LC)
+    {
+        dmr_data.setUUID(_call_uuid);
+        // reset embedded data buffers
+        memset(_call_uuid, 0, 16U);
+    }
+    else if((dataType == DT_VOICE_LC_HEADER) ||
+            (dataType == DT_DATA_HEADER) ||
+            (dataType == DT_VOICE_PI_HEADER))
+    {
+        memset(_call_uuid, 0, 16U);
+        uuid_generate_random(_call_uuid);
+        dmr_data.setUUID(_call_uuid);
+    }
+    else
+    {
+        dmr_data.setUUID(_call_uuid);
+    }
 }

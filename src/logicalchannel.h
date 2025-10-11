@@ -25,6 +25,7 @@
 #include <QByteArray>
 #include <QSysInfo>
 #include <cstdint>
+#include <uuid/uuid.h>
 #include "src/logger.h"
 #include "src/settings.h"
 #include "src/utils.h"
@@ -116,6 +117,7 @@ private:
     void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
     void processTalkerAlias();
     bool getEmbeddedDataTx(CDMRData &dmr_data);
+    void setUUID(CDMRData &dmr_data);
 
     const Settings *_settings;
     Logger *_logger;
@@ -165,6 +167,7 @@ private:
     float _ber_accumulator;
     float _ber;
     float _rssi;
+    uuid_t _call_uuid;
 
 };
 

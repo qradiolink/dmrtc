@@ -45,8 +45,9 @@ public:
     bool isGatewayConnection();
 
 signals:
-    void dmrData(unsigned char* dmr_data, int udp_channel_id, bool gateway_connection);
+    void dmrData(unsigned char* dmr_data, unsigned int size, int udp_channel_id, bool gateway_connection);
     void newMMDVMConfig(unsigned char* payload, int size);
+    void newDMRNetworkMessage(unsigned char* payload, unsigned int size);
     void writeToNetwork(unsigned char* payload, int size);
 
 public slots:
@@ -58,6 +59,7 @@ public slots:
     void writeDMRData(CDMRData &data);
     void writeDMRConfig(QVector<unsigned char> &config);
     void writeDMRTrunkingParams(CDMRData &dmr_control_data);
+    void writeDMRNetMessage(unsigned char *buffer, unsigned int size);
     void handleStateChange(QAbstractSocket::SocketState state);
 
 

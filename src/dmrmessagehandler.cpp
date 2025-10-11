@@ -635,7 +635,6 @@ bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned in
 {
     if(!msg->crc_valid)
         return false;
-    uint16_t type = 0;
     /// Anytone H-format message
     if(msg->sap == 10 && msg->type == 13)
     {

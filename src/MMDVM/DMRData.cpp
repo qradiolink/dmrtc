@@ -41,6 +41,7 @@ m_command(data.m_command)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
 	::memcpy(m_data, data.m_data, 2U * DMR_FRAME_LENGTH_BYTES);
+    ::memcpy(m_uuid, data.m_uuid, 16U);
 }
 
 CDMRData::CDMRData() :
@@ -61,6 +62,7 @@ m_chanEnable(true),
 m_command(0)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
+    memset(m_uuid, 0, 16U);
 }
 
 CDMRData::~CDMRData()
@@ -72,6 +74,7 @@ CDMRData& CDMRData::operator=(const CDMRData& data)
 {
 	if (this != &data) {
 		::memcpy(m_data, data.m_data, DMR_FRAME_LENGTH_BYTES);
+        ::memcpy(m_uuid, data.m_uuid, 16U);
 
 		m_slotNo   = data.m_slotNo;
 		m_srcId    = data.m_srcId;
@@ -248,4 +251,20 @@ void CDMRData::setCommand(unsigned int command)
 unsigned int CDMRData::getCommand() const
 {
     return m_command;
+}
+
+void CDMRData::setUUID(unsigned char *uuid)
+{
+    for(int i=0;i<16;i++)
+    {
+        m_uuid[i] = uuid[i];
+    }
+}
+
+void CDMRData::getUUID(unsigned char *uuid)
+{
+    for(int i=0;i<16;i++)
+    {
+        uuid[i] = m_uuid[i];
+    }
 }

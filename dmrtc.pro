@@ -77,7 +77,7 @@ FORMS    += \
 
 
 LIBS += -lrt -lpthread # need to include on some distros
-LIBS += -lconfig++ -llog4cpp
+LIBS += -lconfig++ -llog4cpp -luuid
 
 
 RESOURCES += src/resources.qrc

@@ -16,6 +16,8 @@
 
 #include "controller.h"
 
+const unsigned int HOMEBREW_DATA_PACKET_LENGTH = 55U;
+
 Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QObject *parent) : QObject(parent)
 {
     _settings = settings;
@@ -32,6 +34,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _dmr_rewrite = new DMRRewrite(settings, _registered_ms);
     _gateway_router = new GatewayRouter(_settings, _logger);
     _signalling_generator = new Signalling(_settings);
+    _network_signalling = new NetworkSignalling(settings, logger);
     _dmr_message_handler = new DMRMessageHandler(settings, logger);
     _stop_thread = false;
     _late_entry_announcing = false;
@@ -59,6 +62,7 @@ Controller::~Controller()
     delete _dmr_rewrite;
     delete _gateway_router;
     delete _signalling_generator;
+    delete _network_signalling;
     delete _dmr_message_handler;
     delete _ack_handler;
 }
@@ -151,7 +155,7 @@ void Controller::run()
         UDPClient *client = new UDPClient(_settings, _logger, i);
         _udp_channels.append(client);
         client->enable(true);
-        QObject::connect(client, SIGNAL(dmrData(unsigned char*,int, bool)), this, SLOT(processDMRPayload(unsigned char*,int, bool)), Qt::DirectConnection);
+        QObject::connect(client, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)), this, SLOT(processDMRPayload(unsigned char*, unsigned int, int, bool)), Qt::DirectConnection);
         QObject::connect(client, SIGNAL(newMMDVMConfig(unsigned char*,int)),
                          this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
 
@@ -172,8 +176,10 @@ void Controller::run()
         UDPClient *gateway_udpclient = new UDPClient(_settings, _logger, i, _settings->gateway_listen_port + i, _settings->gateway_send_port + i,
                                                           _settings->gateway_remote_address, true);
 
-        QObject::connect(gateway_udpclient, SIGNAL(dmrData(unsigned char*,int, bool)),
-                         this, SLOT(processDMRPayload(unsigned char*,int, bool)));
+        QObject::connect(gateway_udpclient, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)),
+                         this, SLOT(processDMRPayload(unsigned char*,unsigned int,int, bool)));
+        QObject::connect(gateway_udpclient, SIGNAL(newDMRNetworkMessage(unsigned char*, unsigned int)),
+                         this, SLOT(processDMRNetworkMessage(unsigned char*,unsigned int)));
         QObject::connect(this, SIGNAL(writeDMRData(CDMRData&)),
                          gateway_udpclient, SLOT(writeDMRData(CDMRData&)));
         _gateway_channels.append(gateway_udpclient);
@@ -816,8 +822,9 @@ void Controller::disableLogicalChannel(LogicalChannel *&logical_channel)
     logical_channel->putRFQueue(dmr_control_data, false);
 }
 
-void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, bool from_gateway)
+void Controller::processDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway)
 {
+    bool uuid_present = (size == HOMEBREW_DATA_PACKET_LENGTH) ? false : true;
     unsigned char seqNo = payload[4U];
     unsigned int srcId = (payload[5U] << 16) | (payload[6U] << 8) | (payload[7U] << 0);
     unsigned int dstId = (payload[8U] << 16) | (payload[9U] << 8) | (payload[10U] << 0);
@@ -825,6 +832,15 @@ void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, b
     unsigned int streamId = 0;
     unsigned char ber = payload[53U];
     unsigned char rssi = payload[54U];
+    unsigned char uuid[16];
+    memset(uuid, 0, 16U);
+    if(uuid_present && (size == HOMEBREW_DATA_PACKET_LENGTH + 16U))
+    {
+        for(uint32_t i=0;i<16;i++)
+        {
+            uuid[i] = payload[55U+i];
+        }
+    }
     ::memcpy(&streamId, payload + 16U, 4U);
 
     FLCO flco = (payload[15U] & 0x40U) == 0x40U ? FLCO_USER_USER : FLCO_GROUP;
@@ -837,6 +853,8 @@ void Controller::processDMRPayload(unsigned char *payload, int udp_channel_id, b
     dmr_data.setFLCO(flco);
     dmr_data.setBER(ber);
     dmr_data.setRSSI(rssi);
+    if(uuid_present)
+        dmr_data.setUUID(uuid);
 
     bool dataSync = (payload[15U] & 0x20U) == 0x20U;
     bool voiceSync = (payload[15U] & 0x10U) == 0x10U;
@@ -2963,6 +2981,12 @@ void Controller::writeDMRConfig()
     {
         _gateway_channels[i]->writeDMRConfig(config);
     }
+}
+
+void Controller::processDMRNetworkMessage(unsigned char* payload ,unsigned int size)
+{
+    if(!_network_signalling->validateNetMessage(payload, size))
+        return;
 }
 
 QVector<LogicalChannel *> *Controller::getLogicalChannels()

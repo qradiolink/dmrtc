@@ -64,6 +64,8 @@ public:
     void setChannelEnable(bool chanEnable);
     unsigned int getStreamId() const;
     void setStreamId(unsigned int streamId);
+    void setUUID(unsigned char *uuid);
+    void getUUID(unsigned char *uuid);
 
 private:
 	unsigned int   m_slotNo;
@@ -81,6 +83,7 @@ private:
     bool           m_control;
     bool           m_chanEnable;
     unsigned int   m_command;
+    unsigned char  m_uuid[16];
 };
 
 #endif
