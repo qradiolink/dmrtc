@@ -55,7 +55,7 @@ class LogicalChannel : public QObject
 {
     Q_OBJECT
 public:
-    LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
+    LogicalChannel(const Settings *settings, Logger *logger, unsigned int id,
                    unsigned int physical_channel, unsigned int slot, bool control_channel=false, bool gui_enabled=false, QObject *parent=0);
 
     void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP, bool local=false);
@@ -117,7 +117,7 @@ private:
     void processTalkerAlias();
     bool getEmbeddedDataTx(CDMRData &dmr_data);
 
-    Settings *_settings;
+    const Settings *_settings;
     Logger *_logger;
     bool _gui_enabled;
     unsigned int _id;

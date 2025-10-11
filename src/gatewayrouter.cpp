@@ -16,7 +16,7 @@
 
 #include "gatewayrouter.h"
 
-GatewayRouter::GatewayRouter(Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
+GatewayRouter::GatewayRouter(const Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
 {
     _settings = settings;
     _logger = logger;

@@ -27,13 +27,13 @@ class GatewayRouter : public QObject
 {
     Q_OBJECT
 public:
-    explicit GatewayRouter(Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit GatewayRouter(const Settings *settings, Logger *logger, QObject *parent = nullptr);
     bool findRoute(CDMRData &dmr_data, unsigned int &gateway_id);
 
 signals:
 
 private:
-    Settings *_settings;
+    const Settings *_settings;
     Logger *_logger;
     QMap<unsigned int, unsigned int> _routing_table;
 

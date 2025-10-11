@@ -21,7 +21,7 @@
 #include "dmrmessagehandler.h"
 
 
-DMRMessageHandler::DMRMessageHandler(Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
+DMRMessageHandler::DMRMessageHandler(const Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
 {
     _settings = settings;
     _logger = logger;

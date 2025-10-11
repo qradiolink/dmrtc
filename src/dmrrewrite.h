@@ -31,12 +31,12 @@
 class DMRRewrite
 {
 public:
-    DMRRewrite(Settings *settings, QList<unsigned int> *registered_ms);
+    DMRRewrite(const Settings *settings, QList<unsigned int> *registered_ms);
     bool rewriteSlot(CDMRData &dmr_data);
     bool rewriteSource(CDMRData &data);
 
 private:
-    Settings *_settings;
+    const Settings *_settings;
     QMap<int, int> _slot_rewrite_map;
     QList<unsigned int> *_registered_ms;
     QVector<int> _private_call_stream_ids;

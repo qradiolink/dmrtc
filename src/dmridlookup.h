@@ -27,7 +27,7 @@ class DMRIdLookup : public QObject
 {
     Q_OBJECT
 public:
-    explicit DMRIdLookup(Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit DMRIdLookup(const Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~DMRIdLookup();
     QString lookup(unsigned int id);
     QString getCallsign(unsigned int id);
@@ -35,7 +35,7 @@ public:
 signals:
 
 private:
-    Settings *_settings;
+    const Settings *_settings;
     Logger *_logger;
     QMap<unsigned int, QString> *_ids;
 

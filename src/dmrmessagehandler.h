@@ -86,7 +86,7 @@ public:
         unsigned char payload[4096];
         unsigned char data[128][24];
     };
-    explicit DMRMessageHandler(Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit DMRMessageHandler(const Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~DMRMessageHandler();
     data_message *processData(CDMRData &dmr_data, bool from_gateway=false);
     void addDataToBuffer(unsigned int srcId, CDMRData &dmr_data);
@@ -101,7 +101,7 @@ private slots:
     void removeMessages();
 
 private:
-    Settings *_settings;
+    const Settings *_settings;
     Logger *_logger;
     bool block_crc(unsigned char *block, unsigned int block_size, uint8_t &dbsn);
     bool message_crc32(data_message *msg, unsigned int type, unsigned int block_size);

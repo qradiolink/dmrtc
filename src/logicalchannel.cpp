@@ -18,7 +18,7 @@
 
 const long long TX_TIME = 58000000L; // needs to be ~ two timeslots
 
-LogicalChannel::LogicalChannel(Settings *settings, Logger *logger, unsigned int id,
+LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigned int id,
                                unsigned int physical_channel, unsigned int slot, bool control_channel, bool gui_enabled, QObject *parent) : QObject(parent)
 {
     _id = id;

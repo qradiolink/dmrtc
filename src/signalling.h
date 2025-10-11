@@ -36,7 +36,7 @@ class Signalling
 {
 
 public:
-    explicit Signalling(Settings *settings);
+    explicit Signalling(const Settings *settings);
     void getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsigned int &pad_nibble);
     void createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk);
     bool createAbsoluteParameters(CDMRCSBK &csbk1, CDMRCSBK &csbk2,
@@ -99,7 +99,7 @@ public:
 
 
 private:
-    Settings *_settings;
+    const Settings *_settings;
     const uint8_t _uab_pad_nibbles_mapping[2][46] =
     {
         {1,1,1,1,1,1,1,1,1,1,

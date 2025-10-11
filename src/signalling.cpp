@@ -16,7 +16,7 @@
 
 #include "signalling.h"
 
-Signalling::Signalling(Settings *settings)
+Signalling::Signalling(const Settings *settings)
 {
     _settings = settings;
 }

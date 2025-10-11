@@ -16,7 +16,7 @@
 
 #include "dmrrewrite.h"
 
-DMRRewrite::DMRRewrite(Settings *settings, QList<unsigned int> *registered_ms)
+DMRRewrite::DMRRewrite(const Settings *settings, QList<unsigned int> *registered_ms)
 {
     _settings = settings;
     _registered_ms = registered_ms;

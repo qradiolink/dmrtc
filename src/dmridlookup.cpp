@@ -16,7 +16,7 @@
 
 #include "dmridlookup.h"
 
-DMRIdLookup::DMRIdLookup(Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
+DMRIdLookup::DMRIdLookup(const Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
 {
     _settings = settings;
     _logger = logger;

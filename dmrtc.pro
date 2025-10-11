@@ -24,6 +24,7 @@ SOURCES += src/main.cpp \
     src/crc32.cpp \
     src/crc9.cpp \
     src/dmrmessagehandler.cpp \
+    src/networksignalling.cpp \
     src/rc4.cpp \
     src/channelviewmodel.cpp \
     src/dmridlookup.cpp \
@@ -52,6 +53,7 @@ HEADERS += src/settings.h \
     src/gatewayrouter.h \
     src/logger.h \
     src/logicalchannel.h \
+    src/networksignalling.h \
     src/signalling.h \
     src/standard_PDU.h \
     src/udpclient.h \
