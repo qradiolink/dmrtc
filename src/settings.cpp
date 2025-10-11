@@ -578,13 +578,18 @@ void Settings::readConfig()
         const libconfig::Setting &gw_ids = cfg.lookup("gateway_ids");
         for(int i = 0; i < gw_ids.getLength(); ++i)
         {
-            const libconfig::Setting &gw = gw_ids[i];
-            unsigned int id;
-            std::string name;
-            if(!(gw.lookupValue("id", id)
-                 && gw.lookupValue("name", name)))
-              continue;
-            gateway_ids.insert(id, QString::fromStdString(name));
+          const libconfig::Setting &gw = gw_ids[i];
+          std::string gateway_id, gateway_name, gateway_type;
+
+          if(!(gw.lookupValue("gateway_id", gateway_id)
+               && gw.lookupValue("gateway_name", gateway_name)
+               && gw.lookupValue("gateway_type", gateway_type)))
+            continue;
+          QMap<QString, QString> gw_map{{"gateway_id", QString::fromStdString(gateway_id)},
+                                          {"gateway_name", QString::fromStdString(gateway_name)},
+                                          {"gateway_type", QString::fromStdString(gateway_type)}
+                                       };
+          gateway_ids.append(gw_map);
         }
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -747,13 +752,14 @@ void Settings::saveConfig()
     /// Gateway ids
     root.add("gateway_ids",libconfig::Setting::TypeList);
     libconfig::Setting &gw_ids = root["gateway_ids"];
-    QMapIterator<unsigned int, QString> it_gws(gateway_ids);
+    QListIterator<QMap<QString, QString>> it_gws(gateway_ids);
     while(it_gws.hasNext())
     {
-        it_gws.next();
-        libconfig::Setting &id = gw_ids.add(libconfig::Setting::TypeGroup);
-        id.add("id", libconfig::Setting::TypeInt) = (int)it_gws.key();
-        id.add("name", libconfig::Setting::TypeString) = it_gws.value().toStdString();
+        QMap<QString, QString> gw_map = it_gws.next();
+        libconfig::Setting &gw = gw_ids.add(libconfig::Setting::TypeGroup);
+        gw.add("gateway_id", libconfig::Setting::TypeString) = gw_map.value("gateway_id").toStdString();
+        gw.add("gateway_name", libconfig::Setting::TypeString) = gw_map.value("gateway_name").toStdString();
+        gw.add("gateway_type", libconfig::Setting::TypeString) = gw_map.value("gateway_type").toStdString();
     }
 
     /// Local TG ids

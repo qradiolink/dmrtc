@@ -739,24 +739,27 @@ void MainWindow::deleteServiceId()
 
 void MainWindow::loadGateways()
 {
-    QMapIterator<unsigned int, QString> i(_settings->gateway_ids);
+    QListIterator<QMap<QString, QString>> i(_settings->gateway_ids);
     QStringList header_gateway_ids;
     header_gateway_ids.append("Id");
     header_gateway_ids.append("Name");
+    header_gateway_ids.append("Type");
     ui->tableWidgetGateways->setRowCount(_settings->gateway_ids.size());
-    ui->tableWidgetGateways->setColumnCount(2);
+    ui->tableWidgetGateways->setColumnCount(3);
     ui->tableWidgetGateways->setHorizontalHeaderLabels(header_gateway_ids);
     ui->tableWidgetGateways->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetGateways->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
     while(i.hasNext())
     {
-        i.next();
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.key()));
-        QTableWidgetItem *name = new QTableWidgetItem(i.value());
+        QMap<QString, QString> gw_map = i.next();
+        QTableWidgetItem *id = new QTableWidgetItem(gw_map.value("gateway_id"));
+        QTableWidgetItem *name = new QTableWidgetItem(gw_map.value("gateway_name"));
+        QTableWidgetItem *type = new QTableWidgetItem(gw_map.value("gateway_type"));
 
         ui->tableWidgetGateways->setItem(row, 0, id);
         ui->tableWidgetGateways->setItem(row, 1, name);
+        ui->tableWidgetGateways->setItem(row, 2, type);
         row++;
     }
 }
@@ -769,14 +772,21 @@ void MainWindow::saveGateways()
     {
         QTableWidgetItem *item1 = ui->tableWidgetGateways->item(i, 0);
         QTableWidgetItem *item2 = ui->tableWidgetGateways->item(i, 1);
+        QTableWidgetItem *item3 = ui->tableWidgetGateways->item(i, 2);
+        bool ok1 = false;
         bool ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
+        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size())
         {
-            item1->text().toInt(&ok2);
+            item1->text().toInt(&ok1);
+            item3->text().toInt(&ok2);
         }
-        if(ok2)
+        if(ok1 && ok2)
         {
-            _settings->gateway_ids.insert(item1->text().toInt(), item2->text());
+            QMap<QString, QString> gw_map;
+            gw_map.insert("gateway_id", item1->text());
+            gw_map.insert("gateway_name", item2->text());
+            gw_map.insert("gateway_type", item3->text());
+            _settings->gateway_ids.append(gw_map);
         }
     }
 }
@@ -786,9 +796,11 @@ void MainWindow::addGateway()
     ui->tableWidgetGateways->setRowCount(ui->tableWidgetGateways->rowCount() + 1);
     QTableWidgetItem *id = new QTableWidgetItem(QString(""));
     QTableWidgetItem *name = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *type = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 0, id);
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 1, name);
+    ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 2, type);
     ui->tableWidgetGateways->scrollToBottom();
 }
 

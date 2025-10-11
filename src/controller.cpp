@@ -1400,6 +1400,7 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
     bool local_data = !from_gateway;
+    bool forward_to_gw = false;
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstIdRewritten;
@@ -1478,14 +1479,17 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                 }
                 else if(message->sap == 4)
                 {
+                    forward_to_gw = true;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 }
                 else if(message->sap == 10 && message->type == 13)
                 {
+                    forward_to_gw = true;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 }
                 else
                 {
+                    forward_to_gw = true;
                     processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
                 }
             }
@@ -1544,14 +1548,17 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     }
                     else if(message->sap == 4)
                     {
+                        forward_to_gw = true;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     }
                     else if(message->sap == 10 && message->type == 13)
                     {
+                        forward_to_gw = true;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     }
                     else
                     {
+                        forward_to_gw = true;
                         processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo());
                     }
                 }
@@ -1600,7 +1607,7 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
         dmr_data.setSlotNo(_control_channel->getSlot());
         _control_channel->putRFQueue(dmr_data);
     }
-    else if(!from_gateway)
+    else if(!from_gateway && forward_to_gw)
     {
         if(dmr_data.getFLCO() == FLCO_GROUP)
         {

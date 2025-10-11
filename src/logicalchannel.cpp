@@ -120,11 +120,19 @@ bool LogicalChannel::getEmbeddedDataTx(CDMRData &dmr_data)
     if(_settings->talkgroup_routing_table.contains(dstId))
     {
         gw_id = _settings->talkgroup_routing_table.value(dstId);
-        if(_settings->gateway_ids.contains(gw_id))
-            return true;
+        QListIterator<QMap<QString, QString>> it(_settings->gateway_ids);
+        while(it.hasNext())
+        {
+            QMap<QString, QString> gw_map = it.next();
+            if((gw_map.value("gateway_id").toLong() == gw_id) &&
+                    (gw_map.value("gateway_type").toLong() == 0))
+            {
+                return true;
+            }
+        }
         return false;
     }
-    return false;
+    return true;
 }
 
 void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type, bool local)
