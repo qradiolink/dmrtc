@@ -255,16 +255,10 @@ unsigned int CDMRData::getCommand() const
 
 void CDMRData::setUUID(unsigned char *uuid)
 {
-    for(int i=0;i<16;i++)
-    {
-        m_uuid[i] = uuid[i];
-    }
+    ::memcpy(m_uuid, uuid, 16U);
 }
 
 void CDMRData::getUUID(unsigned char *uuid)
 {
-    for(int i=0;i<16;i++)
-    {
-        uuid[i] = m_uuid[i];
-    }
+    ::memcpy(uuid, m_uuid, 16U);
 }

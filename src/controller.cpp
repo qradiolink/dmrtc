@@ -832,16 +832,13 @@ void Controller::processDMRPayload(unsigned char *payload, unsigned int size, in
     unsigned int streamId = 0;
     unsigned char ber = payload[53U];
     unsigned char rssi = payload[54U];
+    ::memcpy(&streamId, payload + 16U, 4U);
     unsigned char uuid[16];
-    memset(uuid, 0, 16U);
+    ::memset(uuid, 0, 16U);
     if(uuid_present && (size == HOMEBREW_DATA_PACKET_LENGTH + 16U))
     {
-        for(uint32_t i=0;i<16;i++)
-        {
-            uuid[i] = payload[55U+i];
-        }
+        ::memcpy(uuid, payload + 55U, 16U);
     }
-    ::memcpy(&streamId, payload + 16U, 4U);
 
     FLCO flco = (payload[15U] & 0x40U) == 0x40U ? FLCO_USER_USER : FLCO_GROUP;
     CDMRData dmr_data;

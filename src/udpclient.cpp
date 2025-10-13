@@ -258,12 +258,9 @@ void UDPClient::writeDMRData(CDMRData &data)
     buffer[54U] = data.getRSSI();
     if(_gateway_connection)
     {
-        unsigned char uuid[16];
+        unsigned char uuid[16U];
         data.getUUID(uuid);
-        for(uint32_t i=0;i<16;i++)
-        {
-            buffer[55U+i] = uuid[i];
-        }
+        ::memcpy(buffer + 55U, uuid, 16U);
     }
     /*
     QByteArray array((const char*)uuid);
