@@ -37,6 +37,8 @@
 #include "MMDVM/Sync.h"
 #include "MMDVM/Utils.h"
 
+namespace CallType
+{
 enum CallType
 {
     CALL_TYPE_MS=0,
@@ -44,13 +46,17 @@ enum CallType
     CALL_TYPE_INDIV_PACKET=2,
     CALL_TYPE_GROUP_PACKET=3,
 };
+}
 
+namespace CallState
+{
 enum CallState
 {
     CALL_STATE_LC,
     CALL_STATE_SYNC,
     CALL_STATE_NONE
 };
+}
 
 class LogicalChannel : public QObject
 {
@@ -59,9 +65,9 @@ public:
     LogicalChannel(const Settings *settings, Logger *logger, unsigned int id,
                    unsigned int physical_channel, unsigned int slot, bool control_channel=false, bool gui_enabled=false, QObject *parent=0);
 
-    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP, bool local=false);
+    void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CallType::CALL_TYPE_GROUP, bool local=false);
     void deallocateChannel();
-    void updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CALL_TYPE_GROUP);
+    void updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CallType::CALL_TYPE_GROUP);
     void startTimeoutTimer();
     void stopTimeoutTimer();
     void updateStats(CDMRData &dmr_data, bool end_call=false);

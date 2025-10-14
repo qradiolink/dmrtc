@@ -2872,11 +2872,12 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
 void Controller::processNetworkCSBK(CDMRData &dmr_data, int udp_channel_id)
 {
     (void)udp_channel_id;
-    _logger->log(Logger::LogLevelDebug, QString("Received network CSBK from %1, slot %2 to destination %3")
-                 .arg(dmr_data.getSrcId()).arg(dmr_data.getSlotNo()).arg(dmr_data.getDstId()));
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
     unsigned int slotNo = dmr_data.getSlotNo();
+    _logger->log(Logger::LogLevelDebug, QString("Received network CSBK from %1, slot %2 to destination %3")
+                 .arg(srcId).arg(slotNo).arg(dstId));
+
     CDMRCSBK csbk;
     unsigned char buf[DMR_FRAME_LENGTH_BYTES];
     dmr_data.getData(buf);

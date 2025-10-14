@@ -1,6 +1,8 @@
 #ifndef DMR_COMMANDS_H
 #define DMR_COMMANDS_H
 
+namespace DMRCommand
+{
 enum DMRCommand {
     ChannelEnableDisable = 1,
     RCCeaseTransmission = 2,
@@ -11,5 +13,6 @@ enum DMRCommand {
     RCMinimumPower = 7,
     RCNoCommand = 0,
 };
+}
 
 #endif // DMR_COMMANDS_H

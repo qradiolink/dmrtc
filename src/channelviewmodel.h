@@ -27,6 +27,8 @@
 const unsigned int ROWS = 7;
 const unsigned int COLS = 2;
 
+namespace ChannelState
+{
 enum ChannelState
 {
     ChannelFree = 1,
@@ -35,6 +37,7 @@ enum ChannelState
     ChannelUnused = 4,
     ChannelControl = 5,
 };
+}
 
 class ChannelViewModel : public QAbstractTableModel
 {

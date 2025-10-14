@@ -53,6 +53,8 @@
 #include "MMDVM/Sync.h"
 #include "rc4.h"
 
+namespace ServiceAction
+{
 enum ServiceAction {
     ActionPingRequest,
     ActionMessageRequest,
@@ -66,6 +68,7 @@ enum ServiceAction {
     ActionStatusMsg,
     ActionStatusPoll,
 };
+}
 
 class Controller : public QObject
 {
