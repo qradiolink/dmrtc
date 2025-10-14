@@ -24,12 +24,38 @@ GatewayRouter::GatewayRouter(const Settings *settings, Logger *logger, QObject *
 
 bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
 {
-    unsigned int dstId = dmr_data.getDstId();
-    if(_settings->talkgroup_routing_table.contains(dstId))
+    FLCO flco = dmr_data.getFLCO();
+    if(flco == FLCO_USER_USER)
     {
-        gateway_id = _settings->talkgroup_routing_table.value(dstId);
-        return true;
+        if (getPrivateCallGateway(gateway_id))
+            return true;
+        else
+            return false;
     }
     else
-        return false;
+    {
+        unsigned int dstId = dmr_data.getDstId();
+        if(_settings->talkgroup_routing_table.contains(dstId))
+        {
+            gateway_id = _settings->talkgroup_routing_table.value(dstId);
+            return true;
+        }
+        else
+            return false;
+    }
+}
+
+bool GatewayRouter::getPrivateCallGateway(unsigned int &id)
+{
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateway_ids);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        if(bool(gw.value("enable_private_calls").toInt()))
+        {
+            id = gw.value("gateway_id").toInt();
+            return true;
+        }
+    }
+    return false;
 }

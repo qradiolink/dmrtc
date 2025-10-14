@@ -579,17 +579,19 @@ void Settings::readConfig()
         for(int i = 0; i < gw_ids.getLength(); ++i)
         {
           const libconfig::Setting &gw = gw_ids[i];
-          std::string gateway_id, gateway_name, gateway_type, talkgroup_prefix;
+          std::string gateway_id, gateway_name, gateway_type, talkgroup_prefix, enable_private_calls;
 
           if(!(gw.lookupValue("gateway_id", gateway_id)
                && gw.lookupValue("gateway_name", gateway_name)
                && gw.lookupValue("gateway_type", gateway_type)
-               && gw.lookupValue("talkgroup_prefix", talkgroup_prefix)))
+               && gw.lookupValue("talkgroup_prefix", talkgroup_prefix)
+               && gw.lookupValue("enable_private_calls", enable_private_calls)))
             continue;
           QMap<QString, QString> gw_map{{"gateway_id", QString::fromStdString(gateway_id)},
                                           {"gateway_name", QString::fromStdString(gateway_name)},
                                           {"gateway_type", QString::fromStdString(gateway_type)},
-                                          {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)}
+                                          {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)},
+                                          {"enable_private_calls", QString::fromStdString(enable_private_calls)}
                                        };
           gateway_ids.append(gw_map);
         }
@@ -763,6 +765,7 @@ void Settings::saveConfig()
         gw.add("gateway_name", libconfig::Setting::TypeString) = gw_map.value("gateway_name").toStdString();
         gw.add("gateway_type", libconfig::Setting::TypeString) = gw_map.value("gateway_type").toStdString();
         gw.add("talkgroup_prefix", libconfig::Setting::TypeString) = gw_map.value("talkgroup_prefix").toStdString();
+        gw.add("enable_private_calls", libconfig::Setting::TypeString) = gw_map.value("enable_private_calls").toStdString();
     }
 
     /// Local TG ids
