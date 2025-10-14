@@ -24,13 +24,22 @@ GatewayRouter::GatewayRouter(const Settings *settings, Logger *logger, QObject *
 
 bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
 {
+    if(dmr_data.getMessageFlag())
+    {
+        if (getTrunkingGateway(gateway_id))
+        {
+            return true;
+        }
+        return false;
+    }
     FLCO flco = dmr_data.getFLCO();
     if(flco == FLCO_USER_USER)
     {
         if (getPrivateCallGateway(gateway_id))
+        {
             return true;
-        else
-            return false;
+        }
+        return false;
     }
     else
     {
@@ -40,20 +49,36 @@ bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
             gateway_id = _settings->talkgroup_routing_table.value(dstId);
             return true;
         }
-        else
-            return false;
+        gateway_id = 0; // default route
+        return true;
     }
 }
 
 bool GatewayRouter::getPrivateCallGateway(unsigned int &id)
 {
+    /// TODO: multiple gateways with private call
     QListIterator<QMap<QString, QString>> it_gws(_settings->gateway_ids);
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
         if(bool(gw.value("enable_private_calls").toInt()))
         {
-            id = gw.value("gateway_id").toInt();
+            id = (unsigned int)(gw.value("gateway_id").toInt());
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GatewayRouter::getTrunkingGateway(unsigned int &id)
+{
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateway_ids);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        if(uint8_t(gw.value("gateway_type").toInt()) == 1) // TODO: proto version
+        {
+            id = (unsigned int)(gw.value("gateway_id").toInt());
             return true;
         }
     }

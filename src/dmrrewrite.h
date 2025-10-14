@@ -22,6 +22,7 @@
 #include <QVector>
 #include <QDebug>
 #include "settings.h"
+#include "standard_PDU.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRFullLC.h"
 #include "MMDVM/DMRLC.h"

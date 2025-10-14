@@ -49,8 +49,7 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
         dmr_data.setSlotNo(_settings->slot_rewrite_table.value(dstId));
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool DMRRewrite::rewriteSource(CDMRData &data)
@@ -58,11 +57,10 @@ bool DMRRewrite::rewriteSource(CDMRData &data)
     unsigned int srcId = data.getSrcId();
     if((_registered_ms->size() > 0) && _registered_ms->contains(srcId))
     {
-        data.setSrcId(1);
+        data.setSrcId(StandardAddreses::DISPATI);
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 

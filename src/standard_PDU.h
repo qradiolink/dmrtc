@@ -17,7 +17,8 @@
 #ifndef STANDARD_PDU_H
 #define STANDARD_PDU_H
 
-
+namespace StandardAddreses
+{
 enum StandardAddreses
 {
     ALLMSI = 0xFFFED4,
@@ -38,7 +39,10 @@ enum StandardAddreses
     IPI = 0xFFFEC3,
     HDATA_GW = 0xFFFD02,
 };
+}
 
+namespace ServiceKind
+{
 enum ServiceKind
 {
     IndivVoiceCall = 0,
@@ -57,7 +61,10 @@ enum ServiceKind
     RegiAuthMSCheck = 14,
     CancelCall = 15
 };
+}
 
+namespace PollFMT
+{
 enum PollFMT
 {
     PollBinary = 0,
@@ -70,7 +77,10 @@ enum PollFMT
     PollUTF16 = 7,
     PollStatus = 10,
 };
+}
 
+namespace UDTFormat
+{
 enum UDTFormat
 {
     FmtBinary = 0,
@@ -84,6 +94,7 @@ enum UDTFormat
     FmtMixed = 10,
     FmtLIP = 11,
 };
+}
 
 
 #endif // STANDARD_PDU_H

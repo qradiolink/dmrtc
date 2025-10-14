@@ -273,11 +273,6 @@ void Controller::run()
                     {
                         _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
                     }
-                    else
-                    {
-                        // send on default route, gateway 0
-                        _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
-                    }
                 }
             }
 

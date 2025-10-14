@@ -30,6 +30,7 @@ public:
     explicit GatewayRouter(const Settings *settings, Logger *logger, QObject *parent = nullptr);
     bool findRoute(CDMRData &dmr_data, unsigned int &gateway_id);
     bool getPrivateCallGateway(unsigned int &id);
+    bool getTrunkingGateway(unsigned int &id);
 
 signals:
 

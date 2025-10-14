@@ -59,7 +59,7 @@ Settings::Settings(Logger *logger)
     announce_adjacent_bs_interval = 30;
     announce_late_entry_interval = 1;
     channel_disable_bitmask = 0;
-    service_ids = {{"help", 1}, {"signal_report", 2}, {"location", 1048677}};
+    service_ids = {{"help", 1}, {"dgna", 2}, {"signal_report", 3}, {"all_call", 4}, {"location", 1048677}};
 }
 
 Settings::~Settings()
@@ -518,7 +518,7 @@ void Settings::readConfig()
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
-        service_ids = {{"help", 1000001}, {"signal_report", 1000003}, {"location", 1048677}, {"dgna", 1000002}};
+        service_ids = {{"help", 1}, {"dgna", 2}, {"signal_report", 3}, {"all_call", 4}, {"location", 1048677}};
     }
     try
     {
@@ -587,17 +587,24 @@ void Settings::readConfig()
                && gw.lookupValue("talkgroup_prefix", talkgroup_prefix)
                && gw.lookupValue("enable_private_calls", enable_private_calls)))
             continue;
-          QMap<QString, QString> gw_map{{"gateway_id", QString::fromStdString(gateway_id)},
+          QMap<QString, QString> gw_map {{"gateway_id", QString::fromStdString(gateway_id)},
                                           {"gateway_name", QString::fromStdString(gateway_name)},
                                           {"gateway_type", QString::fromStdString(gateway_type)},
                                           {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)},
                                           {"enable_private_calls", QString::fromStdString(enable_private_calls)}
-                                       };
+                                        };
           gateway_ids.append(gw_map);
         }
     }
     catch(const libconfig::SettingNotFoundException &nfex)
     {
+        QMap<QString, QString> default_map {{"gateway_id", "0"},
+                                            {"gateway_name", "Default gateway"},
+                                            {"gateway_type", "0"},
+                                            {"talkgroup_prefix", "0"},
+                                            {"enable_private_calls", "1"}
+                                            };
+        gateway_ids.append(default_map);
     }
     try
     {
