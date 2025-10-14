@@ -211,6 +211,16 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
 
 void UDPClient::writeDMRData(CDMRData &data)
 {
+    if(data.getMessageFlag())
+    {
+        uint8_t packet_size = data.getMessageSize();
+        unsigned char buffer[packet_size];
+        ::memset(buffer, 0x00U, packet_size);
+        uint8_t length = data.getMessage(buffer);
+        writeDataToNetwork(buffer, length);
+        return;
+    }
+
     uint32_t packet_size = _gateway_connection ? (HOMEBREW_DATA_PACKET_LENGTH + 16U) : HOMEBREW_DATA_PACKET_LENGTH;
     unsigned char buffer[packet_size];
     ::memset(buffer, 0x00U, packet_size);

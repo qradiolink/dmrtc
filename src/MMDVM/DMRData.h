@@ -66,6 +66,14 @@ public:
     void setStreamId(unsigned int streamId);
     void setUUID(unsigned char *uuid);
     void getUUID(unsigned char *uuid);
+    void setMessageSize(unsigned int size);
+    unsigned int getMessageSize() const;
+
+    void setMessageFlag(bool is_message);
+    bool getMessageFlag() const;
+
+    void setMessage(const unsigned char* buffer, unsigned int size);
+    unsigned int getMessage(unsigned char* buffer) const;
 
 private:
 	unsigned int   m_slotNo;
@@ -84,6 +92,9 @@ private:
     bool           m_chanEnable;
     unsigned int   m_command;
     unsigned char  m_uuid[16];
+    unsigned char* m_message;
+    unsigned int   m_messageSize;
+    bool           m_messageFlag;
 };
 
 #endif

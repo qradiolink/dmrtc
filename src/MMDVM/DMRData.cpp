@@ -37,11 +37,15 @@ m_streamId(data.m_streamId),
 m_dummy(data.m_dummy),
 m_control(data.m_control),
 m_chanEnable(data.m_chanEnable),
-m_command(data.m_command)
+m_command(data.m_command),
+m_messageSize(data.m_messageSize),
+m_messageFlag(data.m_messageFlag)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
 	::memcpy(m_data, data.m_data, 2U * DMR_FRAME_LENGTH_BYTES);
     ::memcpy(m_uuid, data.m_uuid, 16U);
+    m_message = new unsigned char[1024U];
+    ::memcpy(m_message, data.m_message, 1024U);
 }
 
 CDMRData::CDMRData() :
@@ -59,15 +63,19 @@ m_streamId(0U),
 m_dummy(false),
 m_control(false),
 m_chanEnable(true),
-m_command(0)
+m_command(0),
+m_messageSize(0U),
+m_messageFlag(false)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
     memset(m_uuid, 0, 16U);
+    m_message = new unsigned char[1024U];
 }
 
 CDMRData::~CDMRData()
 {
 	delete[] m_data;
+    delete[] m_message;
 }
 
 CDMRData& CDMRData::operator=(const CDMRData& data)
@@ -75,6 +83,7 @@ CDMRData& CDMRData::operator=(const CDMRData& data)
 	if (this != &data) {
 		::memcpy(m_data, data.m_data, DMR_FRAME_LENGTH_BYTES);
         ::memcpy(m_uuid, data.m_uuid, 16U);
+        ::memcpy(m_message, data.m_message, 1024U);
 
 		m_slotNo   = data.m_slotNo;
 		m_srcId    = data.m_srcId;
@@ -90,6 +99,8 @@ CDMRData& CDMRData::operator=(const CDMRData& data)
         m_control  = data.m_control;
         m_chanEnable  = data.m_chanEnable;
         m_command  = data.m_command;
+        m_messageFlag = data.m_messageFlag;
+        m_messageSize = data.m_messageSize;
 	}
 
 	return *this;
@@ -261,4 +272,43 @@ void CDMRData::setUUID(unsigned char *uuid)
 void CDMRData::getUUID(unsigned char *uuid)
 {
     ::memcpy(uuid, m_uuid, 16U);
+}
+
+void CDMRData::setMessageSize(unsigned int size)
+{
+    m_messageSize = size;
+}
+
+unsigned int CDMRData::getMessageSize() const
+{
+    return m_messageSize;
+}
+
+void CDMRData::setMessageFlag(bool is_message)
+{
+    m_messageFlag = is_message;
+}
+
+bool CDMRData::getMessageFlag() const
+{
+    return m_messageFlag;
+}
+
+void CDMRData::setMessage(const unsigned char* buffer, unsigned int size)
+{
+    if(size > 1024U)
+        return;
+    ::memcpy(m_message, buffer, size);
+    m_messageSize = size;
+    m_messageFlag = true;
+}
+
+unsigned int CDMRData::getMessage(unsigned char* buffer) const
+{
+    if(m_messageFlag)
+    {
+        ::memcpy(buffer, m_message, m_messageSize);
+        return m_messageSize;
+    }
+    return 0U;
 }

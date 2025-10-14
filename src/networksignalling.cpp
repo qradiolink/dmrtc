@@ -5,6 +5,7 @@ NetworkSignalling::NetworkSignalling(const Settings *settings, Logger *logger, Q
 {
     _settings = settings;
     _logger = logger;
+    _le = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? false : true;
 }
 
 NetworkSignalling::~NetworkSignalling()
@@ -38,10 +39,12 @@ bool NetworkSignalling::validateNetMessage(unsigned char *message, unsigned int 
     return true;
 }
 
-void NetworkSignalling::createRegistrationMessage(unsigned char* buffer, unsigned int &size, unsigned int dmrId)
+void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int dmrId)
 {
-    size = 17;
+    uint8_t size = 17;
+    unsigned char buffer[size];
     uint64_t ts = getUnixTimestamp();
+    ts = _le ? ts : qToLittleEndian(ts);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -52,12 +55,16 @@ void NetworkSignalling::createRegistrationMessage(unsigned char* buffer, unsigne
     buffer[14U] = (unsigned char)((dmrId >> 16U) & 0xFF);
     buffer[15U] = (unsigned char)((dmrId >> 8U) & 0xFF);
     buffer[16U] = (unsigned char)(dmrId & 0xFF);
+    data.setMessage(buffer, size);
+
 }
 
-void NetworkSignalling::createDeRegistrationMessage(unsigned char* buffer, unsigned int &size, unsigned int dmrId)
+void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int dmrId)
 {
-    size = 17;
+    uint8_t size = 17;
+    unsigned char buffer[size];
     uint64_t ts = getUnixTimestamp();
+    ts = _le ? ts : qToLittleEndian(ts);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -68,13 +75,15 @@ void NetworkSignalling::createDeRegistrationMessage(unsigned char* buffer, unsig
     buffer[14U] = (unsigned char)((dmrId >> 16U) & 0xFF);
     buffer[15U] = (unsigned char)((dmrId >> 8U) & 0xFF);
     buffer[16U] = (unsigned char)(dmrId & 0xFF);
+    data.setMessage(buffer, size);
 }
 
-bool NetworkSignalling::createGroupSubscriptionMessage(unsigned char* buffer, unsigned int &size, QList<unsigned int> tgs)
+bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
     if((tgs.size() < 1) || (tgs.size() > 64))
         return false;
-    size = 6U + ((uint32_t)tgs.size() * 3U);
+    uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
+    unsigned char buffer[size];
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -87,14 +96,16 @@ bool NetworkSignalling::createGroupSubscriptionMessage(unsigned char* buffer, un
         buffer[6U + j + 1] = (unsigned char)((tgs.at(i) >> 8U) & 0xFF);
         buffer[6U + j + 2] = (unsigned char)(tgs.at(i) & 0xFF);
     }
+    data.setMessage(buffer, size);
     return true;
 }
 
-bool NetworkSignalling::createGroupUnSubscriptionMessage(unsigned char* buffer, unsigned int &size, QList<unsigned int> tgs)
+bool NetworkSignalling::createGroupUnSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
     if((tgs.size() < 1) || (tgs.size() > 64))
         return false;
-    size = 6U + ((uint32_t)tgs.size() * 3U);
+    uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
+    unsigned char buffer[size];
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -107,5 +118,6 @@ bool NetworkSignalling::createGroupUnSubscriptionMessage(unsigned char* buffer, 
         buffer[6U + j + 1] = (unsigned char)((tgs.at(i) >> 8U) & 0xFF);
         buffer[6U + j + 2] = (unsigned char)(tgs.at(i) & 0xFF);
     }
+    data.setMessage(buffer, size);
     return true;
 }

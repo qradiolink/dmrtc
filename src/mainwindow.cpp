@@ -744,8 +744,9 @@ void MainWindow::loadGateways()
     header_gateway_ids.append("Id");
     header_gateway_ids.append("Name");
     header_gateway_ids.append("Type");
+    header_gateway_ids.append("Talkgroup prefix");
     ui->tableWidgetGateways->setRowCount(_settings->gateway_ids.size());
-    ui->tableWidgetGateways->setColumnCount(3);
+    ui->tableWidgetGateways->setColumnCount(4);
     ui->tableWidgetGateways->setHorizontalHeaderLabels(header_gateway_ids);
     ui->tableWidgetGateways->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetGateways->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
@@ -756,10 +757,12 @@ void MainWindow::loadGateways()
         QTableWidgetItem *id = new QTableWidgetItem(gw_map.value("gateway_id"));
         QTableWidgetItem *name = new QTableWidgetItem(gw_map.value("gateway_name"));
         QTableWidgetItem *type = new QTableWidgetItem(gw_map.value("gateway_type"));
+        QTableWidgetItem *prefix = new QTableWidgetItem(gw_map.value("talkgroup_prefix"));
 
         ui->tableWidgetGateways->setItem(row, 0, id);
         ui->tableWidgetGateways->setItem(row, 1, name);
         ui->tableWidgetGateways->setItem(row, 2, type);
+        ui->tableWidgetGateways->setItem(row, 3, prefix);
         row++;
     }
 }
@@ -773,19 +776,23 @@ void MainWindow::saveGateways()
         QTableWidgetItem *item1 = ui->tableWidgetGateways->item(i, 0);
         QTableWidgetItem *item2 = ui->tableWidgetGateways->item(i, 1);
         QTableWidgetItem *item3 = ui->tableWidgetGateways->item(i, 2);
+        QTableWidgetItem *item4 = ui->tableWidgetGateways->item(i, 3);
         bool ok1 = false;
         bool ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size())
+        bool ok3 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() && item4->text().size())
         {
             item1->text().toInt(&ok1);
             item3->text().toInt(&ok2);
+            item4->text().toInt(&ok3);
         }
-        if(ok1 && ok2)
+        if(ok1 && ok2 && ok3)
         {
             QMap<QString, QString> gw_map;
             gw_map.insert("gateway_id", item1->text());
             gw_map.insert("gateway_name", item2->text());
             gw_map.insert("gateway_type", item3->text());
+            gw_map.insert("talkgroup_prefix", item3->text());
             _settings->gateway_ids.append(gw_map);
         }
     }
@@ -797,10 +804,12 @@ void MainWindow::addGateway()
     QTableWidgetItem *id = new QTableWidgetItem(QString(""));
     QTableWidgetItem *name = new QTableWidgetItem(QString(""));
     QTableWidgetItem *type = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *prefix = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 0, id);
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 1, name);
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 2, type);
+    ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 3, prefix);
     ui->tableWidgetGateways->scrollToBottom();
 }
 
