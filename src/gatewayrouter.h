@@ -19,6 +19,7 @@
 
 #include <QObject>
 #include <QMap>
+#include <QList>
 #include "src/settings.h"
 #include "src/logger.h"
 #include "MMDVM/DMRData.h"
@@ -31,6 +32,7 @@ public:
     bool findRoute(CDMRData &dmr_data, unsigned int &gateway_id);
     bool getPrivateCallGateway(unsigned int &id);
     bool getTrunkingGateway(unsigned int &id);
+    bool getPrefixRoute(unsigned int dstId, unsigned int &id);
 
 signals:
 

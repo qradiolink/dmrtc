@@ -31,6 +31,7 @@
 #include <libconfig.h++>
 #include "logger.h"
 
+
 class Settings
 {
 public:
@@ -39,6 +40,10 @@ public:
     QFileInfo *setupConfig();
     void readConfig();
     void saveConfig();
+
+    /// not saved yet
+    int tg_prefix_separation;
+    int private_call_timeslot;
 
     /// Saved to config file
     int control_port; // FIXME: this should be unsigned uint16
@@ -71,8 +76,9 @@ public:
     QMap<unsigned int, unsigned int> call_priorities;
     QMap<unsigned int, unsigned int> call_diverts;
     QMap<unsigned int, QString> auth_keys; // Auth keys are 32 character hex strings, traducing to 16 byte key
-    QList<QMap<QString, QString>> gateway_ids;
+    QList<QMap<QString, QString>> gateways;
     QList<unsigned int> local_tg_ids;
+    QMap<unsigned int, unsigned int> static_talkgroups_requested;
 
     int use_absolute_channel_grants;
     int use_fixed_channel_plan;

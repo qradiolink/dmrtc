@@ -22,6 +22,8 @@ Settings::Settings(Logger *logger)
     _config_file = setupConfig();
 
     /// not saved to config
+    tg_prefix_separation = 1000000;
+    private_call_timeslot = 2;
 
 
     /// saved to config
@@ -593,7 +595,7 @@ void Settings::readConfig()
                                           {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)},
                                           {"enable_private_calls", QString::fromStdString(enable_private_calls)}
                                         };
-          gateway_ids.append(gw_map);
+          gateways.append(gw_map);
         }
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -604,7 +606,7 @@ void Settings::readConfig()
                                             {"talkgroup_prefix", "0"},
                                             {"enable_private_calls", "1"}
                                             };
-        gateway_ids.append(default_map);
+        gateways.append(default_map);
     }
     try
     {
@@ -618,7 +620,23 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
     }
+    try
+    {
+        const libconfig::Setting &static_talkgroups = cfg.lookup("static_talkgroups_requested");
+        for(int i = 0; i < static_talkgroups.getLength(); ++i)
+        {
+          const libconfig::Setting &talkgroup = static_talkgroups[i];
+          unsigned int tg_id, gateway_id;
 
+          if(!(talkgroup.lookupValue("tg_id", tg_id)
+               && talkgroup.lookupValue("gateway_id", gateway_id)))
+            continue;
+          static_talkgroups_requested.insert(tg_id, gateway_id);
+        }
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+    }
 
 }
 
@@ -763,7 +781,7 @@ void Settings::saveConfig()
     /// Gateway ids
     root.add("gateway_ids",libconfig::Setting::TypeList);
     libconfig::Setting &gw_ids = root["gateway_ids"];
-    QListIterator<QMap<QString, QString>> it_gws(gateway_ids);
+    QListIterator<QMap<QString, QString>> it_gws(gateways);
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw_map = it_gws.next();
@@ -783,6 +801,17 @@ void Settings::saveConfig()
     {
         unsigned int tg_id = it_tgs.next();
         tg_ids.add(libconfig::Setting::TypeInt) = (int32_t)tg_id;
+    }
+    /// Static talkgroups
+    root.add("static_talkgroups_requested",libconfig::Setting::TypeList);
+    libconfig::Setting &static_talkgroups = root["static_talkgroups_requested"];
+    QMapIterator<unsigned int, unsigned int> it_static_tg(static_talkgroups_requested);
+    while(it_static_tg.hasNext())
+    {
+        it_static_tg.next();
+        libconfig::Setting &talkgroup = static_talkgroups.add(libconfig::Setting::TypeGroup);
+        talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)it_static_tg.key();
+        talkgroup.add("gateway_id", libconfig::Setting::TypeInt) = (int)it_static_tg.value();
     }
 
 

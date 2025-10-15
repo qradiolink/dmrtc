@@ -75,6 +75,10 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
                      this, SLOT(deleteLocalTalkgroup()));
     QObject::connect(ui->pushButtonAddLocalTG, SIGNAL(clicked(bool)),
                      this, SLOT(addLocalTalkgroup()));
+    QObject::connect(ui->pushButtonRemoveStaticTG, SIGNAL(clicked(bool)),
+                         this, SLOT(deleteStaticTalkgroup()));
+    QObject::connect(ui->pushButtonAddStaticTG, SIGNAL(clicked(bool)),
+                         this, SLOT(addStaticTalkgroup()));
     QObject::connect(ui->pushButtonGroupFirst, SIGNAL(clicked(bool)),
                      ui->groupCallsTableWidget, SLOT(scrollToTop()));
     QObject::connect(ui->pushButtonGroupLast, SIGNAL(clicked(bool)),
@@ -207,6 +211,7 @@ void MainWindow::setConfig()
     loadServiceIds();
     loadGateways();
     loadLocalTalkgroups();
+    loadStaticTalkgroups();
 }
 
 void MainWindow::saveConfig()
@@ -250,6 +255,7 @@ void MainWindow::saveConfig()
     saveServiceIds();
     saveGateways();
     saveLocalTalkgroups();
+    saveStaticTalkgroups();
     _settings->saveConfig();
 }
 
@@ -739,14 +745,14 @@ void MainWindow::deleteServiceId()
 
 void MainWindow::loadGateways()
 {
-    QListIterator<QMap<QString, QString>> i(_settings->gateway_ids);
+    QListIterator<QMap<QString, QString>> i(_settings->gateways);
     QStringList header_gateway_ids;
     header_gateway_ids.append("Id");
     header_gateway_ids.append("Name");
     header_gateway_ids.append("Type");
     header_gateway_ids.append("Talkgroup prefix");
     header_gateway_ids.append("Enable private calls");
-    ui->tableWidgetGateways->setRowCount(_settings->gateway_ids.size());
+    ui->tableWidgetGateways->setRowCount(_settings->gateways.size());
     ui->tableWidgetGateways->setColumnCount(5);
     ui->tableWidgetGateways->setHorizontalHeaderLabels(header_gateway_ids);
     ui->tableWidgetGateways->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -772,7 +778,7 @@ void MainWindow::loadGateways()
 
 void MainWindow::saveGateways()
 {
-    _settings->gateway_ids.clear();
+    _settings->gateways.clear();
     int rows = ui->tableWidgetGateways->rowCount();
     for(int i=0;i<rows;i++)
     {
@@ -800,7 +806,7 @@ void MainWindow::saveGateways()
             gw_map.insert("gateway_type", item3->text());
             gw_map.insert("talkgroup_prefix", item4->text());
             gw_map.insert("enable_private_calls", item5->text());
-            _settings->gateway_ids.append(gw_map);
+            _settings->gateways.append(gw_map);
         }
     }
 }
@@ -897,6 +903,77 @@ void MainWindow::deleteLocalTalkgroup()
     for(int row : rows)
     {
         ui->tableWidgetLocalTGs->removeRow(row);
+    }
+}
+
+void MainWindow::loadStaticTalkgroups()
+{
+    QMapIterator<unsigned int, unsigned int> i(_settings->static_talkgroups_requested);
+    QStringList header_static_tg;
+    header_static_tg.append("Talkgroup");
+    header_static_tg.append("Gateway Id");
+    ui->tableWidgetStaticTGs->setRowCount(_settings->static_talkgroups_requested.size());
+    ui->tableWidgetStaticTGs->setColumnCount(2);
+    ui->tableWidgetStaticTGs->setHorizontalHeaderLabels(header_static_tg);
+    ui->tableWidgetStaticTGs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetStaticTGs->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+    while(i.hasNext())
+    {
+        i.next();
+        QTableWidgetItem *tg = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem *gateway = new QTableWidgetItem(QString::number(i.value()));
+
+        ui->tableWidgetStaticTGs->setItem(row, 0, tg);
+        ui->tableWidgetStaticTGs->setItem(row, 1, gateway);
+        row++;
+    }
+}
+
+void MainWindow::saveStaticTalkgroups()
+{
+    _settings->static_talkgroups_requested.clear();
+    int rows = ui->tableWidgetStaticTGs->rowCount();
+    for(int i=0;i<rows;i++)
+    {
+        QTableWidgetItem *item1 = ui->tableWidgetStaticTGs->item(i, 0);
+        QTableWidgetItem *item2 = ui->tableWidgetStaticTGs->item(i, 1);
+        bool ok1, ok2 = false;
+        if(item1->text().size() > 0 && item2->text().size() > 0)
+        {
+            item1->text().toInt(&ok1);
+            item2->text().toInt(&ok2);
+        }
+        if(ok1 && ok2)
+        {
+            _settings->static_talkgroups_requested.insert(item1->text().toInt(), item2->text().toInt());
+        }
+    }
+}
+
+void MainWindow::addStaticTalkgroup()
+{
+    ui->tableWidgetStaticTGs->setRowCount(ui->tableWidgetStaticTGs->rowCount() + 1);
+    QTableWidgetItem *tg = new QTableWidgetItem(QString(""));
+    QTableWidgetItem *gateway = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetStaticTGs->setItem(ui->tableWidgetStaticTGs->rowCount() - 1, 0, tg);
+    ui->tableWidgetStaticTGs->setItem(ui->tableWidgetStaticTGs->rowCount() - 1, 1, gateway);
+    ui->tableWidgetStaticTGs->scrollToBottom();
+}
+
+void MainWindow::deleteStaticTalkgroup()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetStaticTGs->selectedItems();
+    QSet<int> rows;
+    for(QTableWidgetItem* item : items)
+    {
+        int row = item->row();
+        rows.insert(row);
+    }
+    for(int row : rows)
+    {
+        ui->tableWidgetStaticTGs->removeRow(row);
     }
 }
 

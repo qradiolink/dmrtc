@@ -16,6 +16,7 @@
 
 #include "gatewayrouter.h"
 
+
 GatewayRouter::GatewayRouter(const Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
 {
     _settings = settings;
@@ -44,20 +45,28 @@ bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
     else
     {
         unsigned int dstId = dmr_data.getDstId();
+        if((_settings->local_tg_ids.size() > 0) && _settings->local_tg_ids.contains(dstId))
+            return false;
         if(_settings->talkgroup_routing_table.contains(dstId))
         {
             gateway_id = _settings->talkgroup_routing_table.value(dstId);
             return true;
         }
+        if(getPrefixRoute(dstId, gateway_id))
+        {
+            return true;
+        }
+        // no gateway or prefix mismatch
         gateway_id = 0; // default route
         return true;
     }
+    return false;
 }
 
 bool GatewayRouter::getPrivateCallGateway(unsigned int &id)
 {
     /// TODO: multiple gateways with private call
-    QListIterator<QMap<QString, QString>> it_gws(_settings->gateway_ids);
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
@@ -72,15 +81,50 @@ bool GatewayRouter::getPrivateCallGateway(unsigned int &id)
 
 bool GatewayRouter::getTrunkingGateway(unsigned int &id)
 {
-    QListIterator<QMap<QString, QString>> it_gws(_settings->gateway_ids);
+    QList<unsigned int> found_ids;
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
         if(uint8_t(gw.value("gateway_type").toInt()) == 1) // TODO: proto version
         {
-            id = (unsigned int)(gw.value("gateway_id").toInt());
-            return true;
+            unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt());
+            found_ids.append(found_id);
         }
+    }
+    if(found_ids.size() == 1)
+    {
+        id = found_ids.at(0);
+        return true;
+    }
+    else
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Found more than 1 trunking gateway, could not decide on route."));
+    }
+    return false;
+}
+
+bool GatewayRouter::getPrefixRoute(unsigned int dstId, unsigned int &id)
+{
+    int dst = (int) dstId;
+    QList<unsigned int> found_ids;
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        int prefix = gw.value("talkgroup_prefix").toInt();
+        int real_tg_id = dst - prefix;
+        if(real_tg_id <= 0)
+            continue;
+        if(real_tg_id >= _settings->tg_prefix_separation)
+            continue;
+        unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt());
+        found_ids.append(found_id);
+    }
+    if(found_ids.size() == 1)
+    {
+        id = found_ids.at(0);
+        return true;
     }
     return false;
 }

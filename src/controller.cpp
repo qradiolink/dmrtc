@@ -155,7 +155,7 @@ void Controller::run()
         UDPClient *client = new UDPClient(_settings, _logger, i);
         _udp_channels.append(client);
         client->enable(true);
-        QObject::connect(client, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)), this, SLOT(processDMRPayload(unsigned char*, unsigned int, int, bool)), Qt::DirectConnection);
+        QObject::connect(client, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)), this, SLOT(inputNetDMRPayload(unsigned char*, unsigned int, int, bool)), Qt::DirectConnection);
         QObject::connect(client, SIGNAL(newMMDVMConfig(unsigned char*,int)),
                          this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
 
@@ -177,7 +177,7 @@ void Controller::run()
                                                           _settings->gateway_remote_address, true);
 
         QObject::connect(gateway_udpclient, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)),
-                         this, SLOT(processDMRPayload(unsigned char*,unsigned int,int, bool)));
+                         this, SLOT(inputNetDMRPayload(unsigned char*,unsigned int,int, bool)));
         QObject::connect(gateway_udpclient, SIGNAL(newDMRNetworkMessage(unsigned char*, unsigned int)),
                          this, SLOT(processDMRNetworkMessage(unsigned char*,unsigned int)));
         QObject::connect(this, SIGNAL(writeDMRData(CDMRData&)),
@@ -271,6 +271,7 @@ void Controller::run()
                 {
                     if(route_found)
                     {
+                        _dmr_rewrite->removeTalkgroupPrefix(dmr_data, gateway_id);
                         _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
                     }
                 }
@@ -817,7 +818,7 @@ void Controller::disableLogicalChannel(LogicalChannel *&logical_channel)
     logical_channel->putRFQueue(dmr_control_data, false);
 }
 
-void Controller::processDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway)
+void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway)
 {
     bool uuid_present = (size == HOMEBREW_DATA_PACKET_LENGTH) ? false : true;
     unsigned char seqNo = payload[4U];
@@ -847,6 +848,9 @@ void Controller::processDMRPayload(unsigned char *payload, unsigned int size, in
     dmr_data.setRSSI(rssi);
     if(uuid_present)
         dmr_data.setUUID(uuid);
+    // if trunking protocol, add prefix as defined
+    if(from_gateway)
+        _dmr_rewrite->addTalkgroupPrefix(dmr_data, udp_channel_id);
 
     bool dataSync = (payload[15U] & 0x20U) == 0x20U;
     bool voiceSync = (payload[15U] & 0x10U) == 0x10U;

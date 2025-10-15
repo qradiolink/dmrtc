@@ -1132,7 +1132,7 @@
            <item>
             <widget class="QTabWidget" name="tabWidgetSettings">
              <property name="currentIndex">
-              <number>8</number>
+              <number>9</number>
              </property>
              <property name="iconSize">
               <size>
@@ -2444,6 +2444,82 @@ message</string>
                      </item>
                      <item>
                       <spacer name="horizontalSpacer_19">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tabStaticTalkgroups">
+              <attribute name="icon">
+               <iconset>
+                <normalon>:/res/system-users.png</normalon>
+               </iconset>
+              </attribute>
+              <attribute name="title">
+               <string>Static talkgroups</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_32">
+               <item>
+                <widget class="QFrame" name="frame_36">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_31">
+                  <item>
+                   <widget class="QTableWidget" name="tableWidgetStaticTGs"/>
+                  </item>
+                  <item>
+                   <widget class="QFrame" name="frame_37">
+                    <property name="frameShape">
+                     <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <property name="frameShadow">
+                     <enum>QFrame::Raised</enum>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_21">
+                     <item>
+                      <widget class="QPushButton" name="pushButtonAddStaticTG">
+                       <property name="text">
+                        <string>Add</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-add.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="pushButtonRemoveStaticTG">
+                       <property name="text">
+                        <string>Delete</string>
+                       </property>
+                       <property name="icon">
+                        <iconset>
+                         <normalon>:/res/list-remove.png</normalon>
+                        </iconset>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_20">
                        <property name="orientation">
                         <enum>Qt::Horizontal</enum>
                        </property>

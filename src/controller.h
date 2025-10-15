@@ -83,7 +83,7 @@ public:
 public slots:
     void run();
     void stop();
-    void processDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway);
+    void inputNetDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway);
     void updateMMDVMConfig(unsigned char* payload, int size);
     void processDMRNetworkMessage(unsigned char* payload ,unsigned int size);
     void writeDMRConfig();

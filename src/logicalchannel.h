@@ -26,9 +26,6 @@
 #include <QSysInfo>
 #include <cstdint>
 #include <uuid/uuid.h>
-#include "src/logger.h"
-#include "src/settings.h"
-#include "src/utils.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMREMB.h"
 #include "MMDVM/DMREmbeddedData.h"
@@ -36,6 +33,11 @@
 #include "MMDVM/DMRLC.h"
 #include "MMDVM/Sync.h"
 #include "MMDVM/Utils.h"
+#include "src/logger.h"
+#include "src/settings.h"
+#include "src/utils.h"
+#include "src/dmrrewrite.h"
+
 
 namespace CallType
 {
@@ -64,6 +66,7 @@ class LogicalChannel : public QObject
 public:
     LogicalChannel(const Settings *settings, Logger *logger, unsigned int id,
                    unsigned int physical_channel, unsigned int slot, bool control_channel=false, bool gui_enabled=false, QObject *parent=0);
+    ~LogicalChannel();
 
     void allocateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type=CallType::CALL_TYPE_GROUP, bool local=false);
     void deallocateChannel();
@@ -122,11 +125,12 @@ signals:
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
     void processTalkerAlias();
-    bool getEmbeddedDataTx(CDMRData &dmr_data);
+
     void setUUID(CDMRData &dmr_data);
 
     const Settings *_settings;
     Logger *_logger;
+    DMRRewrite *_dmr_rewrite;
     bool _gui_enabled;
     unsigned int _id;
     unsigned int _physical_channel;

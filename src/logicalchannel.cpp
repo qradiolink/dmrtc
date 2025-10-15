@@ -24,6 +24,8 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _id = id;
     _settings = settings;
     _logger = logger;
+    const QList<unsigned int> *dummy_ms_list = nullptr;
+    _dmr_rewrite = new DMRRewrite(settings, dummy_ms_list);
     _gui_enabled = gui_enabled;
     _physical_channel = physical_channel;
     _slot = slot;
@@ -96,6 +98,11 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
 
 }
 
+LogicalChannel::~LogicalChannel()
+{
+    delete _dmr_rewrite;
+}
+
 bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
 {
     uint64_t lcn = _lcn;
@@ -110,28 +117,6 @@ bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
     params |= tx_value_Mhz << 36;
     params |= lcn << 46;
     colour_code = (uint8_t) _colour_code;
-    return true;
-}
-
-bool LogicalChannel::getEmbeddedDataTx(CDMRData &dmr_data)
-{
-    int gw_id = 0;
-    unsigned int dstId = dmr_data.getDstId();
-    if(_settings->talkgroup_routing_table.contains(dstId))
-    {
-        gw_id = _settings->talkgroup_routing_table.value(dstId);
-        QListIterator<QMap<QString, QString>> it(_settings->gateway_ids);
-        while(it.hasNext())
-        {
-            QMap<QString, QString> gw_map = it.next();
-            if((gw_map.value("gateway_id").toLong() == gw_id) &&
-                    (gw_map.value("gateway_type").toLong() == 0))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
     return true;
 }
 
@@ -361,7 +346,7 @@ void LogicalChannel::putNetQueue(CDMRData &dmr_data)
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
-    rewriteEmbeddedData(dmr_data, getEmbeddedDataTx(dmr_data));
+    rewriteEmbeddedData(dmr_data, _dmr_rewrite->getEmbeddedDataRewrite(dmr_data));
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);
     _net_queue_mutex.unlock();
@@ -387,8 +372,6 @@ bool LogicalChannel::getNetQueue(CDMRData &dmr_data)
     _net_queue_mutex.unlock();
     t1_net = std::chrono::high_resolution_clock::now();
     if(dmr_data.getDummy())
-        return false;
-    if((dmr_data.getFLCO() == FLCO_GROUP) && (_settings->local_tg_ids.contains(dmr_data.getDstId())))
         return false;
     return true;
 }

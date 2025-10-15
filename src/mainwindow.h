@@ -80,6 +80,9 @@ public slots:
     void saveLocalTalkgroups();
     void deleteLocalTalkgroup();
     void addLocalTalkgroup();
+    void saveStaticTalkgroups();
+    void deleteStaticTalkgroup();
+    void addStaticTalkgroup();
     void sendPing();
     void sendNMEAPoll();
     void sendStatusPoll();
@@ -121,6 +124,7 @@ private:
     void loadServiceIds();
     void loadGateways();
     void loadLocalTalkgroups();
+    void loadStaticTalkgroups();
     void deleteRegisteredMSList();
     void deleteSubscribedTalkgroupList();
 

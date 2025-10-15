@@ -16,7 +16,7 @@
 
 #include "dmrrewrite.h"
 
-DMRRewrite::DMRRewrite(const Settings *settings, QList<unsigned int> *registered_ms)
+DMRRewrite::DMRRewrite(const Settings *settings, const QList<unsigned int> *registered_ms)
 {
     _settings = settings;
     _registered_ms = registered_ms;
@@ -28,7 +28,7 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
     if(_private_call_stream_ids.contains(dmr_data.getStreamId()) &&
             dmr_data.getDataType() != DT_TERMINATOR_WITH_LC)
     {
-        dmr_data.setSlotNo(2);
+        dmr_data.setSlotNo(_settings->private_call_timeslot);
         return true;
     }
     if(dmr_data.getFLCO() == FLCO_USER_USER)
@@ -41,7 +41,7 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
         {
             _private_call_stream_ids.append(dmr_data.getStreamId());
         }
-        dmr_data.setSlotNo(2);
+        dmr_data.setSlotNo(_settings->private_call_timeslot);
         return true;
     }
     if(_settings->slot_rewrite_table.contains(dstId))
@@ -54,6 +54,8 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
 
 bool DMRRewrite::rewriteSource(CDMRData &data)
 {
+    if(_registered_ms == nullptr)
+        return false;
     unsigned int srcId = data.getSrcId();
     if((_registered_ms->size() > 0) && _registered_ms->contains(srcId))
     {
@@ -61,6 +63,102 @@ bool DMRRewrite::rewriteSource(CDMRData &data)
         return true;
     }
     return false;
+}
+
+bool DMRRewrite::removeTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id)
+{
+    if(dmr_data.getFLCO() == FLCO_GROUP)
+    {
+        int dst = (int)dmr_data.getDstId();
+        QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+        while(it_gws.hasNext())
+        {
+            QMap<QString, QString> gw = it_gws.next();
+            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
+            if(found_gw_id != gateway_id)
+                continue;
+            if(gw.value("gateway_type").toInt() != 1)
+                return false;
+            int prefix = gw.value("talkgroup_prefix").toInt();
+            int real_tg_id = dst - prefix;
+            if(real_tg_id <= 0)
+                return false;
+            if(real_tg_id >= _settings->tg_prefix_separation)
+                return false;
+            dmr_data.setDstId((unsigned int)real_tg_id);
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool DMRRewrite::addTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id)
+{
+    if(dmr_data.getFLCO() == FLCO_GROUP)
+    {
+        int dst = (int)dmr_data.getDstId();
+        QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+        while(it_gws.hasNext())
+        {
+            QMap<QString, QString> gw = it_gws.next();
+            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
+            if(found_gw_id != gateway_id)
+                continue;
+            if(gw.value("gateway_type").toInt() != 1)
+                return false;
+            int prefix = gw.value("talkgroup_prefix").toInt();
+            int tg_id = dst + prefix;
+            if(tg_id <= 0)
+                return false;
+            dmr_data.setDstId((unsigned int)tg_id);
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool DMRRewrite::getTrunkingGatewayTalkgroupId(unsigned int &tg_id)
+{
+    unsigned int prefix = (tg_id / _settings->tg_prefix_separation) * _settings->tg_prefix_separation;
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        unsigned int found_prefix = (unsigned int) gw.value("talkgroup_prefix").toInt();
+        if(prefix != found_prefix)
+            continue;
+        if(gw.value("gateway_type").toInt() == 1)
+        {
+            tg_id -= prefix;
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool DMRRewrite::getEmbeddedDataRewrite(CDMRData &dmr_data)
+{
+    int gw_id = 0;
+    unsigned int dstId = dmr_data.getDstId();
+    if(!_settings->talkgroup_routing_table.contains(dstId))
+    {
+        gw_id = _settings->talkgroup_routing_table.value(dstId);
+        QListIterator<QMap<QString, QString>> it(_settings->gateways);
+        while(it.hasNext())
+        {
+            QMap<QString, QString> gw_map = it.next();
+            if((gw_map.value("gateway_id").toLong() == gw_id) &&
+                    (gw_map.value("gateway_type").toLong() == 0))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    return true;
 }
 
 
