@@ -22,6 +22,7 @@
 #include <qsysinfo.h>
 #include <QtEndian>
 #include <time.h>
+#include <uuid/uuid.h>
 #include "MMDVM/DMRData.h"
 #include "settings.h"
 #include "logger.h"
@@ -53,11 +54,20 @@ public:
 
     explicit NetworkSignalling(const Settings *settings, Logger *logger, QObject *parent = nullptr);
     ~NetworkSignalling();
+
+    bool validateNetMessage(unsigned char *message, unsigned int size);
+
     void createRegistrationMessage(CDMRData &data, unsigned int dmrId);
     void createDeRegistrationMessage(CDMRData &data, unsigned int dmrId);
     bool createGroupSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs);
     bool createGroupUnSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs);
-    bool validateNetMessage(unsigned char *message, unsigned int size);
+    bool createUDTTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId,
+                                  QString payload, unsigned char format, bool group);
+    void createUDTAcceptMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid);
+    void createPrivateCallSetupMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char service_options);
+    void createPrivateCallReplyMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid, bool accept);
+    void createStatusTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group);
+
 
 
 signals:
@@ -66,7 +76,7 @@ private:
     uint64_t getUnixTimestamp();
     const Settings *_settings;
     Logger *_logger;
-    bool _le;
+    bool _be;
 
 };
 

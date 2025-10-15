@@ -21,7 +21,7 @@ NetworkSignalling::NetworkSignalling(const Settings *settings, Logger *logger, Q
 {
     _settings = settings;
     _logger = logger;
-    _le = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? false : true;
+    _be = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? true : false;
 }
 
 NetworkSignalling::~NetworkSignalling()
@@ -60,7 +60,7 @@ void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int 
     uint8_t size = 17;
     unsigned char buffer[size];
     uint64_t ts = getUnixTimestamp();
-    ts = _le ? ts : qToLittleEndian(ts);
+    ts = _be ? ts : qbswap<quint64>(ts);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -80,7 +80,7 @@ void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int
     uint8_t size = 17;
     unsigned char buffer[size];
     uint64_t ts = getUnixTimestamp();
-    ts = _le ? ts : qToLittleEndian(ts);
+    ts = _be ? ts : qbswap<quint64>(ts);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -136,4 +136,117 @@ bool NetworkSignalling::createGroupUnSubscriptionMessage(CDMRData &data, QList<u
     }
     data.setMessage(buffer, size);
     return true;
+}
+
+bool NetworkSignalling::createUDTTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId,
+                                                 QString payload, unsigned char format, bool group)
+{
+    unsigned int payload_size = payload.size();
+    if(payload_size > 46)
+        return false;
+    char *text = payload.toUtf8().data();
+    uint8_t buf_size = 30U + payload_size;
+    unsigned char buffer[buf_size];
+    uuid_t uuid;
+    uuid_generate_random(uuid);
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = (unsigned char)UDTMessage;
+    memcpy(buffer + 5U, uuid, 16U);
+    buffer[21U] = (group ? 1 << 7 : 0) | (group ? 0 : 1 << 6) | (format & 0x0F);
+    buffer[22U] = 0;
+    buffer[23U] = (unsigned char) payload_size;
+    buffer[24U] = (unsigned char)((srcId >> 16U) & 0xFF);
+    buffer[25U] = (unsigned char)((srcId >> 8U) & 0xFF);
+    buffer[26U] = (unsigned char)(srcId & 0xFF);
+    buffer[27U] = (unsigned char)((dstId >> 16U) & 0xFF);
+    buffer[28U] = (unsigned char)((dstId >> 8U) & 0xFF);
+    buffer[29U] = (unsigned char)(dstId & 0xFF);
+    memcpy(buffer + 30U, text, payload_size);
+    data.setMessage(buffer, buf_size);
+    return true;
+}
+
+void NetworkSignalling::createUDTAcceptMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid)
+{
+    uint8_t buf_size = 27U;
+    unsigned char buffer[buf_size];
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = (unsigned char)UDTAccept;
+    memcpy(buffer + 5U, uuid, 16U);
+    buffer[21U] = (unsigned char)((srcId >> 16U) & 0xFF);
+    buffer[22U] = (unsigned char)((srcId >> 8U) & 0xFF);
+    buffer[23U] = (unsigned char)(srcId & 0xFF);
+    buffer[24U] = (unsigned char)((dstId >> 16U) & 0xFF);
+    buffer[25U] = (unsigned char)((dstId >> 8U) & 0xFF);
+    buffer[26U] = (unsigned char)(dstId & 0xFF);
+    data.setMessage(buffer, buf_size);
+}
+
+void NetworkSignalling::createPrivateCallSetupMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char service_options)
+{
+    uint8_t buf_size = 28U;
+    unsigned char buffer[buf_size];
+    uuid_t uuid;
+    uuid_generate_random(uuid);
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = (unsigned char)PrivateCallSetup;
+    memcpy(buffer + 5U, uuid, 16U);
+    buffer[21U] = service_options;
+    buffer[22U] = (unsigned char)((srcId >> 16U) & 0xFF);
+    buffer[23U] = (unsigned char)((srcId >> 8U) & 0xFF);
+    buffer[24U] = (unsigned char)(srcId & 0xFF);
+    buffer[25U] = (unsigned char)((dstId >> 16U) & 0xFF);
+    buffer[26U] = (unsigned char)((dstId >> 8U) & 0xFF);
+    buffer[27U] = (unsigned char)(dstId & 0xFF);
+    data.setMessage(buffer, buf_size);
+}
+
+void NetworkSignalling::createPrivateCallReplyMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid, bool accept)
+{
+    uint8_t buf_size = 27U;
+    unsigned char buffer[buf_size];
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = (unsigned char)(accept ? PrivateCallAccept : PrivateCallReject);
+    memcpy(buffer + 5U, uuid, 16U);
+    buffer[21U] = (unsigned char)((srcId >> 16U) & 0xFF);
+    buffer[22U] = (unsigned char)((srcId >> 8U) & 0xFF);
+    buffer[23U] = (unsigned char)(srcId & 0xFF);
+    buffer[24U] = (unsigned char)((dstId >> 16U) & 0xFF);
+    buffer[25U] = (unsigned char)((dstId >> 8U) & 0xFF);
+    buffer[26U] = (unsigned char)(dstId & 0xFF);
+    data.setMessage(buffer, buf_size);
+}
+
+void NetworkSignalling::createStatusTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group)
+{
+    uint8_t buf_size = 28U;
+    unsigned char buffer[buf_size];
+    uuid_t uuid;
+    uuid_generate_random(uuid);
+    buffer[0U]  = 'D';
+    buffer[1U]  = 'M';
+    buffer[2U]  = 'R';
+    buffer[3U]  = 'T';
+    buffer[4U]  = (unsigned char)StatusMessage;
+    memcpy(buffer + 5U, uuid, 16U);
+    buffer[21U] = (group ? 1 << 7 : 0) | (status & 0x7F);
+    buffer[22U] = (unsigned char)((srcId >> 16U) & 0xFF);
+    buffer[23U] = (unsigned char)((srcId >> 8U) & 0xFF);
+    buffer[24U] = (unsigned char)(srcId & 0xFF);
+    buffer[25U] = (unsigned char)((dstId >> 16U) & 0xFF);
+    buffer[26U] = (unsigned char)((dstId >> 8U) & 0xFF);
+    buffer[27U] = (unsigned char)(dstId & 0xFF);
+    data.setMessage(buffer, buf_size);
 }
