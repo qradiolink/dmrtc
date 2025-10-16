@@ -43,9 +43,10 @@ m_messageFlag(data.m_messageFlag)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
 	::memcpy(m_data, data.m_data, 2U * DMR_FRAME_LENGTH_BYTES);
+    m_uuid = new unsigned char[16U];
     ::memcpy(m_uuid, data.m_uuid, 16U);
-    m_message = new unsigned char[1024U];
-    ::memcpy(m_message, data.m_message, 1024U);
+    m_message = new unsigned char[255U];
+    ::memcpy(m_message, data.m_message, 255U);
 }
 
 CDMRData::CDMRData() :
@@ -68,14 +69,17 @@ m_messageSize(0U),
 m_messageFlag(false)
 {
 	m_data = new unsigned char[2U * DMR_FRAME_LENGTH_BYTES];
+    m_uuid = new unsigned char[16U];
     memset(m_uuid, 0, 16U);
-    m_message = new unsigned char[1024U];
+    m_message = new unsigned char[255U];
+    memset(m_message, 0, 16U);
 }
 
 CDMRData::~CDMRData()
 {
 	delete[] m_data;
     delete[] m_message;
+    delete[] m_uuid;
 }
 
 CDMRData& CDMRData::operator=(const CDMRData& data)
@@ -83,7 +87,7 @@ CDMRData& CDMRData::operator=(const CDMRData& data)
 	if (this != &data) {
 		::memcpy(m_data, data.m_data, DMR_FRAME_LENGTH_BYTES);
         ::memcpy(m_uuid, data.m_uuid, 16U);
-        ::memcpy(m_message, data.m_message, 1024U);
+        ::memcpy(m_message, data.m_message, 255U);
 
 		m_slotNo   = data.m_slotNo;
 		m_srcId    = data.m_srcId;
@@ -266,16 +270,20 @@ unsigned int CDMRData::getCommand() const
 
 void CDMRData::setUUID(unsigned char *uuid)
 {
+    assert(uuid != NULL);
     ::memcpy(m_uuid, uuid, 16U);
 }
 
 void CDMRData::getUUID(unsigned char *uuid)
 {
+    assert(uuid != NULL);
     ::memcpy(uuid, m_uuid, 16U);
 }
 
 void CDMRData::setMessageSize(unsigned int size)
 {
+    if(size > 255U)
+        return;
     m_messageSize = size;
 }
 
@@ -296,7 +304,8 @@ bool CDMRData::getMessageFlag() const
 
 void CDMRData::setMessage(const unsigned char* buffer, unsigned int size)
 {
-    if(size > 1024U)
+    assert(buffer != NULL);
+    if(size > 255U)
         return;
     ::memcpy(m_message, buffer, size);
     m_messageSize = size;
@@ -305,6 +314,7 @@ void CDMRData::setMessage(const unsigned char* buffer, unsigned int size)
 
 unsigned int CDMRData::getMessage(unsigned char* buffer) const
 {
+    assert(buffer != NULL);
     if(m_messageFlag)
     {
         ::memcpy(buffer, m_message, m_messageSize);

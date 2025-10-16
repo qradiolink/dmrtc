@@ -177,7 +177,7 @@ private:
     float _ber_accumulator;
     float _ber;
     float _rssi;
-    uuid_t _call_uuid;
+    unsigned char *_call_uuid;
 
 };
 

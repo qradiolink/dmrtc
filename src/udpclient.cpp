@@ -179,7 +179,7 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
     }
     if (memcmp(payload, "DMRT", 4U) == 0)
     {
-        if(size < 9 || !_gateway_connection)
+        if((size < 9) || (size > 255) || !_gateway_connection)
         {
             return false;
         }
@@ -214,6 +214,8 @@ void UDPClient::writeDMRData(CDMRData &data)
     if(data.getMessageFlag())
     {
         uint8_t packet_size = data.getMessageSize();
+        if(packet_size < 1)
+            return;
         unsigned char buffer[packet_size];
         ::memset(buffer, 0x00U, packet_size);
         uint8_t length = data.getMessage(buffer);

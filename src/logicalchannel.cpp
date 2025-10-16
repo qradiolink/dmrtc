@@ -50,6 +50,8 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _colour_code = 1;
     _lcn = _physical_channel + 1;
     _stream_id = 0;
+    _call_uuid = new unsigned char[16U];
+    memset(_call_uuid, 0, 16U);
     _data_frames = 0;
     _rssi_accumulator = 0.0f;
     _ber_accumulator = 0.0f;
@@ -101,6 +103,7 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
 LogicalChannel::~LogicalChannel()
 {
     delete _dmr_rewrite;
+    delete[] _call_uuid;
 }
 
 bool LogicalChannel::getChannelParams(uint64_t &params, uint8_t &colour_code)
@@ -346,7 +349,7 @@ void LogicalChannel::putNetQueue(CDMRData &dmr_data)
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
-    rewriteEmbeddedData(dmr_data, _dmr_rewrite->getEmbeddedDataRewrite(dmr_data));
+    //rewriteEmbeddedData(dmr_data, _dmr_rewrite->getEmbeddedDataRewrite(dmr_data));
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);
     _net_queue_mutex.unlock();
@@ -847,8 +850,7 @@ void LogicalChannel::setUUID(CDMRData &dmr_data)
         memset(_call_uuid, 0, 16U);
     }
     else if((dataType == DT_VOICE_LC_HEADER) ||
-            (dataType == DT_DATA_HEADER) ||
-            (dataType == DT_VOICE_PI_HEADER))
+            (dataType == DT_DATA_HEADER))
     {
         memset(_call_uuid, 0, 16U);
         uuid_generate_random(_call_uuid);

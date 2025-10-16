@@ -91,7 +91,7 @@ private:
     bool           m_control;
     bool           m_chanEnable;
     unsigned int   m_command;
-    unsigned char  m_uuid[16];
+    unsigned char* m_uuid;
     unsigned char* m_message;
     unsigned int   m_messageSize;
     bool           m_messageFlag;

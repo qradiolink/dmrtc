@@ -2983,7 +2983,10 @@ void Controller::writeDMRConfig()
 void Controller::processDMRNetworkMessage(unsigned char* payload ,unsigned int size)
 {
     if(!_network_signalling->validateNetMessage(payload, size))
+    {
+        delete[] payload;
         return;
+    }
 }
 
 QVector<LogicalChannel *> *Controller::getLogicalChannels()
