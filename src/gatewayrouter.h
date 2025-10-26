@@ -37,6 +37,8 @@ public:
     bool getStaticTgList(QList<unsigned int> &static_tg_list);
     bool getTrunkingSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
     bool getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
+    bool removeTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway_id);
+    bool addTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway_id);
 
 signals:
 

@@ -172,8 +172,11 @@ bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int> &requested_tg_i
         {
             if(!_network_subscribed_talkgroups->contains(req_tg_id))
             {
-                new_tg_ids.append(req_tg_id);
-                _network_subscribed_talkgroups->insert(req_tg_id);
+                if(removeTalkgroupPrefix(req_tg_id, gw_id))
+                {
+                    new_tg_ids.append(req_tg_id);
+                    _network_subscribed_talkgroups->insert(req_tg_id);
+                }
             }
         }
     }
@@ -198,12 +201,61 @@ bool GatewayRouter::getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg
         {
             if(_network_subscribed_talkgroups->contains(req_tg_id))
             {
-                new_tg_ids.append(req_tg_id);
-                _network_subscribed_talkgroups->remove(req_tg_id);
+                if(removeTalkgroupPrefix(req_tg_id, gw_id))
+                {
+                    new_tg_ids.append(req_tg_id);
+                    _network_subscribed_talkgroups->remove(req_tg_id);
+                }
             }
         }
     }
     if(new_tg_ids.size() > 0)
         return true;
+    return false;
+}
+
+bool GatewayRouter::removeTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway_id)
+{
+    int dst = (int)tg_id;
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
+        if(found_gw_id != gateway_id)
+            continue;
+        if(gw.value("gateway_type").toInt() != 1)
+            return false;
+        int prefix = gw.value("talkgroup_prefix").toInt();
+        int real_tg_id = dst - prefix;
+        if(real_tg_id <= 0)
+            return false;
+        if(real_tg_id >= _settings->tg_prefix_separation)
+            return false;
+        tg_id = (unsigned int)real_tg_id;
+        return true;
+    }
+    return false;
+}
+
+bool GatewayRouter::addTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway_id)
+{
+    int dst = (int)tg_id;
+    QListIterator<QMap<QString, QString>> it_gws(_settings->gateways);
+    while(it_gws.hasNext())
+    {
+        QMap<QString, QString> gw = it_gws.next();
+        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
+        if(found_gw_id != gateway_id)
+            continue;
+        if(gw.value("gateway_type").toInt() != 1)
+            return false;
+        int prefix = gw.value("talkgroup_prefix").toInt();
+        int prefixed_tg_id = dst + prefix;
+        if(prefixed_tg_id <= 0)
+            return false;
+        tg_id = (unsigned int)prefixed_tg_id;
+        return true;
+    }
     return false;
 }
