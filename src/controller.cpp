@@ -829,11 +829,18 @@ void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, i
     unsigned char ber = payload[53U];
     unsigned char rssi = payload[54U];
     ::memcpy(&streamId, payload + 16U, 4U);
-    unsigned char uuid[16];
+    unsigned char uuid[16U];
     ::memset(uuid, 0, 16U);
     if(uuid_present && (size == HOMEBREW_DATA_PACKET_LENGTH + 16U))
     {
         ::memcpy(uuid, payload + 55U, 16U);
+        if((streamId == 0))
+        {
+            streamId = ((unsigned int)uuid[0] << 24U)
+                    | ((unsigned int)uuid[1] << 16U)
+                    | ((unsigned int)uuid[2] << 8U)
+                    | (unsigned int)uuid[3];
+        }
     }
 
     FLCO flco = (payload[15U] & 0x40U) == 0x40U ? FLCO_USER_USER : FLCO_GROUP;
@@ -848,6 +855,7 @@ void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, i
     dmr_data.setRSSI(rssi);
     if(uuid_present)
         dmr_data.setUUID(uuid);
+
     // if trunking protocol, add prefix as defined
     if(from_gateway)
         _dmr_rewrite->addTalkgroupPrefix(dmr_data, udp_channel_id);

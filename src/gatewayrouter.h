@@ -29,17 +29,21 @@ class GatewayRouter : public QObject
     Q_OBJECT
 public:
     explicit GatewayRouter(const Settings *settings, Logger *logger, QObject *parent = nullptr);
+    ~GatewayRouter();
     bool findRoute(CDMRData &dmr_data, unsigned int &gateway_id);
     bool getPrivateCallGateway(unsigned int &id);
     bool getTrunkingGateway(unsigned int &id);
     bool getPrefixRoute(unsigned int dstId, unsigned int &id);
+    bool getStaticTgList(QList<unsigned int> &static_tg_list);
+    bool getTrunkingSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
+    bool getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
 
 signals:
 
 private:
     const Settings *_settings;
     Logger *_logger;
-    QMap<unsigned int, unsigned int> _routing_table;
+    QSet<unsigned int> *_network_subscribed_talkgroups;
 
 };
 

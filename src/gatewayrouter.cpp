@@ -21,6 +21,13 @@ GatewayRouter::GatewayRouter(const Settings *settings, Logger *logger, QObject *
 {
     _settings = settings;
     _logger = logger;
+    _network_subscribed_talkgroups = new QSet<unsigned int>;
+}
+
+GatewayRouter::~GatewayRouter()
+{
+    _network_subscribed_talkgroups->clear();
+    delete _network_subscribed_talkgroups;
 }
 
 bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
@@ -126,5 +133,77 @@ bool GatewayRouter::getPrefixRoute(unsigned int dstId, unsigned int &id)
         id = found_ids.at(0);
         return true;
     }
+    return false;
+}
+
+bool GatewayRouter::getStaticTgList(QList<unsigned int> &static_tg_list)
+{
+    unsigned int trunking_gw_id = 0;
+    bool result = getTrunkingGateway(trunking_gw_id);
+    if(!result)
+        return false;
+    QMapIterator<unsigned int, unsigned int> it_static_tg(_settings->static_talkgroups_requested);
+    while(it_static_tg.hasNext())
+    {
+        it_static_tg.next();
+        if(it_static_tg.value() == trunking_gw_id)
+            static_tg_list.append(it_static_tg.key());
+    }
+    if(static_tg_list.size() > 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int> &requested_tg_ids,
+                                                QList<unsigned int> &new_tg_ids)
+{
+    unsigned int trunking_gw_id = 0;
+    bool result = getTrunkingGateway(trunking_gw_id);
+    if(!result)
+        return false;
+    for(int i=0;i<requested_tg_ids.size();i++)
+    {
+        unsigned int req_tg_id = requested_tg_ids.at(i);
+        unsigned int gw_id = 0;
+        bool result = getPrefixRoute(req_tg_id, gw_id);
+        if(result && (gw_id == trunking_gw_id))
+        {
+            if(!_network_subscribed_talkgroups->contains(req_tg_id))
+            {
+                new_tg_ids.append(req_tg_id);
+                _network_subscribed_talkgroups->insert(req_tg_id);
+            }
+        }
+    }
+    if(new_tg_ids.size() > 0)
+        return true;
+    return false;
+}
+
+bool GatewayRouter::getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg_ids,
+                                                QList<unsigned int> &new_tg_ids)
+{
+    unsigned int trunking_gw_id = 0;
+    bool result = getTrunkingGateway(trunking_gw_id);
+    if(!result)
+        return false;
+    for(int i=0;i<requested_tg_ids.size();i++)
+    {
+        unsigned int req_tg_id = requested_tg_ids.at(i);
+        unsigned int gw_id = 0;
+        bool result = getPrefixRoute(req_tg_id, gw_id);
+        if(result && (gw_id == trunking_gw_id))
+        {
+            if(_network_subscribed_talkgroups->contains(req_tg_id))
+            {
+                new_tg_ids.append(req_tg_id);
+                _network_subscribed_talkgroups->remove(req_tg_id);
+            }
+        }
+    }
+    if(new_tg_ids.size() > 0)
+        return true;
     return false;
 }
