@@ -54,6 +54,8 @@ bool DMRRewrite::rewriteSlot(CDMRData &dmr_data)
 
 bool DMRRewrite::rewriteSource(CDMRData &data)
 {
+    if(data.getMessageFlag())
+        return false;
     if(_registered_ms == nullptr)
         return false;
     unsigned int srcId = data.getSrcId();
@@ -67,6 +69,8 @@ bool DMRRewrite::rewriteSource(CDMRData &data)
 
 bool DMRRewrite::removeTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id)
 {
+    if(dmr_data.getMessageFlag())
+        return false;
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
         int dst = (int)dmr_data.getDstId();
@@ -95,6 +99,8 @@ bool DMRRewrite::removeTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_
 
 bool DMRRewrite::addTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id)
 {
+    if(dmr_data.getMessageFlag())
+        return false;
     if(dmr_data.getFLCO() == FLCO_GROUP)
     {
         int dst = (int)dmr_data.getDstId();

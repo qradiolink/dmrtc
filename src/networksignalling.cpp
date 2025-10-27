@@ -31,7 +31,7 @@ NetworkSignalling::~NetworkSignalling()
 
 uint64_t NetworkSignalling::getUnixTimestamp()
 {
-    return (uint64_t)timegm(NULL);
+    return (uint64_t)QDateTime::currentSecsSinceEpoch();
 }
 
 bool NetworkSignalling::validateNetMessage(unsigned char *message, unsigned int size)

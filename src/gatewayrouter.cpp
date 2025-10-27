@@ -104,6 +104,10 @@ bool GatewayRouter::getTrunkingGateway(unsigned int &id)
         id = found_ids.at(0);
         return true;
     }
+    else if(found_ids.size() == 0)
+    {
+        return false;
+    }
     else
     {
         _logger->log(Logger::LogLevelWarning, QString("Found more than 1 trunking gateway, could not decide on route."));

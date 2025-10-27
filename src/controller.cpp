@@ -530,6 +530,8 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
             _logger->log(Logger::LogLevelWarning, QString("Unable to parse group %1 for radio: %2").arg(tgids.at(i)).arg(dstId));
             continue;
         }
+        if(group == 0)
+            continue;
         dgna_tg.append(group);
         unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
@@ -665,6 +667,93 @@ void Controller::resetAuth()
 {
     _ack_handler->removeAckType(ServiceAction::ActionAuthCheck);
     _auth_responses->clear();
+}
+
+bool Controller::userRegister(unsigned int dmrId)
+{
+    bool existing_user = _registered_ms->contains(dmrId);
+    if(!existing_user)
+    {
+        _registered_ms->append(dmrId);
+        CDMRData register_message;
+        _network_signalling->createRegistrationMessage(register_message, dmrId);
+        _control_channel->putNetQueue(register_message);
+    }
+    return existing_user;
+}
+
+bool Controller::userDeRegister(unsigned int dmrId)
+{
+    bool existing_user = _registered_ms->contains(dmrId);
+    if(existing_user)
+    {
+        _registered_ms->removeAll(dmrId);
+        CDMRData deregister_message;
+        _network_signalling->createDeRegistrationMessage(deregister_message, dmrId);
+        _control_channel->putNetQueue(deregister_message);
+        QList<unsigned int> old_tgs(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
+        _talkgroup_attachments->remove(dmrId);
+        createSubscriptionList();
+        //unsubscribeNetworkTG(old_tgs);
+    }
+    return existing_user;
+}
+
+void Controller::updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId)
+{
+    _talkgroup_attachments->insert(srcId, tg_list);
+    QList<unsigned int> old_tgs(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
+    createSubscriptionList();
+    /* poke net code
+    subscribeNetworkTG(old_tgs);
+
+    */
+}
+
+void Controller::createSubscriptionList()
+{
+    _subscribed_talkgroups->clear();
+    QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
+    while(it.hasNext())
+    {
+        it.next();
+        _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
+    }
+    if(!_settings->headless_mode)
+    {
+        QSet<unsigned int> *talkgroups = new QSet<unsigned int>(*_subscribed_talkgroups);
+        emit updateTalkgroupSubscriptionList(talkgroups);
+    }
+}
+
+void Controller::subscribeNetworkTG(QList<unsigned int> old_tgs)
+{
+    QList<unsigned int> new_tg_list(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
+    QSet<unsigned int> reg_diff = QSet<unsigned int>(new_tg_list.begin(), new_tg_list.end()) - QSet<unsigned int>(old_tgs.begin(), old_tgs.end());
+    QList<unsigned int> tg_list(reg_diff.begin(), reg_diff.end());
+    QList<unsigned int> new_tg;
+    bool result = _gateway_router->getTrunkingSubscriptions(tg_list, new_tg);
+    if(result)
+    {
+        CDMRData tg_sub_message;
+        _network_signalling->createGroupSubscriptionMessage(tg_sub_message, new_tg);
+        _control_channel->putNetQueue(tg_sub_message);
+    }
+}
+
+void Controller::unsubscribeNetworkTG(QList<unsigned int> old_tgs)
+{
+    QList<unsigned int> new_tg_list(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
+    QSet<unsigned int> reg_diff = QSet<unsigned int>(new_tg_list.begin(), new_tg_list.end()) - QSet<unsigned int>(old_tgs.begin(), old_tgs.end());
+    QList<unsigned int> tg_list(reg_diff.begin(), reg_diff.end());
+    QList<unsigned int> new_tg;
+    bool result = _gateway_router->getTrunkingUnSubscriptions(tg_list, new_tg);
+    if(result)
+    {
+        CDMRData tg_unsub_message;
+        _network_signalling->createGroupUnSubscriptionMessage(tg_unsub_message, new_tg);
+        _control_channel->putNetQueue(tg_unsub_message);
+    }
 }
 
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
@@ -926,23 +1015,6 @@ void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, i
 
 }
 
-void Controller::updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId)
-{
-    _talkgroup_attachments->insert(srcId, tg_list);
-    _subscribed_talkgroups->clear();
-    QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
-    while(it.hasNext())
-    {
-        it.next();
-        _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
-    }
-    if(!_settings->headless_mode)
-    {
-        QSet<unsigned int> *talkgroups = new QSet<unsigned int>(*_subscribed_talkgroups);
-        emit updateTalkgroupSubscriptionList(talkgroups);
-    }
-}
-
 void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage,
                                                       unsigned int udp_channel_id)
 {
@@ -950,9 +1022,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
     unsigned char msg[size];
     memcpy(msg, dmessage->message, size);
     _ack_handler->removeAck(srcId, ServiceAction::RegistrationWithAttachment);
-    bool existing_user = _registered_ms->contains(srcId);
-    if(!existing_user)
-        _registered_ms->append(srcId);
+    bool existing_user = userRegister(srcId);
     if(!_settings->headless_mode)
     {
         QList<unsigned int> *registered_ms = new QList<unsigned int>(*_registered_ms);
@@ -1833,8 +1903,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
             _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with attachement to TG %3")
                          .arg(slotNo).arg(srcId).arg(converted_id));
             _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
-            if(!_registered_ms->contains(srcId))
-                _registered_ms->append(srcId);
+            userRegister(srcId);
             QList<unsigned int> tg_list;
             tg_list.append(converted_id);
             updateSubscriptions(tg_list, srcId);
@@ -1848,8 +1917,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
             if(dstId == (system_code & 0xFFFFFF))
             {
                 _signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
-                if(!_registered_ms->contains(srcId))
-                    _registered_ms->append(srcId);
+                userRegister(srcId);
             }
         }
         else if((target_addr_cnts == 2))
@@ -1860,8 +1928,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
             sub = (bool)_settings->receive_tg_attach;
             if(!sub)
             {
-                if(!_registered_ms->contains(srcId))
-                    _registered_ms->append(srcId);
+                userRegister(srcId);
             }
         }
     }
@@ -1870,20 +1937,7 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
         _signalling_generator->createReplyDeregistrationAccepted(csbk, srcId);
         _logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received de-registration request from %2 to TG %3")
                      .arg(slotNo).arg(srcId).arg(dstId));
-        _registered_ms->removeAll(srcId);
-        _talkgroup_attachments->remove(srcId);
-        _subscribed_talkgroups->clear();
-        QMapIterator<unsigned int, QList<unsigned int>> it(*_talkgroup_attachments);
-        while(it.hasNext())
-        {
-            it.next();
-            _subscribed_talkgroups->unite(QSet<unsigned int> (it.value().begin(), it.value().end()));
-        }
-        if(!_settings->headless_mode)
-        {
-            QSet<unsigned int> *talkgroups = new QSet<unsigned int>(*_subscribed_talkgroups);
-            emit updateTalkgroupSubscriptionList(talkgroups);
-        }
+        userDeRegister(srcId);
     }
     if(!_settings->headless_mode)
     {

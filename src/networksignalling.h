@@ -21,7 +21,7 @@
 #include <QList>
 #include <qsysinfo.h>
 #include <QtEndian>
-#include <time.h>
+#include <QDateTime>
 #include <uuid/uuid.h>
 #include "MMDVM/DMRData.h"
 #include "settings.h"

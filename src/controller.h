@@ -91,6 +91,8 @@ public slots:
     void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
+    bool userRegister(unsigned int dmrId);
+    bool userDeRegister(unsigned int dmrId);
     void setChannelEnabled(unsigned int index, bool state);
     void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId=0, bool group=false);
     void sendUDTMultipartMessage(QList<QString> messages, unsigned int dstId, unsigned int srcId=0, bool group=false, uint8_t delay=0);
@@ -175,6 +177,9 @@ private:
                                     DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void replayPacketData(unsigned int srcId, unsigned int dstId, unsigned int slotNo);
     void sendRSSIInfo(float rssi, float ber, unsigned int srcId);
+    void createSubscriptionList();
+    void subscribeNetworkTG(QList<unsigned int> old_tgs);
+    void unsubscribeNetworkTG(QList<unsigned int> old_tgs);
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;
