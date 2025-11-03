@@ -36,7 +36,7 @@ uint64_t NetworkSignalling::getUnixTimestamp()
 
 bool NetworkSignalling::validateNetMessage(unsigned char *message, unsigned int size)
 {
-    if(size < 9)
+    if(size < 5)
     {
         _logger->log(Logger::LogLevelWarning, QString("Received invalid network message with size %1").arg(size));
         return false;
@@ -72,7 +72,6 @@ void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int 
     buffer[15U] = (unsigned char)((dmrId >> 8U) & 0xFF);
     buffer[16U] = (unsigned char)(dmrId & 0xFF);
     data.setMessage(buffer, size);
-
 }
 
 void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int dmrId)

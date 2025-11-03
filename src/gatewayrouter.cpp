@@ -160,6 +160,20 @@ bool GatewayRouter::getStaticTgList(QList<unsigned int> &static_tg_list)
     return false;
 }
 
+bool GatewayRouter::getNetSubscriptions(QList<unsigned int> &tg_list)
+{
+    if(_network_subscribed_talkgroups->size() > 0)
+    {
+        QSetIterator<unsigned int> it(*_network_subscribed_talkgroups);
+        while(it.hasNext())
+        {
+            tg_list.append(it.next());
+        }
+        return true;
+    }
+    return false;
+}
+
 bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int> &requested_tg_ids,
                                                 QList<unsigned int> &new_tg_ids)
 {
@@ -167,6 +181,8 @@ bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int> &requested_tg_i
     bool result = getTrunkingGateway(trunking_gw_id);
     if(!result)
         return false;
+    QList<unsigned int> static_tgs;
+    getStaticTgList(static_tgs);
     for(int i=0;i<requested_tg_ids.size();i++)
     {
         unsigned int req_tg_id = requested_tg_ids.at(i);
@@ -174,11 +190,14 @@ bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int> &requested_tg_i
         bool result = getPrefixRoute(req_tg_id, gw_id);
         if(result && (gw_id == trunking_gw_id))
         {
-            if(!_network_subscribed_talkgroups->contains(req_tg_id))
+            if(!_network_subscribed_talkgroups->contains(req_tg_id)
+                    && !static_tgs.contains(req_tg_id)
+                    && !_settings->local_tg_ids.contains(req_tg_id))
             {
-                if(removeTalkgroupPrefix(req_tg_id, gw_id))
+                unsigned int prefix_removed_tg = req_tg_id;
+                if(removeTalkgroupPrefix(prefix_removed_tg, gw_id))
                 {
-                    new_tg_ids.append(req_tg_id);
+                    new_tg_ids.append(prefix_removed_tg);
                     _network_subscribed_talkgroups->insert(req_tg_id);
                 }
             }
@@ -196,6 +215,8 @@ bool GatewayRouter::getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg
     bool result = getTrunkingGateway(trunking_gw_id);
     if(!result)
         return false;
+    QList<unsigned int> static_tgs;
+    getStaticTgList(static_tgs);
     for(int i=0;i<requested_tg_ids.size();i++)
     {
         unsigned int req_tg_id = requested_tg_ids.at(i);
@@ -203,11 +224,14 @@ bool GatewayRouter::getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg
         bool result = getPrefixRoute(req_tg_id, gw_id);
         if(result && (gw_id == trunking_gw_id))
         {
-            if(_network_subscribed_talkgroups->contains(req_tg_id))
+            if(_network_subscribed_talkgroups->contains(req_tg_id)
+                    && !static_tgs.contains(req_tg_id)
+                    && !_settings->local_tg_ids.contains(req_tg_id))
             {
-                if(removeTalkgroupPrefix(req_tg_id, gw_id))
+                unsigned int prefix_removed_tg = req_tg_id;
+                if(removeTalkgroupPrefix(prefix_removed_tg, gw_id))
                 {
-                    new_tg_ids.append(req_tg_id);
+                    new_tg_ids.append(prefix_removed_tg);
                     _network_subscribed_talkgroups->remove(req_tg_id);
                 }
             }

@@ -166,8 +166,10 @@ private:
     void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *message);
     void processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
-    void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group);
-    void processDataProtocolMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id, unsigned int slotNo);
+    void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway);
+    void processDataProtocolMessage(unsigned int dstId, unsigned int srcId,
+                                    DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id,
+                                    unsigned int slotNo, bool from_gateway);
     void processUDPProtocolMessage(unsigned int dstId, unsigned int srcId,
                                    DMRMessageHandler::data_message *dmessage, bool from_gateway);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
@@ -180,6 +182,8 @@ private:
     void createSubscriptionList();
     void subscribeNetworkTG(QList<unsigned int> old_tgs);
     void unsubscribeNetworkTG(QList<unsigned int> old_tgs);
+    void subscribeStaticTalkgroups();
+    void unsubscribeStaticTalkgroups();
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;

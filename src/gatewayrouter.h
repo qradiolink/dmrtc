@@ -35,6 +35,7 @@ public:
     bool getTrunkingGateway(unsigned int &id);
     bool getPrefixRoute(unsigned int dstId, unsigned int &id);
     bool getStaticTgList(QList<unsigned int> &static_tg_list);
+    bool getNetSubscriptions(QList<unsigned int> &tg_list);
     bool getTrunkingSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
     bool getTrunkingUnSubscriptions(QList<unsigned int> &requested_tg_ids, QList<unsigned int> &new_tg_ids);
     bool removeTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway_id);
