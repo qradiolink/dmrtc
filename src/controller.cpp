@@ -832,6 +832,21 @@ void Controller::unsubscribeStaticTalkgroups()
         _network_signalling->createGroupUnSubscriptionMessage(tg_unsub_message, prefix_removed_static_tgs);
         _control_channel->putNetQueue(tg_unsub_message);
     }
+    CDMRData net_tg_unsub_message;
+    QList<unsigned int> sub_tgs;
+    QList<unsigned int> prefix_removed_net_tgs;
+    result = _gateway_router->getNetSubscriptions(sub_tgs);
+    if(result)
+    {
+        for(int i=0;i<sub_tgs.size();i++)
+        {
+            unsigned int sub_tg_id = sub_tgs.at(i);
+            _gateway_router->removeTalkgroupPrefix(sub_tg_id, gateway_id);
+            prefix_removed_net_tgs.append(sub_tg_id);
+        }
+        _network_signalling->createGroupSubscriptionMessage(net_tg_unsub_message, prefix_removed_net_tgs);
+        _control_channel->putNetQueue(net_tg_unsub_message);
+    }
 }
 
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
@@ -1253,6 +1268,13 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
                       .arg(dstId)
                       .arg(text_message));
         }
+        if(!from_gateway)
+        {
+            CDMRData text_message_data;
+            _network_signalling->createUDTTransferMessage(text_message_data, srcId, dstId, text_message, 4, group); // TODO: format
+            _control_channel->putNetQueue(text_message_data);
+            _logger->log(Logger::LogLevelDebug, QString("Sending UDT message to network"));
+        }
         if(!_settings->headless_mode)
         {
             if(group)
@@ -1350,6 +1372,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
         dstId = dmessage->group ? Utils::convertBase11GroupNumberToBase10(dmessage->real_dst) : dmessage->real_dst;
         QString text_message;
         text_message = QString::fromUtf8((const char*)dmessage->payload, dmessage->payload_len).trimmed();
+        confirmPDPMessageReception(srcId, slotNo, dmessage, udp_channel_id);
 
         ///** Sending the message on the control channel
         int size = text_message.size();
@@ -1376,6 +1399,18 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
                       .arg(dstId)
                       .arg(text_message));
         }
+        if(!from_gateway)
+        {
+            int num_msg = text_message.size() / 46;
+            for(int i = 0;i<=num_msg;i++)
+            {
+                QString msg = text_message.mid(i * 46, 46);
+                CDMRData text_message_data;
+                _network_signalling->createUDTTransferMessage(text_message_data, srcId, dstId, msg, 4, dmessage->group); // TODO: format
+                _control_channel->putNetQueue(text_message_data);
+                _logger->log(Logger::LogLevelDebug, QString("Sending packet data protocol message chunk %1 to network").arg(i));
+            }
+        }
         if(!_settings->headless_mode)
         {
             if(dmessage->group)
@@ -1387,7 +1422,6 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
                 emit updateMessageLog(srcId, dstId, text_message, false);
             }
         }
-        confirmPDPMessageReception(srcId, slotNo, dmessage, udp_channel_id);
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
