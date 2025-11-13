@@ -3155,7 +3155,7 @@ void Controller::writeDMRConfig()
     }
 }
 
-void Controller::processDMRNetworkMessage(unsigned char* payload ,unsigned int size)
+void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int size)
 {
     if(!_network_signalling->validateNetMessage(payload, size))
     {
@@ -3166,6 +3166,107 @@ void Controller::processDMRNetworkMessage(unsigned char* payload ,unsigned int s
     if(opcode == NetworkSignalling::OpCode::LoginConfirmation)
     {
         subscribeStaticTalkgroups();
+    }
+    else if(opcode == NetworkSignalling::OpCode::UDTMessage)
+    {
+        unsigned int srcId = 0, dstId = 0;
+        QString message;
+        bool group = false;
+        unsigned char format = 4;
+        unsigned char uuid[16U];
+        if(_network_signalling->parseUDTTransferMessage(payload, size, srcId, dstId,
+                                                        message, format, group, uuid))
+        {
+            sendUDTShortMessage(message, dstId, srcId, group);
+            if(group)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Received network group UDT short data message from %1 to %2: %3")
+                      .arg(srcId)
+                      .arg(dstId)
+                      .arg(message));
+            }
+            else
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Received network private UDT short data message from %1 to %2: %3")
+                          .arg(srcId)
+                          .arg(dstId)
+                          .arg(message));
+            }
+            CDMRData text_message_reply;
+            _network_signalling->createUDTAcceptMessage(text_message_reply, srcId, dstId, uuid);
+            _control_channel->putNetQueue(text_message_reply);
+            _logger->log(Logger::LogLevelDebug, QString("Sending UDT accept reply to network"));
+            if(!_settings->headless_mode)
+            {
+                if(group)
+                {
+                    emit updateMessageLog(srcId, dstId, message, true);
+                }
+                else
+                {
+                    emit updateMessageLog(srcId, dstId, message, false);
+                }
+            }
+            _control_channel->setText(QString("Short text message: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse network UDT short data message"));
+        }
+    }
+    else if(opcode == NetworkSignalling::OpCode::UDTAccept)
+    {
+        unsigned int srcId = 0, dstId = 0;
+        unsigned char uuid[16U];
+        if(_network_signalling->parseUDTAcceptMessage(payload, size, srcId, dstId,
+                                                        uuid))
+        {
+            _logger->log(Logger::LogLevelInfo, QString("Received network accept UDT short data message from %1 to %2")
+                      .arg(srcId)
+                      .arg(dstId));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse network accept UDT short data message"));
+        }
+    }
+    else if(opcode == NetworkSignalling::OpCode::RegistrationConfirmation)
+    {
+        unsigned int srcId = 0;
+        bool accept = false;
+        if(_network_signalling->parseRegistrationConfirmationMessage(payload, size, srcId, accept))
+        {
+            if(accept)
+                _logger->log(Logger::LogLevelInfo, QString("Network accepted registration for MS %1")
+                          .arg(srcId));
+            else
+                _logger->log(Logger::LogLevelInfo, QString("Network rejected registration for MS %1")
+                          .arg(srcId));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse registration confirmation message"));
+        }
+    }
+    else if(opcode == NetworkSignalling::OpCode::GroupSubscriptionConfirmation)
+    {
+        QList<unsigned int> confirmed_tgs;
+        if(_network_signalling->parseSubscriptionConfirmationMessage(payload, size, confirmed_tgs))
+        {
+            for(int i=0;i<confirmed_tgs.size();i++)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Network accepted subscription for TG %1")
+                          .arg(confirmed_tgs.at(i)));
+            }
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse talkgroup subscription confirmation message"));
+        }
     }
     else
     {

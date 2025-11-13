@@ -34,9 +34,11 @@ public:
     enum OpCode
     {
         Registration = 0x01,
+        RegistrationConfirmation = 0x41,
         DeRegistration = 0x02,
         NetDeRegistration = 0x42,
         GroupSubscription = 0x03,
+        GroupSubscriptionConfirmation = 0x43,
         GroupUnSubscription = 0x04,
         UDTMessage = 0x05,
         NetUDTMessage = 0x45,
@@ -76,6 +78,12 @@ public:
     void createPrivateCallSetupMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char service_options);
     void createPrivateCallReplyMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid, bool accept);
     void createStatusTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group);
+    bool parseUDTTransferMessage(unsigned char *payload, unsigned int size, unsigned int &srcId, unsigned int &dstId,
+                                  QString &message, unsigned char &format, bool &group, unsigned char *uuid);
+    bool parseUDTAcceptMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, unsigned int &dstId,
+                               unsigned char *uuid);
+    bool parseRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, bool &accept);
+    bool parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
 
 
 
