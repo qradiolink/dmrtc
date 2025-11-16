@@ -54,15 +54,16 @@ bool GatewayRouter::findRoute(CDMRData &dmr_data, unsigned int &gateway_id)
         unsigned int dstId = dmr_data.getDstId();
         if((_settings->local_tg_ids.size() > 0) && _settings->local_tg_ids.contains(dstId))
             return false;
+        if(getPrefixRoute(dstId, gateway_id))
+        {
+            return true;
+        }
         if(_settings->talkgroup_routing_table.contains(dstId))
         {
             gateway_id = _settings->talkgroup_routing_table.value(dstId);
             return true;
         }
-        if(getPrefixRoute(dstId, gateway_id))
-        {
-            return true;
-        }
+
         // no gateway or prefix mismatch
         gateway_id = 0; // default route
         return true;

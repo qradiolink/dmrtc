@@ -183,7 +183,7 @@ private:
     void subscribeNetworkTG(QList<unsigned int> old_tgs);
     void unsubscribeNetworkTG(QList<unsigned int> old_tgs);
     void subscribeStaticTalkgroups();
-    void unsubscribeStaticTalkgroups();
+    void cleanupSubscriptions();
 
     LogicalChannel* _control_channel;
     LogicalChannel* _control_channel_alternate;

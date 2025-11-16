@@ -40,6 +40,7 @@ public:
         GroupSubscription = 0x03,
         GroupSubscriptionConfirmation = 0x43,
         GroupUnSubscription = 0x04,
+        GroupUnSubscriptionConfirmation = 0x44,
         UDTMessage = 0x05,
         NetUDTMessage = 0x45,
         UDTAccept = 0x06,
@@ -84,6 +85,7 @@ public:
                                unsigned char *uuid);
     bool parseRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, bool &accept);
     bool parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
+    bool parseUnSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
 
 
 

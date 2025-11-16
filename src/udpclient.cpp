@@ -273,12 +273,15 @@ void UDPClient::writeDMRData(CDMRData &data)
         unsigned char uuid[16U];
         data.getUUID(uuid);
         ::memcpy(buffer + 55U, uuid, 16U);
+        /*
+        QByteArray array((const char*)uuid);
+        QString hex_string(array.toHex());
+        qDebug() << "UUID: " << hex_string;
+        */
     }
-    /*
-    QByteArray array((const char*)uuid);
-    QString hex_string(array.toHex());
-    qDebug() << "UUID: " << hex_string;
-    */
+
+
+
 
     writeDataToNetwork(buffer, packet_size);
 }

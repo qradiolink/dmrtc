@@ -69,8 +69,8 @@ Controller::~Controller()
 
 void Controller::stop()
 {
-    unsubscribeStaticTalkgroups();
-    QThread::sleep(1);
+    cleanupSubscriptions();
+    QThread::sleep(2);
     // end main thread execution
     _logger->log(Logger::LogLevelInfo, QString("Stopping controller thread"));
     _stop_thread=true;
@@ -275,7 +275,7 @@ void Controller::run()
                 {
                     if(route_found)
                     {
-                        _dmr_rewrite->removeTalkgroupPrefix(dmr_data, gateway_id);
+                        //_dmr_rewrite->removeTalkgroupPrefix(dmr_data_net, gateway_id);
                         _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
                     }
                 }
@@ -736,10 +736,10 @@ void Controller::subscribeNetworkTG(QList<unsigned int> old_tgs)
 
     QList<unsigned int> new_tg;
     bool result = _gateway_router->getTrunkingSubscriptions(tg_list, new_tg);
-    qDebug() << "New TGs";
     for(int i=0;i<new_tg.size();i++)
     {
-        qDebug() << new_tg.at(i);
+        _logger->log(Logger::LogLevelInfo, QString("Requesting talkgroup subscription from network for TG %1")
+                  .arg(new_tg.at(i)));
     }
     if(result && (new_tg.size() > 0))
     {
@@ -756,10 +756,10 @@ void Controller::unsubscribeNetworkTG(QList<unsigned int> old_tgs)
     QList<unsigned int> tg_list(dereg_diff.begin(), dereg_diff.end());
     QList<unsigned int> new_tg;
     bool result = _gateway_router->getTrunkingUnSubscriptions(tg_list, new_tg);
-    qDebug() << "Removed TGs";
     for(int i=0;i<new_tg.size();i++)
     {
-        qDebug() << new_tg.at(i);
+        _logger->log(Logger::LogLevelInfo, QString("Requesting talkgroup unsubscription from network for TG %1")
+                  .arg(new_tg.at(i)));
     }
     if(result && (new_tg.size() > 0))
     {
@@ -810,7 +810,7 @@ void Controller::subscribeStaticTalkgroups()
     }
 }
 
-void Controller::unsubscribeStaticTalkgroups()
+void Controller::cleanupSubscriptions()
 {
     /// Unubscribe static talkgroups
     unsigned int gateway_id = 0;
@@ -846,6 +846,13 @@ void Controller::unsubscribeStaticTalkgroups()
         }
         _network_signalling->createGroupSubscriptionMessage(net_tg_unsub_message, prefix_removed_net_tgs);
         _control_channel->putNetQueue(net_tg_unsub_message);
+    }
+    // deregister MSs from network
+    for(int i=0;i<_registered_ms->size();i++)
+    {
+        CDMRData deregister_message;
+        _network_signalling->createDeRegistrationMessage(deregister_message, _registered_ms->at(i));
+        _control_channel->putNetQueue(deregister_message);
     }
 }
 
@@ -1016,13 +1023,10 @@ void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, i
     if(uuid_present && (size == HOMEBREW_DATA_PACKET_LENGTH + 16U))
     {
         ::memcpy(uuid, payload + 55U, 16U);
-        if((streamId == 0))
-        {
-            streamId = ((unsigned int)uuid[0] << 24U)
-                    | ((unsigned int)uuid[1] << 16U)
-                    | ((unsigned int)uuid[2] << 8U)
-                    | (unsigned int)uuid[3];
-        }
+        crc_t crc = crc32_init();
+        crc = crc32_update(crc, (const unsigned char*)uuid, 16U);
+        crc = crc32_finalize(crc);
+        streamId = crc;
     }
 
     FLCO flco = (payload[15U] & 0x40U) == 0x40U ? FLCO_USER_USER : FLCO_GROUP;
@@ -1039,8 +1043,8 @@ void Controller::inputNetDMRPayload(unsigned char *payload, unsigned int size, i
         dmr_data.setUUID(uuid);
 
     // if trunking protocol, add prefix as defined
-    if(from_gateway)
-        _dmr_rewrite->addTalkgroupPrefix(dmr_data, udp_channel_id);
+    //if(from_gateway)
+    //    _dmr_rewrite->addTalkgroupPrefix(dmr_data, udp_channel_id);
 
     bool dataSync = (payload[15U] & 0x20U) == 0x20U;
     bool voiceSync = (payload[15U] & 0x10U) == 0x10U;
@@ -3180,14 +3184,14 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
             sendUDTShortMessage(message, dstId, srcId, group);
             if(group)
             {
-                _logger->log(Logger::LogLevelInfo, QString("Received network group UDT short data message from %1 to %2: %3")
+                _logger->log(Logger::LogLevelInfo, QString("Received from network group UDT short data message from %1 to %2: %3")
                       .arg(srcId)
                       .arg(dstId)
                       .arg(message));
             }
             else
             {
-                _logger->log(Logger::LogLevelInfo, QString("Received network private UDT short data message from %1 to %2: %3")
+                _logger->log(Logger::LogLevelInfo, QString("Received from network private UDT short data message from %1 to %2: %3")
                           .arg(srcId)
                           .arg(dstId)
                           .arg(message));
@@ -3252,6 +3256,24 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
             _logger->log(Logger::LogLevelWarning, QString("Could not parse registration confirmation message"));
         }
     }
+    else if(opcode == NetworkSignalling::OpCode::NetDeRegistration)
+    {
+        unsigned int srcId = 0;
+        bool accept = false;
+        if(_network_signalling->parseRegistrationConfirmationMessage(payload, size, srcId, accept))
+        {
+            if(accept)
+                _logger->log(Logger::LogLevelInfo, QString("Network accepted deregistration for MS %1")
+                          .arg(srcId));
+            else
+                _logger->log(Logger::LogLevelInfo, QString("Network rejected deregistration for MS %1")
+                          .arg(srcId));
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse registration confirmation message"));
+        }
+    }
     else if(opcode == NetworkSignalling::OpCode::GroupSubscriptionConfirmation)
     {
         QList<unsigned int> confirmed_tgs;
@@ -3266,6 +3288,22 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
         else
         {
             _logger->log(Logger::LogLevelWarning, QString("Could not parse talkgroup subscription confirmation message"));
+        }
+    }
+    else if(opcode == NetworkSignalling::OpCode::GroupUnSubscriptionConfirmation)
+    {
+        QList<unsigned int> confirmed_tgs;
+        if(_network_signalling->parseUnSubscriptionConfirmationMessage(payload, size, confirmed_tgs))
+        {
+            for(int i=0;i<confirmed_tgs.size();i++)
+            {
+                _logger->log(Logger::LogLevelInfo, QString("Network accepted unsubscription for TG %1")
+                          .arg(confirmed_tgs.at(i)));
+            }
+        }
+        else
+        {
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse talkgroup unsubscription confirmation message"));
         }
     }
     else

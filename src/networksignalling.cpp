@@ -260,8 +260,8 @@ bool NetworkSignalling::parseUDTTransferMessage(unsigned char* payload, unsigned
     unsigned int payload_size = (unsigned int)payload[22U];
     if(size < 29U + payload_size)
         return false;
-    srcId = (payload[23U] << 16U) | (payload[24U] << 8U) | payload[25U];
-    dstId = (payload[26U] << 16U) | (payload[27U] << 8U) | payload[28U];
+    srcId = ((unsigned int)payload[23U] << 16U) | ((unsigned int)payload[24U] << 8U) | (unsigned int)payload[25U];
+    dstId = ((unsigned int)payload[26U] << 16U) | ((unsigned int)payload[27U] << 8U) | (unsigned int)payload[28U];
     message = QString::fromUtf8((const char*)(payload + 29U), payload_size);
     return true;
 }
@@ -272,8 +272,8 @@ bool NetworkSignalling::parseUDTAcceptMessage(unsigned char* payload, unsigned i
     if(size < 27U)
         return false;
     memcpy(uuid, payload + 5U, 16U);
-    srcId = (payload[21U] << 16U) | (payload[22U] << 8U) | payload[23U];
-    dstId = (payload[24U] << 16U) | (payload[25U] << 8U) | payload[26U];
+    srcId = ((unsigned int)payload[21U] << 16U) | ((unsigned int)payload[22U] << 8U) | (unsigned int)payload[23U];
+    dstId = ((unsigned int)payload[24U] << 16U) | ((unsigned int)payload[25U] << 8U) | (unsigned int)payload[26U];
     return true;
 }
 
@@ -282,7 +282,7 @@ bool NetworkSignalling::parseRegistrationConfirmationMessage(unsigned char* payl
     if(size < 18U)
         return false;
     accept = (bool)(payload[13U] & 0x01);
-    srcId = (payload[15U] << 16U) | (payload[16U] << 8U) | payload[17U];
+    srcId = ((unsigned int)payload[15U] << 16U) | ((unsigned int)payload[16U] << 8U) | (unsigned int)payload[17U];
     return true;
 }
 
@@ -296,7 +296,24 @@ bool NetworkSignalling::parseSubscriptionConfirmationMessage(unsigned char* payl
     uint8_t k = 0;
     for(uint8_t i=0;i<tg_size;i++)
     {
-        unsigned int tg = (payload[6U + k] << 16U) | (payload[7U + k] << 8U) | payload[8U + k];
+        unsigned int tg = ((unsigned int)payload[6U + k] << 16U) | ((unsigned int)payload[7U + k] << 8U) | (unsigned int)payload[8U + k];
+        confirmed_tgs.append(tg);
+        k += 3;
+    }
+    return true;
+}
+
+bool NetworkSignalling::parseUnSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs)
+{
+    if(size < 9U)
+        return false;
+    uint8_t tg_size = (uint8_t)payload[5U];
+    if(tg_size < 1)
+        return true;
+    uint8_t k = 0;
+    for(uint8_t i=0;i<tg_size;i++)
+    {
+        unsigned int tg = ((unsigned int)payload[6U + k] << 16U) | ((unsigned int)payload[7U + k] << 8U) | (unsigned int)payload[8U + k];
         confirmed_tgs.append(tg);
         k += 3;
     }
