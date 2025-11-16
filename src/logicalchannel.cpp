@@ -35,6 +35,7 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _call_in_progress = false;
     _disabled = false;
     _local_call = false;
+    _src_lock = 0;
     _state = CallState::CALL_STATE_NONE;
     _source_address = 0;
     _destination_address = 0;
@@ -136,6 +137,7 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _ta_dl = 0;
     _ta_data.clear();
     _busy = true;
+    _src_lock = 0;
     _frame_timeout = false;
     _call_in_progress = false;
     _local_call = local;
@@ -157,6 +159,7 @@ void LogicalChannel::deallocateChannel()
     _frame_timeout = false;
     _call_in_progress = false;
     _local_call = false;
+    _src_lock = 0;
     _state = CallState::CALL_STATE_NONE;
     _embedded_data[0].reset();
     _embedded_data[1].reset();
@@ -182,6 +185,7 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
     _data_mutex.lock();
     _source_address = srcId;
     _call_in_progress = true;
+    _src_lock = srcId;
     _destination_address = dstId;
     _call_type = call_type;
     _data_mutex.unlock();
@@ -241,6 +245,9 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
 {
+    if(getChannelLock(dmr_data.getSrcId()))
+        return;
+    lockChannel(dmr_data);
     startLastFrameTimer();
     rewriteEmbeddedData(dmr_data, true);
     _rf_queue_mutex.lock();
@@ -393,6 +400,38 @@ void LogicalChannel::clearRFQueue()
     _rf_queue_mutex.unlock();
 }
 
+void LogicalChannel::lockChannel(CDMRData &dmr_data)
+{
+    unsigned int dataType = dmr_data.getDataType();
+    unsigned int srcId = dmr_data.getSrcId();
+    if(!getChannelLock(srcId) && srcId > 0
+            && (dataType != DT_CSBK)
+            && (dataType != DT_MBC_HEADER)
+            && (dataType != DT_MBC_CONTINUATION)
+            && (dataType != DT_TERMINATOR_WITH_LC))
+    {
+        _data_mutex.lock();
+        _src_lock = srcId;
+        _data_mutex.unlock();
+    }
+    else if(dataType == DT_TERMINATOR_WITH_LC)
+    {
+        _data_mutex.lock();
+        _src_lock = 0;
+        _data_mutex.unlock();
+    }
+}
+
+bool LogicalChannel::getChannelLock(unsigned int srcId)
+{
+    if(_control_channel)
+        return false;
+    _data_mutex.lock();
+    bool locked = (_src_lock != 0) && (_src_lock != srcId);
+    _data_mutex.unlock();
+    return locked;
+}
+
 void LogicalChannel::startTimeoutTimer()
 {
     emit internalStartTimer();
@@ -421,6 +460,7 @@ void LogicalChannel::setChannelIdle()
 {
     _data_mutex.lock();
     _busy = false;
+    _src_lock = 0;
     _frame_timeout = false;
     _data_mutex.unlock();
     emit channelDeallocated(_id);

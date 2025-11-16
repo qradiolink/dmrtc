@@ -108,6 +108,7 @@ public:
     void startLastFrameTimer();
     void stopLastFrameTimer();
 
+
 public slots:
     void setChannelIdle();
     void notifyLastFrame();
@@ -125,6 +126,8 @@ signals:
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
     void processTalkerAlias();
+    void lockChannel(CDMRData &dmr_data);
+    bool getChannelLock(unsigned int srcId);
 
     void setUUID(CDMRData &dmr_data);
 
@@ -141,6 +144,7 @@ private:
     bool _call_in_progress;
     bool _disabled;
     bool _local_call;
+    unsigned int _src_lock;
     unsigned int _call_type;
     unsigned int _source_address;
     unsigned int _destination_address;
