@@ -107,6 +107,8 @@ public:
     bool getChannelParams(uint64_t &params, uint8_t &colour_code);
     void startLastFrameTimer();
     void stopLastFrameTimer();
+    bool getChannelLock(unsigned int srcId, unsigned int dataType);
+    bool removeLastRFQueue();
 
 
 public slots:
@@ -127,7 +129,7 @@ private:
     void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
     void processTalkerAlias();
     void lockChannel(CDMRData &dmr_data);
-    bool getChannelLock(unsigned int srcId);
+
 
     void setUUID(CDMRData &dmr_data);
 

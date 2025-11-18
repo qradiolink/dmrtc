@@ -245,7 +245,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
 
 void LogicalChannel::putRFQueue(CDMRData &dmr_data, bool first)
 {
-    if(getChannelLock(dmr_data.getSrcId()))
+    if(getChannelLock(dmr_data.getSrcId(), dmr_data.getDataType()))
         return;
     lockChannel(dmr_data);
     startLastFrameTimer();
@@ -349,6 +349,26 @@ bool LogicalChannel::getRFQueue(CDMRData &dmr_data)
     return true;
 }
 
+bool LogicalChannel::removeLastRFQueue()
+{
+    _rf_queue_mutex.lock();
+    if(_rf_queue.size() < 1)
+    {
+        _rf_queue_mutex.unlock();
+        return false;
+    }
+    CDMRData dt_last = _rf_queue.constLast();
+    unsigned int dataType = dt_last.getDataType();
+    if(((dataType != DT_VOICE) && (dataType != DT_VOICE_SYNC)) || dt_last.getControl() || dt_last.getDummy())
+    {
+        _rf_queue_mutex.unlock();
+        return false;
+    }
+    _rf_queue.removeLast();
+    _rf_queue_mutex.unlock();
+    return true;
+}
+
 void LogicalChannel::putNetQueue(CDMRData &dmr_data)
 {
     startLastFrameTimer();
@@ -356,7 +376,7 @@ void LogicalChannel::putNetQueue(CDMRData &dmr_data)
     _data_mutex.lock();
     _call_in_progress = true;
     _data_mutex.unlock();
-    //rewriteEmbeddedData(dmr_data, _dmr_rewrite->getEmbeddedDataRewrite(dmr_data));
+    rewriteEmbeddedData(dmr_data, true);
     _net_queue_mutex.lock();
     _net_queue.append(dmr_data);
     _net_queue_mutex.unlock();
@@ -404,7 +424,7 @@ void LogicalChannel::lockChannel(CDMRData &dmr_data)
 {
     unsigned int dataType = dmr_data.getDataType();
     unsigned int srcId = dmr_data.getSrcId();
-    if(!getChannelLock(srcId) && srcId > 0
+    if(!getChannelLock(srcId, dataType) && srcId > 0 && srcId != _src_lock
             && (dataType != DT_CSBK)
             && (dataType != DT_MBC_HEADER)
             && (dataType != DT_MBC_CONTINUATION)
@@ -414,7 +434,7 @@ void LogicalChannel::lockChannel(CDMRData &dmr_data)
         _src_lock = srcId;
         _data_mutex.unlock();
     }
-    else if(dataType == DT_TERMINATOR_WITH_LC)
+    else if((dataType == DT_TERMINATOR_WITH_LC) && (srcId == _src_lock))
     {
         _data_mutex.lock();
         _src_lock = 0;
@@ -422,12 +442,15 @@ void LogicalChannel::lockChannel(CDMRData &dmr_data)
     }
 }
 
-bool LogicalChannel::getChannelLock(unsigned int srcId)
+bool LogicalChannel::getChannelLock(unsigned int srcId, unsigned int dataType)
 {
     if(_control_channel)
         return false;
     _data_mutex.lock();
-    bool locked = (_src_lock != 0) && (_src_lock != srcId);
+    bool locked = (_src_lock != 0) && (_src_lock != srcId)
+            && (dataType != DT_CSBK)
+            && (dataType != DT_MBC_HEADER)
+            && (dataType != DT_MBC_CONTINUATION);
     _data_mutex.unlock();
     return locked;
 }
@@ -470,7 +493,10 @@ void LogicalChannel::setChannelIdle()
 
 void LogicalChannel::notifyLastFrame()
 {
+    _data_mutex.lock();
     _frame_timeout = true;
+    _src_lock = 0;
+    _data_mutex.unlock();
     emit update();
 }
 
@@ -536,6 +562,8 @@ void LogicalChannel::setDisabled(bool disabled)
     _data_mutex.lock();
     _disabled = disabled;
     _frame_timeout = false;
+    _src_lock = 0;
+    _busy = false;
     _data_mutex.unlock();
     _logger->log(Logger::LogLevelInfo, QString("State of channel %1, slot %2 changed to %3")
                  .arg(_physical_channel)
