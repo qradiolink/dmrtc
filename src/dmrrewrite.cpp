@@ -167,5 +167,21 @@ bool DMRRewrite::getEmbeddedDataRewrite(CDMRData &dmr_data)
     return true;
 }
 
+void DMRRewrite::rewriteLC(CDMRData &dmr_data)
+{
+    unsigned char data[DMR_FRAME_LENGTH_BYTES];
+    dmr_data.getData(data);
+    // match LC with rewritten src and destination
+    CDMRFullLC fullLC;
+    CDMRLC lc(dmr_data.getFLCO(), dmr_data.getSrcId(), dmr_data.getDstId());
+    fullLC.encode(lc, data, dmr_data.getDataType());
+    CDMRSlotType slotType;
+    slotType.setColorCode(1);
+    slotType.setDataType(dmr_data.getDataType());
+    slotType.getData(data);
+    CSync::addDMRDataSync(data, true);
+    dmr_data.setData(data);
+}
+
 
 

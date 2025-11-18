@@ -138,6 +138,10 @@ bool GatewayRouter::getPrefixRoute(unsigned int dstId, unsigned int &id)
         id = found_ids.at(0);
         return true;
     }
+    else
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Found more than 1 route to gateway, could not decide on route."));
+    }
     return false;
 }
 

@@ -53,7 +53,7 @@ public:
         NetPrivateCallReject = 0x49,
         StatusMessage = 0x0A,
         NetStatusMessage = 0x4A,
-        LoginConfirmation = 0xC1,
+        MasterLogin = 0xC1,
         MasterClose = 0xC2,
         ChannelEnableDisable = 0x81,
         RCCeaseTransmission = 0x82,

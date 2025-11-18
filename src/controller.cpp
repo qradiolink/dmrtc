@@ -26,6 +26,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _mmdvm_config = new QVector<unsigned char>;
     _registered_ms = new QList<unsigned int>;
     _talkgroup_attachments = new QMap<unsigned int, QList<unsigned int>>;
+    _talkgroup_dgna = new QMap<unsigned int, QList<unsigned int>>;
     _rejected_calls = new QSet<unsigned int>;
     _subscribed_talkgroups = new QSet<unsigned int>;
     // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
@@ -53,6 +54,8 @@ Controller::~Controller()
     delete _registered_ms;
     _talkgroup_attachments->clear();
     delete _talkgroup_attachments;
+    _talkgroup_dgna->clear();
+    delete _talkgroup_dgna;
     _rejected_calls->clear();
     delete _rejected_calls;
     _subscribed_talkgroups->clear();
@@ -69,8 +72,11 @@ Controller::~Controller()
 
 void Controller::stop()
 {
-    cleanupSubscriptions();
-    QThread::sleep(2);
+    if(_settings->use_trunking_protocol)
+    {
+        cleanupSubscriptions();
+        QThread::sleep(2);
+    }
     // end main thread execution
     _logger->log(Logger::LogLevelInfo, QString("Stopping controller thread"));
     _stop_thread=true;
@@ -213,7 +219,10 @@ void Controller::run()
     announce_adjacent_sites_timer.setSingleShot(true);
     announce_adjacent_sites_timer.start();
 
-    subscribeStaticTalkgroups();
+    if(_settings->use_trunking_protocol)
+    {
+        subscribeStaticTalkgroups();
+    }
 
 
     /// Main thread loop where most things happen
@@ -542,24 +551,54 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         data[k+1] = (id >> 8) & 0xFF;
         data[k+2] = id & 0xFF;
     }
+    bool clear_dgna = false;
     if(dgna_tg.size() < 1)
     {
-        _logger->log(Logger::LogLevelWarning, QString("No valid DGNA talkgroups selected for radio: %1").arg(dstId));
-        return;
+        clear_dgna = true;
+        _logger->log(Logger::LogLevelInfo, QString("No valid DGNA talkgroups selected for radio: %1, will clear all DGNA allocations")
+                     .arg(dstId));
     }
     unsigned int blocks = 4;
-    QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
-    registered_tg = registered_tg + dgna_tg;
-    QList<unsigned int> unique_tgids = QSet<unsigned int>(registered_tg.begin(), registered_tg.end()).values();
-    updateSubscriptions(unique_tgids, dstId);
-    // expect ACKU from target
-    _ack_handler->addAck(dstId, ServiceAction::ActionDGNARequest);
-    _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
+    if(!clear_dgna)
+    {
+        QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
+        registered_tg = registered_tg + dgna_tg;
+        QList<unsigned int> existing_dgna_tg = _talkgroup_dgna->value(dstId);
+        existing_dgna_tg = existing_dgna_tg + dgna_tg;
+        _talkgroup_dgna->insert(dstId, existing_dgna_tg);
+        QList<unsigned int> unique_tgids = QSet<unsigned int>(registered_tg.begin(), registered_tg.end()).values();
+        updateSubscriptions(unique_tgids, dstId);
+        // expect ACKU from target
+        _ack_handler->addAck(dstId, ServiceAction::ActionDGNARequest);
+        _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
 
-    QVector<CDMRData> dmr_data_frames;
-    unsigned int slot_no = _control_channel->getSlot();
-    _signalling_generator->buildUDTDGNAShortMessageSequence(dmr_data_frames, dstId, data, blocks, slot_no);
-    _control_channel->putRFQueueMultiItem(dmr_data_frames);
+        QVector<CDMRData> dmr_data_frames;
+        unsigned int slot_no = _control_channel->getSlot();
+        _signalling_generator->buildUDTDGNAShortMessageSequence(dmr_data_frames, dstId, data, blocks, slot_no);
+        _control_channel->putRFQueueMultiItem(dmr_data_frames);
+    }
+    else
+    {
+
+        QList<unsigned int> existing_dgna_tg = _talkgroup_dgna->value(dstId);
+        QList<unsigned int> registered_tg = _talkgroup_attachments->value(dstId);
+        for(int i=0;i<existing_dgna_tg.size();i++)
+        {
+            registered_tg.removeAll(existing_dgna_tg.at(i));
+        }
+        _talkgroup_attachments->insert(dstId, registered_tg);
+        _talkgroup_dgna->clear();
+        QList<unsigned int> unique_tgids = QSet<unsigned int>(registered_tg.begin(), registered_tg.end()).values();
+        updateSubscriptions(unique_tgids, dstId);
+        // expect ACKU from target
+        _ack_handler->addAck(dstId, ServiceAction::ActionDGNARequest);
+        _logger->log(Logger::LogLevelDebug, QString("Sending DGNA %1 to radio: %2").arg(dgids).arg(dstId));
+
+        QVector<CDMRData> dmr_data_frames;
+        unsigned int slot_no = _control_channel->getSlot();
+        _signalling_generator->buildUDTDGNAShortMessageSequence(dmr_data_frames, dstId, data, blocks, slot_no);
+        _control_channel->putRFQueueMultiItem(dmr_data_frames);
+    }
 }
 
 void Controller::sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap)
@@ -679,9 +718,12 @@ bool Controller::userRegister(unsigned int dmrId)
     if(!existing_user)
     {
         _registered_ms->append(dmrId);
-        CDMRData register_message;
-        _network_signalling->createRegistrationMessage(register_message, dmrId);
-        _control_channel->putNetQueue(register_message);
+        if(_settings->use_trunking_protocol && _settings->send_network_registrations)
+        {
+            CDMRData register_message;
+            _network_signalling->createRegistrationMessage(register_message, dmrId);
+            _control_channel->putNetQueue(register_message);
+        }
     }
     return existing_user;
 }
@@ -692,9 +734,12 @@ bool Controller::userDeRegister(unsigned int dmrId)
     if(existing_user)
     {
         _registered_ms->removeAll(dmrId);
-        CDMRData deregister_message;
-        _network_signalling->createDeRegistrationMessage(deregister_message, dmrId);
-        _control_channel->putNetQueue(deregister_message);
+        if(_settings->use_trunking_protocol && _settings->send_network_registrations)
+        {
+            CDMRData deregister_message;
+            _network_signalling->createDeRegistrationMessage(deregister_message, dmrId);
+            _control_channel->putNetQueue(deregister_message);
+        }
         QList<unsigned int> old_tgs(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
         _talkgroup_attachments->remove(dmrId);
         createSubscriptionList();
@@ -730,6 +775,8 @@ void Controller::createSubscriptionList()
 
 void Controller::subscribeNetworkTG(QList<unsigned int> old_tgs)
 {
+    if(!_settings->use_trunking_protocol)
+        return;
     QList<unsigned int> new_tg_list(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
     QSet<unsigned int> reg_diff = QSet<unsigned int>(new_tg_list.begin(), new_tg_list.end()) - QSet<unsigned int>(old_tgs.begin(), old_tgs.end());
     QList<unsigned int> tg_list(reg_diff.begin(), reg_diff.end());
@@ -751,6 +798,8 @@ void Controller::subscribeNetworkTG(QList<unsigned int> old_tgs)
 
 void Controller::unsubscribeNetworkTG(QList<unsigned int> old_tgs)
 {
+    if(!_settings->use_trunking_protocol)
+        return;
     QList<unsigned int> new_tg_list(_subscribed_talkgroups->begin(), _subscribed_talkgroups->end());
     QSet<unsigned int> dereg_diff = QSet<unsigned int>(old_tgs.begin(), old_tgs.end()) - QSet<unsigned int>(new_tg_list.begin(), new_tg_list.end());
     QList<unsigned int> tg_list(dereg_diff.begin(), dereg_diff.end());
@@ -773,28 +822,32 @@ void Controller::subscribeStaticTalkgroups()
 {
     unsigned int gateway_id = 0;
     bool trunked_gw = _gateway_router->getTrunkingGateway(gateway_id);
-    if(trunked_gw)
+    if(trunked_gw && _settings->use_trunking_protocol)
     {
         /// Subscribe static talkgroups and request re-subscriptions
-        CDMRData tg_sub_message;
-        QList<unsigned int> static_tgs;
-        QList<unsigned int> prefix_removed_static_tgs;
-        bool result = _gateway_router->getStaticTgList(static_tgs);
-        if(result)
+        if(_settings->subscribe_static_tgs)
         {
-            for(int i=0;i<static_tgs.size();i++)
+            CDMRData tg_sub_message;
+            QList<unsigned int> static_tgs;
+            QList<unsigned int> prefix_removed_static_tgs;
+            bool result = _gateway_router->getStaticTgList(static_tgs);
+            if(result)
             {
-                unsigned int static_tg_id = static_tgs.at(i);
-                _gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
-                prefix_removed_static_tgs.append(static_tg_id);
+                for(int i=0;i<static_tgs.size();i++)
+                {
+                    unsigned int static_tg_id = static_tgs.at(i);
+                    _gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
+                    prefix_removed_static_tgs.append(static_tg_id);
+                }
+                _network_signalling->createGroupSubscriptionMessage(tg_sub_message, prefix_removed_static_tgs);
+                _control_channel->putNetQueue(tg_sub_message);
+                _logger->log(Logger::LogLevelDebug, QString("Requesting static talkgroup subscriptions"));
             }
-            _network_signalling->createGroupSubscriptionMessage(tg_sub_message, prefix_removed_static_tgs);
-            _control_channel->putNetQueue(tg_sub_message);
-            _logger->log(Logger::LogLevelDebug, QString("Requesting static talkgroup subscriptions"));
         }
+        CDMRData tg_sub_message;
         QList<unsigned int> resub_tgs;
         QList<unsigned int> prefix_removed_net_tgs;
-        result = _gateway_router->getNetSubscriptions(resub_tgs);
+        bool result = _gateway_router->getNetSubscriptions(resub_tgs);
         if(result)
         {
             for(int i=0;i<resub_tgs.size();i++)
@@ -817,42 +870,51 @@ void Controller::cleanupSubscriptions()
     bool trunked_gw = _gateway_router->getTrunkingGateway(gateway_id);
     if(!trunked_gw)
         return;
-    CDMRData tg_unsub_message;
-    QList<unsigned int> static_tgs;
-    QList<unsigned int> prefix_removed_static_tgs;
-    bool result = _gateway_router->getStaticTgList(static_tgs);
-    if(result)
+    if(_settings->use_trunking_protocol && _settings->subscribe_static_tgs)
     {
-        for(int i=0;i<static_tgs.size();i++)
+        CDMRData tg_unsub_message;
+        QList<unsigned int> static_tgs;
+        QList<unsigned int> prefix_removed_static_tgs;
+        bool result = _gateway_router->getStaticTgList(static_tgs);
+        if(result)
         {
-            unsigned int static_tg_id = static_tgs.at(i);
-            _gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
-            prefix_removed_static_tgs.append(static_tg_id);
+            for(int i=0;i<static_tgs.size();i++)
+            {
+                unsigned int static_tg_id = static_tgs.at(i);
+                _gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
+                prefix_removed_static_tgs.append(static_tg_id);
+            }
+            _network_signalling->createGroupUnSubscriptionMessage(tg_unsub_message, prefix_removed_static_tgs);
+            _control_channel->putNetQueue(tg_unsub_message);
         }
-        _network_signalling->createGroupUnSubscriptionMessage(tg_unsub_message, prefix_removed_static_tgs);
-        _control_channel->putNetQueue(tg_unsub_message);
     }
-    CDMRData net_tg_unsub_message;
-    QList<unsigned int> sub_tgs;
-    QList<unsigned int> prefix_removed_net_tgs;
-    result = _gateway_router->getNetSubscriptions(sub_tgs);
-    if(result)
+    if(_settings->use_trunking_protocol)
     {
-        for(int i=0;i<sub_tgs.size();i++)
+        CDMRData net_tg_unsub_message;
+        QList<unsigned int> sub_tgs;
+        QList<unsigned int> prefix_removed_net_tgs;
+        bool result = _gateway_router->getNetSubscriptions(sub_tgs);
+        if(result)
         {
-            unsigned int sub_tg_id = sub_tgs.at(i);
-            _gateway_router->removeTalkgroupPrefix(sub_tg_id, gateway_id);
-            prefix_removed_net_tgs.append(sub_tg_id);
+            for(int i=0;i<sub_tgs.size();i++)
+            {
+                unsigned int sub_tg_id = sub_tgs.at(i);
+                _gateway_router->removeTalkgroupPrefix(sub_tg_id, gateway_id);
+                prefix_removed_net_tgs.append(sub_tg_id);
+            }
+            _network_signalling->createGroupUnSubscriptionMessage(net_tg_unsub_message, prefix_removed_net_tgs);
+            _control_channel->putNetQueue(net_tg_unsub_message);
         }
-        _network_signalling->createGroupSubscriptionMessage(net_tg_unsub_message, prefix_removed_net_tgs);
-        _control_channel->putNetQueue(net_tg_unsub_message);
     }
-    // deregister MSs from network
-    for(int i=0;i<_registered_ms->size();i++)
+    if(_settings->use_trunking_protocol && _settings->send_network_registrations)
     {
-        CDMRData deregister_message;
-        _network_signalling->createDeRegistrationMessage(deregister_message, _registered_ms->at(i));
-        _control_channel->putNetQueue(deregister_message);
+        // deregister MSs from network
+        for(int i=0;i<_registered_ms->size();i++)
+        {
+            CDMRData deregister_message;
+            _network_signalling->createDeRegistrationMessage(deregister_message, _registered_ms->at(i));
+            _control_channel->putNetQueue(deregister_message);
+        }
     }
 }
 
@@ -1272,7 +1334,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
                       .arg(dstId)
                       .arg(text_message));
         }
-        if(!from_gateway)
+        if(!from_gateway && _settings->use_trunking_protocol && !_registered_ms->contains(dstId))
         {
             CDMRData text_message_data;
             _network_signalling->createUDTTransferMessage(text_message_data, srcId, dstId, text_message, 4, group); // TODO: format
@@ -1403,7 +1465,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
                       .arg(dstId)
                       .arg(text_message));
         }
-        if(!from_gateway)
+        if(!from_gateway && _settings->use_trunking_protocol && !_registered_ms->contains(dstId))
         {
             int num_msg = text_message.size() / 46;
             for(int i = 0;i<=num_msg;i++)
@@ -1486,7 +1548,7 @@ void Controller::processUDPProtocolMessage(unsigned int dstId, unsigned int srcI
     }
 }
 
-void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
+bool Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
 {
     /// Used for testing and debug purposes
     ///
@@ -1515,7 +1577,9 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
+            emit updateMessageLog(srcId, dstId, QString("help"), false);
         }
+        return true;
     }
     /// Location query ???
     else if(dstId == (unsigned int)_settings->service_ids.value("location", 0))
@@ -1523,12 +1587,13 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         CDMRCSBK csbk;
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
+        QString text_message;
         if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
         {
             unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
             unsigned char msg[size];
             memcpy(msg, dmessage->message, size);
-            QString text_message;
+
             // last character seems to be null termination
             if(dmessage->udt_format == 4)
                 text_message = QString::fromUtf8((const char*)msg, size - 1).trimmed();
@@ -1556,7 +1621,9 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         if(!_settings->headless_mode)
         {
             emit updateLogicalChannels(&_logical_channels);
+            emit updateMessageLog(srcId, dstId, text_message, false);
         }
+        return true;
     }
     /// Signal report request
     else if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
@@ -1565,6 +1632,7 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         _signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
         QtConcurrent::run(this, &Controller::sendRSSIInfo, dmessage->rssi, dmessage->ber, srcId);
+        return true;
     }
     /// DGNA
     else if(dstId == (unsigned int)_settings->service_ids.value("dgna", 0))
@@ -1601,9 +1669,12 @@ void Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
             if(!_settings->headless_mode)
             {
                 emit updateLogicalChannels(&_logical_channels);
+                emit updateMessageLog(srcId, dstId, text_message, false);
             }
         }
+        return true;
     }
+    return false;
 }
 
 void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bool from_gateway)
@@ -1744,11 +1815,15 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     {
                         if((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7))
                         {
-                            processTextMessage(dstId, srcId, message, false, from_gateway);
                             if(_settings->service_ids.values().contains(dstId))
                             {
                                 processTextServiceRequest(dmr_data, message, udp_channel_id);
                             }
+                            else
+                            {
+                                processTextMessage(dstId, srcId, message, false, from_gateway);
+                            }
+
                         }
                         else if(message->udt_format == 5)
                         {
@@ -1845,6 +1920,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
 {
     bool local_data = !from_gateway;
     unsigned int dstId, srcId;
+    unsigned int dataType = dmr_data.getDataType();
 
     /// Rewriting destination to match DMR tier III flat numbering
     if(local_data)
@@ -1901,7 +1977,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
             logical_channel->setLocalCall(local_data);
             update_gui = true;
         }
-        if(logical_channel->getSource() != srcId)
+        if((logical_channel->getSource() != srcId) && !logical_channel->getChannelLock(srcId, dataType))
         {
             logical_channel->setSource(srcId);
             update_gui = true;
@@ -3104,6 +3180,7 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
             {
                 CDMRData announce_data = payload_channel_data;
                 announce_data.setSlotNo(active_channels[i]->getSlot());
+                active_channels[i]->removeLastRFQueue();
                 active_channels[i]->putRFQueue(announce_data);
             }
         }
@@ -3118,6 +3195,7 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
             {
                 CDMRData announce_data = dmr_data;
                 announce_data.setSlotNo(active_channels[i]->getSlot());
+                active_channels[i]->removeLastRFQueue();
                 active_channels[i]->putRFQueue(announce_data);
             }
         }
@@ -3161,15 +3239,21 @@ void Controller::writeDMRConfig()
 
 void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int size)
 {
+    if(!_settings->use_trunking_protocol)
+    {
+        delete[] payload;
+        return;
+    }
     if(!_network_signalling->validateNetMessage(payload, size))
     {
         delete[] payload;
         return;
     }
     uint8_t opcode = payload[4U];
-    if(opcode == NetworkSignalling::OpCode::LoginConfirmation)
+    if(opcode == NetworkSignalling::OpCode::MasterLogin)
     {
         subscribeStaticTalkgroups();
+        _logger->log(Logger::LogLevelInfo, QString("Network gateway logged in, will subscribe talkgroups"));
     }
     else if(opcode == NetworkSignalling::OpCode::UDTMessage)
     {

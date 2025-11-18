@@ -46,10 +46,10 @@ bool NetworkSignalling::validateNetMessage(unsigned char *message, unsigned int 
         _logger->log(Logger::LogLevelWarning, QString("Received network message with unknown signature"));
         return false;
     }
-    unsigned char opcode = message[4U];
-    if((opcode & 0x40) != 0x40)
+    uint8_t opcode_validation = (uint8_t)message[4U] & 0x40;
+    if(opcode_validation != 0x40)
     {
-        _logger->log(Logger::LogLevelWarning, QString("Received network message with invalid opcode %1").arg(opcode));
+        _logger->log(Logger::LogLevelWarning, QString("Received network message with invalid opcode %1").arg(message[4U]));
         return false;
     }
     return true;

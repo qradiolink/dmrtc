@@ -1107,8 +1107,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1590</width>
-         <height>707</height>
+         <width>1580</width>
+         <height>721</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -1132,7 +1132,7 @@
            <item>
             <widget class="QTabWidget" name="tabWidgetSettings">
              <property name="currentIndex">
-              <number>9</number>
+              <number>0</number>
              </property>
              <property name="iconSize">
               <size>
@@ -1159,24 +1159,32 @@
                   <enum>QFrame::Raised</enum>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_2">
-                  <item row="4" column="2">
-                   <widget class="QLabel" name="label_19">
-                    <property name="text">
-                     <string>Base frequency (Hz)</string>
+                  <item row="8" column="1">
+                   <widget class="QSpinBox" name="spinBoxControlChannelSlot">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string>Set to 2 tp get a control channel alternate slot, 1 otherwise</string>
+                    </property>
+                    <property name="readOnly">
+                     <bool>false</bool>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>2</number>
                     </property>
                    </widget>
                   </item>
-                  <item row="4" column="4">
-                   <widget class="QCheckBox" name="checkBoxPreventMMDVMOverflows">
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_6">
                     <property name="text">
-                     <string>Prevent MMDVM overflows</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="9" column="0">
-                   <widget class="QLabel" name="label_13">
-                    <property name="text">
-                     <string>Payload channel Idle timeout (s)</string>
+                     <string>Number of RF channels</string>
                     </property>
                    </widget>
                   </item>
@@ -1199,6 +1207,49 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="3" column="3">
+                   <widget class="QLineEdit" name="lineEditSystemCode">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>150</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>14 bits, consists of Size, Area, Site</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QSpinBox" name="spinBoxNumberOfGateways">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>30</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_7">
+                    <property name="text">
+                     <string>Number of DMR Gateways</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="4">
+                   <widget class="QCheckBox" name="checkBoxTransmitSubscribedTGOnly">
+                    <property name="text">
+                     <string>Transmit subscribed TG only</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="1" column="1">
                    <widget class="QLineEdit" name="lineEditMMDVMSendBasePort">
                     <property name="sizePolicy">
@@ -1218,17 +1269,74 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_3">
-                    <property name="text">
-                     <string>MMDVM send base port</string>
+                  <item row="12" column="1">
+                   <widget class="QLineEdit" name="lineEditAnnounceLateEntryInterval">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>How often are late entry announcements made</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="0">
-                   <widget class="QLabel" name="label_22">
+                  <item row="1" column="3">
+                   <widget class="QLineEdit" name="lineEditMMDVMAddress">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>150</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>IP address when MMDVMHost instances are located</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="10" column="1">
+                   <widget class="QLineEdit" name="lineEditAnnounceSystemFreqsTime">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>How often should we broadcast system frequencies</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QLabel" name="label_11">
                     <property name="text">
-                     <string>Announce adjacent BS interval (s)</string>
+                     <string>MMDVMHost IP address</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4">
+                   <widget class="QCheckBox" name="checkBoxAnnouncePriority">
+                    <property name="text">
+                     <string>Announce priority calls</string>
                     </property>
                    </widget>
                   </item>
@@ -1239,17 +1347,51 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="label_2">
+                  <item row="10" column="0">
+                   <widget class="QLabel" name="label_17">
                     <property name="text">
-                     <string>MMDVM listen base port</string>
+                     <string>Announce frequencies interval (s)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="5" column="2">
-                   <widget class="QLabel" name="label_20">
-                    <property name="text">
-                     <string>Frequency separation (Hz)</string>
+                  <item row="0" column="6">
+                   <widget class="QTextEdit" name="textEditSystemMessage">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>75</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Message broadcasted every 30 minutes</string>
+                    </property>
+                    <property name="acceptRichText">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="3">
+                   <widget class="QLineEdit" name="lineEditGatewayAddress">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>150</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>IP address where DMRGateway instances are located</string>
                     </property>
                    </widget>
                   </item>
@@ -1272,6 +1414,41 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="0" column="5">
+                   <widget class="QLabel" name="label_15">
+                    <property name="text">
+                     <string>System 
+announcement 
+message</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="4">
+                   <widget class="QCheckBox" name="checkBoxPreventMMDVMOverflows">
+                    <property name="text">
+                     <string>Prevent MMDVM overflows</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLineEdit" name="lineEditLocalIPAddress">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>150</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>IP address on which this application should listen</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="6" column="0">
                    <widget class="QLabel" name="label_8">
                     <property name="text">
@@ -1279,10 +1456,79 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="0">
-                   <widget class="QLabel" name="label_4">
+                  <item row="4" column="2">
+                   <widget class="QLabel" name="label_19">
                     <property name="text">
-                     <string>DMR Gateway listen base port</string>
+                     <string>Base frequency (Hz)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="4">
+                   <widget class="QCheckBox" name="checkBoxReceiveAttachments">
+                    <property name="text">
+                     <string>Use radio talkgroup attachments</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="lineEditMMDVMListenBasePort">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Port of the first MMDVMHost instance'. Incremented by one for each additional instance</string>
+                    </property>
+                    <property name="whatsThis">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="2">
+                   <widget class="QLabel" name="label_21">
+                    <property name="text">
+                     <string>Frequency duplex split (Hz)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="2">
+                   <widget class="QLabel" name="label_14">
+                    <property name="text">
+                     <string>System identity code</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_3">
+                    <property name="text">
+                     <string>MMDVM send base port</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="1">
+                   <widget class="QLineEdit" name="lineEditControlChannelPhysicalId">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>Which channel is the control channel. Starts from 0</string>
                     </property>
                    </widget>
                   </item>
@@ -1325,230 +1571,24 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="4">
-                   <widget class="QCheckBox" name="checkBoxAbsoluteGrants">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_2">
                     <property name="text">
-                     <string>Use absolute channel grants</string>
+                     <string>MMDVM listen base port</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="0">
-                   <widget class="QLabel" name="label_5">
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="label_10">
                     <property name="text">
-                     <string>DMR Gateway send base port</string>
+                     <string>Local IP address</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="1">
-                   <widget class="QSpinBox" name="spinBoxControlChannelSlot">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="toolTip">
-                     <string>Set to 2 tp get a control channel alternate slot, 1 otherwise</string>
-                    </property>
-                    <property name="readOnly">
-                     <bool>false</bool>
-                    </property>
-                    <property name="minimum">
-                     <number>1</number>
-                    </property>
-                    <property name="maximum">
-                     <number>2</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="1">
-                   <widget class="QLineEdit" name="lineEditMMDVMListenBasePort">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>100</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>Port of the first MMDVMHost instance'. Incremented by one for each additional instance</string>
-                    </property>
-                    <property name="whatsThis">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="4" column="0">
-                   <widget class="QLabel" name="label_6">
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_4">
                     <property name="text">
-                     <string>Number of RF channels</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="5" column="1">
-                   <widget class="QSpinBox" name="spinBoxNumberOfGateways">
-                    <property name="minimum">
-                     <number>1</number>
-                    </property>
-                    <property name="maximum">
-                     <number>30</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="3">
-                   <widget class="QLineEdit" name="lineEditSystemCode">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>150</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>14 bits, consists of Size, Area, Site</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="3">
-                   <widget class="QLineEdit" name="lineEditLocalIPAddress">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>150</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>IP address on which this application should listen</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="1">
-                   <widget class="QLineEdit" name="lineEditControlChannelPhysicalId">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>100</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>Which channel is the control channel. Starts from 0</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="4">
-                   <widget class="QCheckBox" name="checkBoxRegistrationRequired">
-                    <property name="text">
-                     <string>Require registration</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="4" column="1">
-                   <widget class="QSpinBox" name="spinBoxNumberOfChannels">
-                    <property name="minimum">
-                     <number>1</number>
-                    </property>
-                    <property name="maximum">
-                     <number>7</number>
-                    </property>
-                    <property name="value">
-                     <number>4</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="2">
-                   <widget class="QLabel" name="label_21">
-                    <property name="text">
-                     <string>Frequency duplex split (Hz)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="1">
-                   <widget class="QLineEdit" name="lineEditAnnounceLateEntryInterval">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>100</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>How often are late entry announcements made</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="2">
-                   <widget class="QLabel" name="label_14">
-                    <property name="text">
-                     <string>System identity code</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="5" column="4">
-                   <widget class="QCheckBox" name="checkBoxReceiveAttachments">
-                    <property name="text">
-                     <string>Use radio talkgroup attachments</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="3">
-                   <widget class="QLineEdit" name="lineEditDuplexSplit">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="toolTip">
-                     <string>Duplex split TX/RX for fixed channel plan</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="6">
-                   <widget class="QTextEdit" name="textEditSystemMessage">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>50</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>Message broadcasted every 30 minutes</string>
-                    </property>
-                    <property name="acceptRichText">
-                     <bool>false</bool>
+                     <string>DMR Gateway listen base port</string>
                     </property>
                    </widget>
                   </item>
@@ -1571,17 +1611,72 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="0" column="4">
+                   <widget class="QCheckBox" name="checkBoxGatewayEnabled">
+                    <property name="text">
+                     <string>DMR Gateway enabled</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="8" column="0">
+                   <widget class="QLabel" name="label_9">
+                    <property name="text">
+                     <string>Control channel timeslots</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="0">
+                   <widget class="QLabel" name="label_13">
+                    <property name="text">
+                     <string>Payload channel Idle timeout (s)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="12" column="0">
+                   <widget class="QLabel" name="label_18">
+                    <property name="text">
+                     <string>Announce late entry interval (s)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="12" column="4">
+                   <widget class="QCheckBox" name="checkBoxSendNetworkRegistrations">
+                    <property name="text">
+                     <string>Send network registrations</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="8" column="4">
+                   <widget class="QCheckBox" name="checkBoxFixedChannelPlan">
+                    <property name="text">
+                     <string>Use fixed channel plan</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="3">
+                   <widget class="QLineEdit" name="lineEditDuplexSplit">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string>Duplex split TX/RX for fixed channel plan</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="4">
+                   <widget class="QCheckBox" name="checkBoxRegistrationRequired">
+                    <property name="text">
+                     <string>Require registration</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="2" column="2">
                    <widget class="QLabel" name="label_12">
                     <property name="text">
                      <string>DMR Gateway IP address</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="0">
-                   <widget class="QLabel" name="label_18">
-                    <property name="text">
-                     <string>Announce late entry interval (s)</string>
                     </property>
                    </widget>
                   </item>
@@ -1598,59 +1693,69 @@
                     </property>
                    </spacer>
                   </item>
-                  <item row="1" column="3">
-                   <widget class="QLineEdit" name="lineEditMMDVMAddress">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
+                  <item row="4" column="1">
+                   <widget class="QSpinBox" name="spinBoxNumberOfChannels">
+                    <property name="minimum">
+                     <number>1</number>
                     </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>150</width>
-                      <height>16777215</height>
-                     </size>
+                    <property name="maximum">
+                     <number>7</number>
                     </property>
-                    <property name="toolTip">
-                     <string>IP address when MMDVMHost instances are located</string>
+                    <property name="value">
+                     <number>4</number>
                     </property>
                    </widget>
                   </item>
-                  <item row="5" column="0">
-                   <widget class="QLabel" name="label_7">
+                  <item row="10" column="4">
+                   <widget class="QCheckBox" name="checkBoxSubscribeStaticTGs">
                     <property name="text">
-                     <string>Number of DMR Gateways</string>
+                     <string>Subscribe static talkgroups</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="0">
-                   <widget class="QLabel" name="label_9">
+                  <item row="5" column="2">
+                   <widget class="QLabel" name="label_20">
                     <property name="text">
-                     <string>Control channel timeslots</string>
+                     <string>Frequency separation (Hz)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="3">
-                   <widget class="QLineEdit" name="lineEditGatewayAddress">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>150</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>IP address where DMRGateway instances are located</string>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_5">
+                    <property name="text">
+                     <string>DMR Gateway send base port</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="1">
+                  <item row="7" column="4">
+                   <widget class="QCheckBox" name="checkBoxAuthenticationRequired">
+                    <property name="text">
+                     <string>Require authentication</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="4">
+                   <widget class="QCheckBox" name="checkBoxAbsoluteGrants">
+                    <property name="text">
+                     <string>Use absolute channel grants</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="4">
+                   <widget class="QCheckBox" name="checkBoxUseTrunkingProtocol">
+                    <property name="text">
+                     <string>Use trunking protocol</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_22">
+                    <property name="text">
+                     <string>Announce adjacent BS interval (s)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="1">
                    <widget class="QLineEdit" name="lineEditAnnounceAdjacentBSInterval">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1663,89 +1768,6 @@
                       <width>100</width>
                       <height>16777215</height>
                      </size>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="2">
-                   <widget class="QLabel" name="label_10">
-                    <property name="text">
-                     <string>Local IP address</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="12" column="1">
-                   <widget class="QLineEdit" name="lineEditAnnounceSystemFreqsTime">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>100</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>How often should we broadcast system frequencies</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="9" column="4">
-                   <widget class="QCheckBox" name="checkBoxTransmitSubscribedTGOnly">
-                    <property name="text">
-                     <string>Transmit subscribed TG only</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="2">
-                   <widget class="QLabel" name="label_11">
-                    <property name="text">
-                     <string>MMDVMHost IP address</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="4">
-                   <widget class="QCheckBox" name="checkBoxGatewayEnabled">
-                    <property name="text">
-                     <string>DMR Gateway enabled</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="5">
-                   <widget class="QLabel" name="label_15">
-                    <property name="text">
-                     <string>System announcement 
-message</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="8" column="4">
-                   <widget class="QCheckBox" name="checkBoxFixedChannelPlan">
-                    <property name="text">
-                     <string>Use fixed channel plan</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="4">
-                   <widget class="QCheckBox" name="checkBoxAnnouncePriority">
-                    <property name="text">
-                     <string>Announce priority calls</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="12" column="0">
-                   <widget class="QLabel" name="label_17">
-                    <property name="text">
-                     <string>Announce frequencies interval (s)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="7" column="4">
-                   <widget class="QCheckBox" name="checkBoxAuthenticationRequired">
-                    <property name="text">
-                     <string>Require authentication</string>
                     </property>
                    </widget>
                   </item>

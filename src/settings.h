@@ -90,6 +90,9 @@ public:
     int registration_required;
     int authentication_required;
     int transmit_subscribed_tg_only;
+    int subscribe_static_tgs;
+    int send_network_registrations;
+    int use_trunking_protocol;
     int location_service_id;
     int announce_system_freqs_interval;
     int announce_adjacent_bs_interval;

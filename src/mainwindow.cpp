@@ -202,6 +202,9 @@ void MainWindow::setConfig()
     ui->checkBoxRegistrationRequired->setChecked((bool)_settings->registration_required);
     ui->checkBoxAuthenticationRequired->setChecked((bool)_settings->authentication_required);
     ui->checkBoxTransmitSubscribedTGOnly->setChecked((bool)_settings->transmit_subscribed_tg_only);
+    ui->checkBoxSubscribeStaticTGs->setChecked((bool)_settings->subscribe_static_tgs);
+    ui->checkBoxSendNetworkRegistrations->setChecked((bool)_settings->send_network_registrations);
+    ui->checkBoxUseTrunkingProtocol->setChecked((bool)_settings->use_trunking_protocol);
 
     loadTalkgroupRouting();
     loadCallPriorities();
@@ -246,6 +249,9 @@ void MainWindow::saveConfig()
     _settings->registration_required = (int)ui->checkBoxRegistrationRequired->isChecked();
     _settings->authentication_required = (int)ui->checkBoxAuthenticationRequired->isChecked();
     _settings->transmit_subscribed_tg_only = (int)ui->checkBoxTransmitSubscribedTGOnly->isChecked();
+    _settings->subscribe_static_tgs = (int)ui->checkBoxSubscribeStaticTGs->isChecked();
+    _settings->send_network_registrations = (int)ui->checkBoxSendNetworkRegistrations->isChecked();
+    _settings->use_trunking_protocol = (int)ui->checkBoxUseTrunkingProtocol->isChecked();
 
     saveTalkgroupRouting();
     saveCallPriorities();
@@ -689,6 +695,7 @@ void MainWindow::loadServiceIds()
     {
         i.next();
         QTableWidgetItem *service = new QTableWidgetItem(i.key());
+        service->setFlags(service->flags() & ~Qt::ItemIsEditable);
         QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetServiceIds->setItem(row, 0, service);

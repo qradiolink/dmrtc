@@ -389,6 +389,30 @@ void Settings::readConfig()
     }
     try
     {
+        subscribe_static_tgs = cfg.lookup("subscribe_static_tgs");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        subscribe_static_tgs = 0;
+    }
+    try
+    {
+        send_network_registrations = cfg.lookup("send_network_registrations");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        send_network_registrations = 0;
+    }
+    try
+    {
+        use_trunking_protocol = cfg.lookup("use_trunking_protocol");
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        use_trunking_protocol = 0;
+    }
+    try
+    {
         announce_system_freqs_interval = cfg.lookup("announce_system_freqs_interval");
     }
     catch(const libconfig::SettingNotFoundException &nfex)
@@ -675,6 +699,9 @@ void Settings::saveConfig()
     root.add("registration_required",libconfig::Setting::TypeInt) = registration_required;
     root.add("authentication_required",libconfig::Setting::TypeInt) = authentication_required;
     root.add("transmit_subscribed_tg_only",libconfig::Setting::TypeInt) = transmit_subscribed_tg_only;
+    root.add("subscribe_static_tgs",libconfig::Setting::TypeInt) = subscribe_static_tgs;
+    root.add("send_network_registrations",libconfig::Setting::TypeInt) = send_network_registrations;
+    root.add("use_trunking_protocol",libconfig::Setting::TypeInt) = use_trunking_protocol;
     root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
     root.add("announce_adjacent_bs_interval",libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;
     root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;

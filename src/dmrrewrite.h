@@ -40,6 +40,7 @@ public:
     bool addTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id);
     bool getTrunkingGatewayTalkgroupId(unsigned int &tg_id);
     bool getEmbeddedDataRewrite(CDMRData &dmr_data);
+    void rewriteLC(CDMRData &dmr_data);
 
 private:
     const Settings *_settings;

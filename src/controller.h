@@ -165,7 +165,7 @@ private:
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *message);
-    void processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
+    bool processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway);
     void processDataProtocolMessage(unsigned int dstId, unsigned int srcId,
                                     DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id,
@@ -204,6 +204,7 @@ private:
     QMap<unsigned int, unsigned int> _short_data_messages;
     QList<unsigned int> *_registered_ms;
     QMap<unsigned int, QList<unsigned int>> *_talkgroup_attachments;
+    QMap<unsigned int, QList<unsigned int>> *_talkgroup_dgna;
     AckHandler *_ack_handler;
     QSet<unsigned int> *_rejected_calls;
     QSet<unsigned int> *_subscribed_talkgroups;
