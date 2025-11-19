@@ -278,14 +278,16 @@ void Controller::run()
             CDMRData dmr_data_net;
             if(_logical_channels.at(i)->getNetQueue(dmr_data_net))
             {
-                unsigned int gateway_id = 0;
-                bool route_found = _gateway_router->findRoute(dmr_data_net, gateway_id);
-                if((gateway_id + 1 <= (unsigned int)_gateway_channels.size()) && _settings->gateway_enabled)
+                if(!((dmr_data_net.getFLCO() == FLCO_USER_USER) && _registered_ms->contains(dmr_data_net.getDstId())))
                 {
-                    if(route_found)
+                    unsigned int gateway_id = 0;
+                    bool route_found = _gateway_router->findRoute(dmr_data_net, gateway_id);
+                    if((gateway_id + 1 <= (unsigned int)_gateway_channels.size()) && _settings->gateway_enabled)
                     {
-                        //_dmr_rewrite->removeTalkgroupPrefix(dmr_data_net, gateway_id);
-                        _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+                        if(route_found)
+                        {
+                            _gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+                        }
                     }
                 }
             }
@@ -1952,18 +1954,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
         // rewrite RF header to use the converted destination id
         if(data_sync)
         {
-            unsigned char data[DMR_FRAME_LENGTH_BYTES];
-            dmr_data.getData(data);
-            // match LC with rewritten src and destination
-            CDMRFullLC fullLC;
-            CDMRLC lc(dmr_data.getFLCO(), dmr_data.getSrcId(), dmr_data.getDstId());
-            fullLC.encode(lc, data, dmr_data.getDataType());
-            CDMRSlotType slotType;
-            slotType.setColorCode(1);
-            slotType.setDataType(dmr_data.getDataType());
-            slotType.getData(data);
-            CSync::addDMRDataSync(data, true);
-            dmr_data.setData(data);
+            _dmr_rewrite->rewriteLC(dmr_data);
         }
     }
     LogicalChannel *logical_channel;

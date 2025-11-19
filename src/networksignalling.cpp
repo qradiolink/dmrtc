@@ -96,7 +96,10 @@ void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int
 bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
     if((tgs.size() < 1) || (tgs.size() > 64))
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Cannot create subscription message with %1 talkgroups.").arg(tgs.size()));
         return false;
+    }
     uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
     unsigned char buffer[size];
     buffer[0U]  = 'D';
@@ -118,7 +121,10 @@ bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<uns
 bool NetworkSignalling::createGroupUnSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
     if((tgs.size() < 1) || (tgs.size() > 64))
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Cannot create subscription message with %1 talkgroups.").arg(tgs.size()));
         return false;
+    }
     uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
     unsigned char buffer[size];
     buffer[0U]  = 'D';
