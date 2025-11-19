@@ -57,6 +57,7 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _rssi_accumulator = 0.0f;
     _ber_accumulator = 0.0f;
     _ber = 0.0f;
+    _max_ber = 0.0f;
     _rssi = 0.0f;
     t1_rf = std::chrono::high_resolution_clock::now();
     t1_net = std::chrono::high_resolution_clock::now();
@@ -203,12 +204,13 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
-            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, (_call_type == CallType::CALL_TYPE_MS));
         }
         _stream_id = 0;
         _data_frames = 0;
         _rssi_accumulator = 0.0f;
         _ber_accumulator = 0.0f;
+        _max_ber = 0.0f;
         _data_mutex.unlock();
         return;
     }
@@ -222,21 +224,25 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
-            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, (_call_type == CallType::CALL_TYPE_MS));
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, (_call_type == CallType::CALL_TYPE_MS));
         }
+        float frame_ber = float(dmr_data.getBER()) / 1.41f;
         _rssi_accumulator = float(dmr_data.getRSSI()) * -1.0f;
-        _ber_accumulator = float(dmr_data.getBER()) / 1.41f;
+        _ber_accumulator = frame_ber;
+        _max_ber = frame_ber;
         _data_frames = 1;
         _stats_dst_id = dmr_data.getDstId();
         _stats_src_id = dmr_data.getSrcId();
     }
     else
     {
+        float frame_ber = float(dmr_data.getBER()) / 1.41f;
         _rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
-        _ber_accumulator += float(dmr_data.getBER()) / 1.41f;
+        _ber_accumulator += frame_ber;
         _data_frames++;
         _rssi = _rssi_accumulator / float(_data_frames);
         _ber = _ber_accumulator / float(_data_frames);
+        _max_ber = (frame_ber > _max_ber) ? frame_ber : _max_ber;
         if(((_data_frames % 10) == 0) && (_data_frames > 0))
             emit update();
     }
@@ -615,6 +621,14 @@ float LogicalChannel::getBER()
     float ber = _ber;
     _data_mutex.unlock();
     return ber;
+}
+
+float LogicalChannel::getMaxBER()
+{
+    _data_mutex.lock();
+    float max_ber = _max_ber;
+    _data_mutex.unlock();
+    return max_ber;
 }
 
 float LogicalChannel::getRSSI()

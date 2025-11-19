@@ -53,7 +53,7 @@ public slots:
     void sendMessageToRadio();
     void sendMessageToGroup();
     void addDGNA();
-    void updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call);
+    void updateCallLog(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
     void updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg);
     void saveConfig();
     void saveTalkgroupRouting();

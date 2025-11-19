@@ -1001,14 +1001,15 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n BER: %6, RSSI: %7")
+                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
                                             .arg(usage1)
                                             .arg(logical_channels->at(j)->getText())
                                             .arg(logical_channels->at(j)->getGPSInfo())
-                                            .arg(logical_channels->at(j)->getBER())
-                                            .arg(logical_channels->at(j)->getRSSI()));
+                                            .arg(logical_channels->at(j)->getMaxBER(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j)->getBER(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j)->getRSSI(), 0, 'f', 1));
             }
             QString color1 = (logical_channels->at(j)->getBusy() ?
                                   (logical_channels->at(j)->getTimeout() ?
@@ -1034,14 +1035,15 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n BER: %6, RSSI: %7")
+                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
                                             .arg(usage2)
                                             .arg(logical_channels->at(j + 1)->getText())
                                             .arg(logical_channels->at(j + 1)->getGPSInfo())
-                                            .arg(logical_channels->at(j + 1)->getBER())
-                                            .arg(logical_channels->at(j + 1)->getRSSI()));
+                                            .arg(logical_channels->at(j + 1)->getMaxBER(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j + 1)->getBER(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j + 1)->getRSSI(), 0, 'f', 1));
             }
             QString color2 = (logical_channels->at(j + 1)->getBusy() ?
                                   (logical_channels->at(j + 1)->getTimeout() ?
@@ -1135,7 +1137,7 @@ void MainWindow::deleteSubscribedTalkgroupList()
     ui->comboBoxRegisteredGroups->clear();
 }
 
-void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi, float ber, bool private_call)
+void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call)
 {
     QDateTime datetime = QDateTime::currentDateTime();
     if(private_call)
@@ -1147,9 +1149,9 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi,
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
                                                     .arg(_id_lookup->lookup(dstId)));
         QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
-                                                    .arg(rssi));
-        QTableWidgetItem *beritem = new QTableWidgetItem(QString("%1")
-                                                    .arg(ber));
+                                                    .arg(rssi, 0, 'f', 1));
+        QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
+                                                    .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
         uint32_t rows = ui->privateCallsTableWidget->rowCount();
         ui->privateCallsTableWidget->setRowCount(rows + 1);
         ui->privateCallsTableWidget->setItem(rows, 0, dateitem);
@@ -1168,9 +1170,9 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, int rssi,
         QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
                                                     .arg(dstId));
         QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
-                                                    .arg(rssi));
-        QTableWidgetItem *beritem = new QTableWidgetItem(QString("%1")
-                                                    .arg(ber));
+                                                    .arg(rssi, 0, 'f', 1));
+        QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
+                                                    .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
         uint32_t rows = ui->groupCallsTableWidget->rowCount();
         ui->groupCallsTableWidget->setRowCount(rows + 1);
         ui->groupCallsTableWidget->setItem(rows, 0, dateitem);

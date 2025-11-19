@@ -89,6 +89,7 @@ public:
     unsigned int getSource();
     unsigned int getCallType();
     float getBER();
+    float getMaxBER();
     float getRSSI();
     bool getBusy();
     bool getTimeout();
@@ -122,8 +123,8 @@ signals:
     void internalStartLastFrameTimer();
     void internalStopLastFrameTimer();
     void update();
-    void setCallStats(unsigned int srcId, unsigned int dstId, float ber, float rssi, bool private_call);
-    void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, bool private_call);
+    void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
+    void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
 
 private:
     void rewriteEmbeddedData(CDMRData &dmr_data, bool send_embedded_data);
@@ -182,6 +183,7 @@ private:
     float _rssi_accumulator;
     float _ber_accumulator;
     float _ber;
+    float _max_ber;
     float _rssi;
     unsigned char *_call_uuid;
 
