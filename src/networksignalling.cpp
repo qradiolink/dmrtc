@@ -59,6 +59,7 @@ void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int 
 {
     uint8_t size = 17;
     unsigned char buffer[size];
+    memset(buffer, 0U, size);
     uint64_t ts = getUnixTimestamp();
     ts = _be ? qbswap<quint64>(ts) : ts;
     buffer[0U]  = 'D';
@@ -78,6 +79,7 @@ void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int
 {
     uint8_t size = 17;
     unsigned char buffer[size];
+    memset(buffer, 0U, size);
     uint64_t ts = getUnixTimestamp();
     ts = _be ? qbswap<quint64>(ts) : ts;
     buffer[0U]  = 'D';
@@ -95,20 +97,26 @@ void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int
 
 bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
-    if((tgs.size() < 1) || (tgs.size() > 64))
+    if(tgs.size() < 1)
     {
         _logger->log(Logger::LogLevelWarning, QString("Cannot create subscription message with %1 talkgroups.").arg(tgs.size()));
         return false;
     }
-    uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
+    if(tgs.size() > 64)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Only the first 64 of the requested %1 talkgroups will be subscribed.").arg(tgs.size()));
+    }
+    uint8_t tg_size = (tgs.size() > 64) ? 64U : tgs.size();
+    uint8_t size = 6U + (tg_size * 3U);
     unsigned char buffer[size];
+    memset(buffer, 0U, size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
     buffer[3U]  = 'T';
     buffer[4U]  = (unsigned char)GroupSubscription;
-    buffer[5U]  = (unsigned char)(tgs.size() & 0xFF);
-    for(int i=0,j=0;i<tgs.size();i++,j=j+3)
+    buffer[5U]  = (unsigned char)(tg_size & 0xFF);
+    for(int i=0,j=0;i<tg_size;i++,j=j+3)
     {
         buffer[6U + j] = (unsigned char)((tgs.at(i) >> 16U) & 0xFF);
         buffer[6U + j + 1] = (unsigned char)((tgs.at(i) >> 8U) & 0xFF);
@@ -120,20 +128,26 @@ bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<uns
 
 bool NetworkSignalling::createGroupUnSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs)
 {
-    if((tgs.size() < 1) || (tgs.size() > 64))
+    if(tgs.size() < 1)
     {
-        _logger->log(Logger::LogLevelWarning, QString("Cannot create subscription message with %1 talkgroups.").arg(tgs.size()));
+        _logger->log(Logger::LogLevelWarning, QString("Cannot create unsubscription message with %1 talkgroups.").arg(tgs.size()));
         return false;
     }
-    uint8_t size = 6U + ((uint32_t)tgs.size() * 3U);
+    if(tgs.size() > 64)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Only the first 64 of the requested %1 talkgroups will be unsubscribed.").arg(tgs.size()));
+    }
+    uint8_t tg_size = (tgs.size() > 64) ? 64U : tgs.size();
+    uint8_t size = 6U + (tg_size * 3U);
     unsigned char buffer[size];
+    memset(buffer, 0U, size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
     buffer[3U]  = 'T';
     buffer[4U]  = (unsigned char)GroupUnSubscription;
-    buffer[5U]  = (unsigned char)(tgs.size() & 0xFF);
-    for(int i=0,j=0;i<tgs.size();i++,j=j+3)
+    buffer[5U]  = (unsigned char)(tg_size & 0xFF);
+    for(int i=0,j=0;i<tg_size;i++,j=j+3)
     {
         buffer[6U + j] = (unsigned char)((tgs.at(i) >> 16U) & 0xFF);
         buffer[6U + j + 1] = (unsigned char)((tgs.at(i) >> 8U) & 0xFF);
@@ -152,6 +166,7 @@ bool NetworkSignalling::createUDTTransferMessage(CDMRData &data, unsigned int sr
     char *text = payload.toUtf8().data();
     uint8_t buf_size = 29U + payload_size;
     unsigned char buffer[buf_size];
+    memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);
     buffer[0U]  = 'D';
@@ -177,6 +192,7 @@ void NetworkSignalling::createUDTAcceptMessage(CDMRData &data, unsigned int srcI
 {
     uint8_t buf_size = 27U;
     unsigned char buffer[buf_size];
+    memset(buffer, 0U, buf_size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -196,6 +212,7 @@ void NetworkSignalling::createPrivateCallSetupMessage(CDMRData &data, unsigned i
 {
     uint8_t buf_size = 28U;
     unsigned char buffer[buf_size];
+    memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);
     buffer[0U]  = 'D';
@@ -218,6 +235,7 @@ void NetworkSignalling::createPrivateCallReplyMessage(CDMRData &data, unsigned i
 {
     uint8_t buf_size = 27U;
     unsigned char buffer[buf_size];
+    memset(buffer, 0U, buf_size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
     buffer[2U]  = 'R';
@@ -237,6 +255,7 @@ void NetworkSignalling::createStatusTransferMessage(CDMRData &data, unsigned int
 {
     uint8_t buf_size = 28U;
     unsigned char buffer[buf_size];
+    memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);
     buffer[0U]  = 'D';

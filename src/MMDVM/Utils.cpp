@@ -24,16 +24,15 @@ void CUtils::dump(const std::string& title, const unsigned char* data, unsigned 
 	dump(2U, title, data, length);
 }
 
-void CUtils::dump(int level, const std::string& title, const unsigned char* data, unsigned int length)
+std::string CUtils::dump(int level, const std::string& title, const unsigned char* data, unsigned int length)
 {
 	assert(data != NULL);
 
-	::Log(level, "%s", title.c_str());
-
-	unsigned int offset = 0U;
+    unsigned int offset = 0U;
+    std::string output;
 
 	while (length > 0U) {
-		std::string output;
+
 
 		unsigned int bytes = (length > 16U) ? 16U : length;
 
@@ -57,9 +56,7 @@ void CUtils::dump(int level, const std::string& title, const unsigned char* data
 				output += '.';
 		}
 
-		output += '*';
-
-		::Log(level, "%04X:  %s", offset, output.c_str());
+        output += '*\n';
 
 		offset += 16U;
 
@@ -68,6 +65,7 @@ void CUtils::dump(int level, const std::string& title, const unsigned char* data
 		else
 			length = 0U;
 	}
+    return output;
 }
 
 void CUtils::dump(const std::string& title, const bool* bits, unsigned int length)

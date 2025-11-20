@@ -31,6 +31,7 @@
 #include "MMDVM/DMRCSBK.h"
 #include "MMDVM/DMRSlotType.h"
 #include "MMDVM/Sync.h"
+#include "MMDVM/Utils.h"
 
 #define EXTERNAL_NETWORK_CHANNEL 1000
 

@@ -137,8 +137,9 @@ void UDPClient::readPendingDatagrams()
             bool ok = parseNetworkData(payload, size);
             if(!ok)
             {
-                _logger->log(Logger::LogLevelWarning, QString("Could not parse payload from %1 port %2")
-                             .arg(datagram.senderAddress().toString()).arg(datagram.senderPort()));
+                _logger->log(Logger::LogLevelWarning, QString("Could not parse payload from %1 port %2 size %3")
+                             .arg(datagram.senderAddress().toString()).arg(datagram.senderPort())
+                             .arg(size));
                 delete[] payload;
             }
         }
@@ -179,7 +180,7 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
     }
     if (memcmp(payload, "DMRT", 4U) == 0)
     {
-        if((size < 9) || (size > 255) || !_gateway_connection)
+        if((size < 5) || (size > 255) || !_gateway_connection)
         {
             return false;
         }
@@ -220,6 +221,9 @@ void UDPClient::writeDMRData(CDMRData &data)
         ::memset(buffer, 0x00U, packet_size);
         uint8_t length = data.getMessage(buffer);
         writeDataToNetwork(buffer, length);
+
+        _logger->log(Logger::LogLevelDebug,QString("Sent network control message: \n%1").arg(
+                     QString::fromStdString(CUtils::dump(1, "Network message", (const unsigned char*)buffer, length))));
         return;
     }
 
