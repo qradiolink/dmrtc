@@ -3334,19 +3334,18 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
     else if(opcode == NetworkSignalling::OpCode::NetDeRegistration)
     {
         unsigned int srcId = 0;
-        bool accept = false;
-        if(_network_signalling->parseRegistrationConfirmationMessage(payload, size, srcId, accept))
+        if(_network_signalling->parseDeRegistrationConfirmationMessage(payload, size, srcId))
         {
-            if(accept)
-                _logger->log(Logger::LogLevelInfo, QString("Network accepted deregistration for MS %1")
+            _logger->log(Logger::LogLevelInfo, QString("Network has de-registered MS %1")
                           .arg(srcId));
-            else
-                _logger->log(Logger::LogLevelInfo, QString("Network rejected deregistration for MS %1")
-                          .arg(srcId));
+            if(_settings->use_trunking_protocol && _settings->send_network_registrations)
+            {
+                userDeRegister(srcId);
+            }
         }
         else
         {
-            _logger->log(Logger::LogLevelWarning, QString("Could not parse registration confirmation message"));
+            _logger->log(Logger::LogLevelWarning, QString("Could not parse de-registration confirmation message"));
         }
     }
     else if(opcode == NetworkSignalling::OpCode::GroupSubscriptionConfirmation)

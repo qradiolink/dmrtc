@@ -184,6 +184,8 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
         {
             return false;
         }
+        _logger->log(Logger::LogLevelDebug,QString("Received network control message: \n%1").arg(
+                     QString::fromStdString(CUtils::dump(1, "Network message", (const unsigned char*)payload, size))));
         emit newDMRNetworkMessage(payload, size);
         return true;
     }
@@ -336,7 +338,7 @@ void UDPClient::writeDMRTrunkingParams(CDMRData &dmr_control_data)
 
 void UDPClient::writeDMRNetMessage(unsigned char *buffer, unsigned int size)
 {
-    if(!_gateway_connection || (size < 9))
+    if(!_gateway_connection || (size < 5))
         return;
     writeDataToNetwork(buffer, size);
 }

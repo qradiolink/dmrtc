@@ -311,6 +311,14 @@ bool NetworkSignalling::parseRegistrationConfirmationMessage(unsigned char* payl
     return true;
 }
 
+bool NetworkSignalling::parseDeRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId)
+{
+    if(size < 17U)
+        return false;
+    srcId = ((unsigned int)payload[14U] << 16U) | ((unsigned int)payload[15U] << 8U) | (unsigned int)payload[16U];
+    return true;
+}
+
 bool NetworkSignalling::parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs)
 {
     if(size < 9U)

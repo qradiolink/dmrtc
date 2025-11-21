@@ -84,6 +84,7 @@ public:
     bool parseUDTAcceptMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, unsigned int &dstId,
                                unsigned char *uuid);
     bool parseRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, bool &accept);
+    bool parseDeRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId);
     bool parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
     bool parseUnSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
 
