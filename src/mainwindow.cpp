@@ -96,8 +96,8 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     ui->channelTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setVisible(true);
     ui->channelTableView->setGridStyle(Qt::PenStyle::SolidLine);
-    ui->privateCallsTableWidget->setColumnCount(5);
-    ui->groupCallsTableWidget->setColumnCount(5);
+    ui->privateCallsTableWidget->setColumnCount(6);
+    ui->groupCallsTableWidget->setColumnCount(6);
     ui->privateCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->groupCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->privateCallsTableWidget->horizontalHeader()->setStretchLastSection(true);
@@ -113,6 +113,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     header_private.append("Destination Id");
     header_private.append("RSSI");
     header_private.append("BER");
+    header_private.append("Call time");
     ui->privateCallsTableWidget->setHorizontalHeaderLabels(header_private);
     QStringList header_group;
     header_group.append("Date and Time");
@@ -120,6 +121,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     header_group.append("Destination Id");
     header_group.append("RSSI");
     header_group.append("BER");
+    header_group.append("Call time");
     ui->groupCallsTableWidget->setHorizontalHeaderLabels(header_group);
     QStringList header_messages;
     header_messages.append("Date and Time");
@@ -140,6 +142,12 @@ MainWindow::~MainWindow()
         delete srcitem;
         QTableWidgetItem *dstitem = ui->privateCallsTableWidget->item(i, 2);
         delete dstitem;
+        QTableWidgetItem *rssiitem = ui->privateCallsTableWidget->item(i, 3);
+        delete rssiitem;
+        QTableWidgetItem *beritem = ui->privateCallsTableWidget->item(i, 4);
+        delete beritem;
+        QTableWidgetItem *timeitem = ui->privateCallsTableWidget->item(i, 5);
+        delete timeitem;
     }
     ui->privateCallsTableWidget->clear();
     for(int i=0;i < ui->groupCallsTableWidget->rowCount();i++)
@@ -150,6 +158,12 @@ MainWindow::~MainWindow()
         delete srcitem;
         QTableWidgetItem *dstitem = ui->groupCallsTableWidget->item(i, 2);
         delete dstitem;
+        QTableWidgetItem *rssiitem = ui->groupCallsTableWidget->item(i, 3);
+        delete rssiitem;
+        QTableWidgetItem *beritem = ui->groupCallsTableWidget->item(i, 4);
+        delete beritem;
+        QTableWidgetItem *timeitem = ui->groupCallsTableWidget->item(i, 5);
+        delete timeitem;
     }
     ui->groupCallsTableWidget->clear();
     for(int i=0;i < ui->tableWidgetMessages->rowCount();i++)
@@ -1001,7 +1015,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8")
+                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call time: %9")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
                                             .arg(usage1)
@@ -1009,7 +1023,8 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(logical_channels->at(j)->getGPSInfo())
                                             .arg(logical_channels->at(j)->getMaxBER(), 0, 'f', 1)
                                             .arg(logical_channels->at(j)->getBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j)->getRSSI(), 0, 'f', 1));
+                                            .arg(logical_channels->at(j)->getRSSI(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j)->getCallTime()));
             }
             QString color1 = (logical_channels->at(j)->getBusy() ?
                                   (logical_channels->at(j)->getTimeout() ?
@@ -1035,7 +1050,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8")
+                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call time: %9")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
                                             .arg(usage2)
@@ -1043,7 +1058,8 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
                                             .arg(logical_channels->at(j + 1)->getGPSInfo())
                                             .arg(logical_channels->at(j + 1)->getMaxBER(), 0, 'f', 1)
                                             .arg(logical_channels->at(j + 1)->getBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j + 1)->getRSSI(), 0, 'f', 1));
+                                            .arg(logical_channels->at(j + 1)->getRSSI(), 0, 'f', 1)
+                                            .arg(logical_channels->at(j + 1)->getCallTime()));
             }
             QString color2 = (logical_channels->at(j + 1)->getBusy() ?
                                   (logical_channels->at(j + 1)->getTimeout() ?
@@ -1137,7 +1153,8 @@ void MainWindow::deleteSubscribedTalkgroupList()
     ui->comboBoxRegisteredGroups->clear();
 }
 
-void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call)
+void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId,
+                               float rssi, float ber, float max_ber, unsigned int call_time, bool private_call)
 {
     QDateTime datetime = QDateTime::currentDateTime();
     if(private_call)
@@ -1152,6 +1169,8 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rss
                                                     .arg(rssi, 0, 'f', 1));
         QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
                                                     .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
+        QTableWidgetItem *timeitem = new QTableWidgetItem(QString("%1 seconds")
+                                                    .arg(call_time));
         uint32_t rows = ui->privateCallsTableWidget->rowCount();
         ui->privateCallsTableWidget->setRowCount(rows + 1);
         ui->privateCallsTableWidget->setItem(rows, 0, dateitem);
@@ -1159,6 +1178,7 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rss
         ui->privateCallsTableWidget->setItem(rows, 2, dstitem);
         ui->privateCallsTableWidget->setItem(rows, 3, rssiitem);
         ui->privateCallsTableWidget->setItem(rows, 4, beritem);
+        ui->privateCallsTableWidget->setItem(rows, 5, timeitem);
     }
     else
     {
@@ -1173,6 +1193,8 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rss
                                                     .arg(rssi, 0, 'f', 1));
         QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
                                                     .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
+        QTableWidgetItem *timeitem = new QTableWidgetItem(QString("%1 seconds")
+                                                    .arg(call_time));
         uint32_t rows = ui->groupCallsTableWidget->rowCount();
         ui->groupCallsTableWidget->setRowCount(rows + 1);
         ui->groupCallsTableWidget->setItem(rows, 0, dateitem);
@@ -1180,6 +1202,7 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId, float rss
         ui->groupCallsTableWidget->setItem(rows, 2, dstitem);
         ui->groupCallsTableWidget->setItem(rows, 3, rssiitem);
         ui->groupCallsTableWidget->setItem(rows, 4, beritem);
+        ui->groupCallsTableWidget->setItem(rows, 5, timeitem);
     }
 }
 

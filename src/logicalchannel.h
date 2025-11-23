@@ -20,6 +20,7 @@
 #include <chrono>
 #include <QObject>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QQueue>
 #include <QMutex>
 #include <QByteArray>
@@ -93,6 +94,7 @@ public:
     float getRSSI();
     bool getBusy();
     bool getTimeout();
+    unsigned int getCallTime();
     bool getDisabled();
     QString getText();
     void setText(QString txt, bool control_channel=true);
@@ -123,7 +125,8 @@ signals:
     void internalStartLastFrameTimer();
     void internalStopLastFrameTimer();
     void update();
-    void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
+    void setCallStats(unsigned int srcId, unsigned int dstId,
+                      float rssi, float ber, float max_ber, unsigned int call_time, bool private_call);
     void updateCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
 
 private:
@@ -155,6 +158,7 @@ private:
     unsigned int _stats_src_id;
     QTimer _timeout_timer;
     QTimer _last_frame_timer;
+    QElapsedTimer _call_timer;
     QMutex _rf_queue_mutex;
     QMutex _net_queue_mutex;
     QMutex _data_mutex;

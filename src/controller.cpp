@@ -115,8 +115,8 @@ void Controller::run()
                 counter++;
                 QObject::connect(payload_channel, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
                 QObject::connect(payload_channel, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
-                QObject::connect(payload_channel, SIGNAL(setCallStats(uint,uint,float,float,float,bool)),
-                                 this, SLOT(setCallStats(uint,uint,float,float,float,bool)));
+                QObject::connect(payload_channel, SIGNAL(setCallStats(uint,uint,float,float,float,uint,bool)),
+                                 this, SLOT(setCallStats(uint,uint,float,float,float,uint,bool)));
                 _logical_channels.append(payload_channel);
             }
             else
@@ -136,10 +136,10 @@ void Controller::run()
             QObject::connect(payload_channel2, SIGNAL(channelDeallocated(unsigned int)), this, SLOT(handleIdleChannelDeallocation(unsigned int)));
             QObject::connect(payload_channel1, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
             QObject::connect(payload_channel2, SIGNAL(update()), this, SLOT(updateChannelsToGUI()));
-            QObject::connect(payload_channel1, SIGNAL(setCallStats(uint,uint,float,float,float,bool)),
-                             this, SLOT(setCallStats(uint,uint,float,float,float,bool)));
-            QObject::connect(payload_channel2, SIGNAL(setCallStats(uint,uint,float,float,float,bool)),
-                             this, SLOT(setCallStats(uint,uint,float,float,float,bool)));
+            QObject::connect(payload_channel1, SIGNAL(setCallStats(uint,uint,float,float,float,uint,bool)),
+                             this, SLOT(setCallStats(uint,uint,float,float,float,uint,bool)));
+            QObject::connect(payload_channel2, SIGNAL(setCallStats(uint,uint,float,float,float,uint,bool)),
+                             this, SLOT(setCallStats(uint,uint,float,float,float,uint,bool)));
             _logical_channels.append(payload_channel1);
             _logical_channels.append(payload_channel2);
         }
@@ -3338,7 +3338,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
         {
             _logger->log(Logger::LogLevelInfo, QString("Network has de-registered MS %1")
                           .arg(srcId));
-            if(_settings->use_trunking_protocol && _settings->send_network_registrations)
+            if(_settings->send_network_registrations)
             {
                 userDeRegister(srcId);
             }
@@ -3425,11 +3425,12 @@ bool Controller::validateLocalSourceId(unsigned int srcId)
     return false;
 }
 
-void Controller::setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call)
+void Controller::setCallStats(unsigned int srcId, unsigned int dstId,
+                              float rssi, float ber, float max_ber, unsigned int call_time, bool private_call)
 {
     if(!_settings->headless_mode)
     {
-        emit updateCallLog(srcId, dstId, rssi, ber, max_ber, private_call);
+        emit updateCallLog(srcId, dstId, rssi, ber, max_ber, call_time, private_call);
     }
     if(dstId == (unsigned int)_settings->service_ids.value("signal_report", 0))
     {

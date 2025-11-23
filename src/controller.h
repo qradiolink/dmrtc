@@ -88,7 +88,7 @@ public slots:
     void processDMRNetworkMessage(unsigned char* payload ,unsigned int size);
     void writeDMRConfig();
     void updateChannelsToGUI();
-    void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
+    void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, unsigned int call_time, bool private_call);
     void handleIdleChannelDeallocation(unsigned int channel_id);
     void requestMassRegistration();
     bool userRegister(unsigned int dmrId);
@@ -114,7 +114,8 @@ signals:
     void writeDMRData(CDMRData &dmr_data);
     void signalDMRConfig(QVector<unsigned char> data);
     void updateLogicalChannels(QVector<LogicalChannel*> *logical_channels);
-    void updateCallLog(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, bool private_call);
+    void updateCallLog(unsigned int srcId, unsigned int dstId,
+                       float rssi, float ber, float max_ber, unsigned int call_time, bool private_call);
     void updateRegisteredMSList(QList<unsigned int>* registered_ms);
     void updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups);
     void updateRejectedCallsList(unsigned int srcId, unsigned int dstId, bool local_call);

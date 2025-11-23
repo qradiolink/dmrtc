@@ -32,6 +32,7 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _control_channel = control_channel;
     _busy = false;
     _frame_timeout = false;
+    _call_timer.start();
     _call_in_progress = false;
     _disabled = false;
     _local_call = false;
@@ -141,6 +142,7 @@ void LogicalChannel::allocateChannel(unsigned int srcId, unsigned int dstId, uns
     _src_lock = 0;
     _frame_timeout = false;
     _call_in_progress = false;
+    _call_timer.start();
     _local_call = local;
     _data_frames = 0;
     _embedded_data[0].reset();
@@ -204,7 +206,8 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
-            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, (_call_type == CallType::CALL_TYPE_MS));
+            unsigned int call_time = (unsigned int)(_call_timer.elapsed() / 1000);
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, call_time, (_call_type == CallType::CALL_TYPE_MS));
         }
         _stream_id = 0;
         _data_frames = 0;
@@ -224,13 +227,15 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
-            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, (_call_type == CallType::CALL_TYPE_MS));
+            unsigned int call_time = (unsigned int)(_call_timer.elapsed() / 1000);
+            emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, call_time, (_call_type == CallType::CALL_TYPE_MS));
         }
         float frame_ber = float(dmr_data.getBER()) / 1.41f;
         _rssi_accumulator = float(dmr_data.getRSSI()) * -1.0f;
         _ber_accumulator = frame_ber;
         _max_ber = frame_ber;
         _data_frames = 1;
+        _call_timer.start();
         _stats_dst_id = dmr_data.getDstId();
         _stats_src_id = dmr_data.getSrcId();
     }
@@ -552,6 +557,16 @@ bool LogicalChannel::getTimeout()
     bool timeout = _frame_timeout;
     _data_mutex.unlock();
     return timeout;
+}
+
+unsigned int LogicalChannel::getCallTime()
+{
+    _data_mutex.lock();
+    unsigned int call_time = 0;
+    if(_busy)
+        call_time = (unsigned int)(_call_timer.elapsed() / 1000);
+    _data_mutex.unlock();
+    return call_time;
 }
 
 bool LogicalChannel::getDisabled()
