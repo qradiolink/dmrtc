@@ -89,7 +89,7 @@ Requirements
 - Installing build dependencies on Debian 11 Bullseye: 
 
 <pre>
-$ sudo apt-get install liblog4cpp5v5 libconfig++9v5 libconfig++-dev qt5-qmake qtbase5-dev libqt5core5a libqt5gui5 libqt5network5
+$ sudo apt-get install liblog4cpp5v5 libconfig++9v5 libconfig++-dev uuid-dev libuuid1 qt5-qmake qtbase5-dev libqt5core5a libqt5gui5 libqt5network5
 </pre>
 
 
