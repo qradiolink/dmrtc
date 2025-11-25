@@ -41,6 +41,7 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _late_entry_announcing = false;
     _system_freqs_announcing = false;
     _adjacent_sites_announcing = false;
+    _private_calls_announcing = false;
     t1_ping_ms = std::chrono::high_resolution_clock::now();
     _startup_completed = false;
     _minute = 1;
@@ -233,6 +234,7 @@ void Controller::run()
             requestMassRegistration();
         }
         QtConcurrent::run(this, &Controller::announceLateEntry);
+        QtConcurrent::run(this, &Controller::announcePrivateCalls);
         if(!announce_system_freqs_timer.isActive())
         {
             QtConcurrent::run(this, &Controller::announceSystemFreqs);
@@ -459,6 +461,35 @@ void Controller::announceSystemMessage()
             .arg(_settings->service_ids.value("help", 0)));
     unsigned int dstId = StandardAddreses::ALLMSID;
     QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, dstId, StandardAddreses::DISPATI, false, 0);
+}
+
+void Controller::announcePrivateCalls()
+{
+    if(_private_calls_announcing)
+        return;
+    _private_calls_announcing = true;
+    if(_stop_thread)
+        return;
+    QMap<unsigned int, unsigned int> thread_local_private_calls = _private_calls;
+    QMapIterator<unsigned int, unsigned int> it(thread_local_private_calls);
+    while(it.hasNext())
+    {
+        it.next();
+        unsigned int dstId = it.key();
+        unsigned int srcId = it.value();
+        _logger->log(Logger::LogLevelInfo, QString("TSCC: Announce private call setup from %1 to %2")
+                     .arg(srcId).arg(dstId));
+
+        CDMRCSBK csbk;
+        _signalling_generator->createPrivateVoiceCallRequest(csbk, true, srcId, dstId);
+        transmitCSBK(csbk, nullptr, _control_channel->getSlot(),
+                         _control_channel->getPhysicalChannel(), false, false, false);
+        QThread::sleep((unsigned long) _settings->announce_late_entry_interval * 10);
+        if(_stop_thread)
+            return;
+
+    }
+    _private_calls_announcing = false;
 }
 
 
@@ -2134,13 +2165,12 @@ bool Controller::handleRegistration(CDMRCSBK &csbk, unsigned int slotNo,
 void Controller::contactMSForVoiceCall(CDMRCSBK &csbk, unsigned int slotNo,
                             unsigned int srcId, unsigned int dstId, bool local)
 {
-    _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private call request from %2 to TG %3")
+    _logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received private call request from %2 to %3")
                  .arg(slotNo).arg(srcId).arg(dstId));
     if(!_private_calls.contains(dstId))
         _private_calls.insert(dstId, srcId);
     _ack_handler->addAck(dstId, ServiceAction::ActionPrivateVoiceCallRequest);
     _signalling_generator->createPrivateVoiceCallRequest(csbk, local, srcId, dstId);
-    return;
 }
 
 void Controller::contactMSForPacketCall(CDMRCSBK &csbk, unsigned int slotNo,
@@ -2620,11 +2650,11 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
         }
         if(_registered_ms->contains(dstId))
         {
-            /** FIXME: The standard call procedure does not include a wait notification
+            /** FIXME: The standard call procedure does not include a wait notification */
             CDMRCSBK csbk_wait;
             _signalling_generator->createReplyWaitForSignalling(csbk_wait, csbk.getSrcId());
             transmitCSBK(csbk_wait, logical_channel, slotNo, udp_channel_id, channel_grant, false);
-            */
+            /** **/
             contactMSForVoiceCall(csbk, slotNo, srcId, dstId, true);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
             _logger->log(Logger::LogLevelInfo, QString("Received radio FOACSU call request from %1, slot %2 to destination %3")
@@ -2697,6 +2727,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// MS acknowledgement of FOACSU call
     else if ((csbko == CSBKO_ACKU) && (csbk.getCBF() == 0x8C))
     {
+        if(_private_calls.contains(srcId))
+            _private_calls.remove(srcId);
         if(_ack_handler->hasAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest))
         {
             _ack_handler->removeAck(srcId, ServiceAction::ActionPrivateVoiceCallRequest);
@@ -2755,6 +2787,8 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     {
         if(_private_calls.contains(srcId))
             _private_calls.remove(srcId);
+        if(_private_calls.contains(dstId))
+            _private_calls.remove(dstId);
         _signalling_generator->createCancelPrivateCallAhoy(csbk, csbk.getDstId());
         transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
         _control_channel->setText(QString("FOACSU call cancelled: %1").arg(srcId));
@@ -2766,8 +2800,6 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
     /// cancel call
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() == 0))
     {
-        if(_private_calls.contains(srcId))
-            _private_calls.remove(srcId);
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
         for(int i=0;i<3;i++)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);

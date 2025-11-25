@@ -108,6 +108,7 @@ public slots:
     void announceSystemFreqs();
     void announceAdjacentSites();
     void announceSystemMessage();
+    void announcePrivateCalls();
 
 signals:
     void finished();
@@ -219,6 +220,7 @@ private:
     bool _late_entry_announcing;
     bool _system_freqs_announcing;
     bool _adjacent_sites_announcing;
+    bool _private_calls_announcing;
     unsigned int _minute;
     unsigned int _simi;
 

@@ -27,6 +27,7 @@ Settings::Settings(Logger *logger)
 
 
     /// saved to config
+    log_level = 0;
     window_width = 1024;
     window_height = 800;
     headless_mode = 0;
@@ -128,6 +129,16 @@ void Settings::readConfig()
     catch(const libconfig::SettingNotFoundException &nfex)
     {
         control_port = 4939;
+    }
+    try
+    {
+        log_level = cfg.lookup("log_level");
+        if((log_level > 4) || (log_level < 0))
+            log_level = 0;
+    }
+    catch(const libconfig::SettingNotFoundException &nfex)
+    {
+        log_level = 0;
     }
     try
     {
@@ -662,6 +673,10 @@ void Settings::readConfig()
     {
     }
 
+
+    /// Finished reading config
+    _logger->set_log_level((uint8_t)log_level);
+
 }
 
 void Settings::saveConfig()
@@ -669,6 +684,7 @@ void Settings::saveConfig()
     libconfig::Config cfg;
     libconfig::Setting &root = cfg.getRoot();
     root.add("control_port",libconfig::Setting::TypeInt) = control_port;
+    root.add("log_level",libconfig::Setting::TypeInt) = log_level;
     root.add("mmdvm_listen_port",libconfig::Setting::TypeInt) = mmdvm_listen_port;
     root.add("mmdvm_send_port",libconfig::Setting::TypeInt) = mmdvm_send_port;
     root.add("gateway_listen_port",libconfig::Setting::TypeInt) = gateway_listen_port;

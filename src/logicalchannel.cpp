@@ -179,8 +179,8 @@ void LogicalChannel::deallocateChannel()
     emit internalStopTimer();
     emit internalStopLastFrameTimer();
     updateStats(dummy_data, true);
-    _logger->log(Logger::LogLevelDebug, QString("Deallocated physical channel %1, slot %2 from destination %3")
-                 .arg(_physical_channel).arg(_slot).arg(_destination_address));
+    _logger->log(Logger::LogLevelDebug, QString("Deallocated physical channel %1, slot %2, source %3, destination %4")
+                 .arg(_physical_channel).arg(_slot).arg(_source_address).arg(_destination_address));
 }
 
 void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsigned int call_type)
@@ -207,6 +207,8 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
             unsigned int call_time = (unsigned int)(_call_timer.elapsed() / 1000);
+            if(call_time >= (unsigned int)_settings->payload_channel_idle_timeout)
+                call_time -= (unsigned int)_settings->payload_channel_idle_timeout;
             emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, call_time, (_call_type == CallType::CALL_TYPE_MS));
         }
         _stream_id = 0;
@@ -497,6 +499,7 @@ void LogicalChannel::setChannelIdle()
     _src_lock = 0;
     _frame_timeout = false;
     _data_mutex.unlock();
+    deallocateChannel();
     emit channelDeallocated(_id);
     _logger->log(Logger::LogLevelDebug, QString("Physical channel %1, slot %2 to destination %3 and source %4 is marked as idle and deallocated")
                  .arg(_physical_channel).arg(_slot).arg(_destination_address).arg(_source_address));

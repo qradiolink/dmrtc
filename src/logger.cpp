@@ -86,6 +86,7 @@ Logger::Logger(QObject *parent)
     _log_file->open(QIODevice::WriteOnly | QIODevice::Append);
     _stream = new QTextStream(_log_file);
     _console_log = false;
+    _level = 0;
 }
 
 Logger::~Logger()
@@ -100,8 +101,15 @@ void Logger::set_console_log(bool value)
     _console_log = value;
 }
 
+void Logger::set_log_level(uint8_t level)
+{
+    _level = level;
+}
+
 void Logger::log(int type, QString msg)
 {
+    if((uint8_t)type < _level)
+        return;
     _mutex.lock();
     QString time= QDateTime::currentDateTime().toString(
                 "d/MMM/yyyy hh:mm:ss.zzz");

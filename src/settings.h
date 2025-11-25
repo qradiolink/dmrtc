@@ -47,6 +47,7 @@ public:
 
     /// Saved to config file
     int control_port; // FIXME: this should be unsigned uint16
+    int log_level;
     int mmdvm_listen_port;
     int mmdvm_send_port;
     int gateway_listen_port;

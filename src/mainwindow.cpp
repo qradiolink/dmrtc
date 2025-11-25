@@ -98,22 +98,23 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     ui->channelTableView->setGridStyle(Qt::PenStyle::SolidLine);
     ui->privateCallsTableWidget->setColumnCount(6);
     ui->groupCallsTableWidget->setColumnCount(6);
-    ui->privateCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
-    ui->groupCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    ui->privateCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::ResizeToContents);
+    ui->groupCallsTableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::ResizeToContents);
     ui->privateCallsTableWidget->horizontalHeader()->setStretchLastSection(true);
     ui->groupCallsTableWidget->horizontalHeader()->setStretchLastSection(true);
-    ui->privateCallsTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->groupCallsTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->privateCallsTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->groupCallsTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidgetMessages->setColumnCount(4);
-    ui->tableWidgetMessages->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
-    ui->tableWidgetMessages->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetMessages->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::ResizeToContents);
+    ui->tableWidgetMessages->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->tableWidgetMessages->horizontalHeader()->setStretchLastSection(true);
     QStringList header_private;
     header_private.append("Date and Time");
     header_private.append("Source Id");
     header_private.append("Destination Id");
     header_private.append("RSSI");
     header_private.append("BER");
-    header_private.append("Call time");
+    header_private.append("Call duration");
     ui->privateCallsTableWidget->setHorizontalHeaderLabels(header_private);
     QStringList header_group;
     header_group.append("Date and Time");
@@ -121,7 +122,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     header_group.append("Destination Id");
     header_group.append("RSSI");
     header_group.append("BER");
-    header_group.append("Call time");
+    header_group.append("Call duration");
     ui->groupCallsTableWidget->setHorizontalHeaderLabels(header_group);
     QStringList header_messages;
     header_messages.append("Date and Time");
@@ -194,6 +195,7 @@ void MainWindow::setConfig()
     ui->lineEditGatewayListenBasePort->setText(QString::number(_settings->gateway_listen_port));
     ui->lineEditGatewaySendBasePort->setText(QString::number(_settings->gateway_send_port));
     ui->spinBoxNumberOfChannels->setValue(_settings->channel_number);
+    ui->spinBoxLogLevel->setValue(_settings->log_level);
     ui->lineEditControlChannelPhysicalId->setText(QString::number(_settings->control_channel_physical_id));
     ui->spinBoxControlChannelSlot->setValue(_settings->control_channel_slot);
     ui->spinBoxNumberOfGateways->setValue(_settings->gateway_number);
@@ -241,6 +243,7 @@ void MainWindow::saveConfig()
     _settings->gateway_listen_port = ui->lineEditGatewayListenBasePort->text().toInt();
     _settings->gateway_send_port = ui->lineEditGatewaySendBasePort->text().toInt();
     _settings->channel_number = ui->spinBoxNumberOfChannels->text().toInt();
+    _settings->log_level = ui->spinBoxLogLevel->text().toInt();
     _settings->control_channel_physical_id = ui->lineEditControlChannelPhysicalId->text().toInt();
     _settings->control_channel_slot = ui->spinBoxControlChannelSlot->value();
     _settings->gateway_number = ui->spinBoxNumberOfGateways->text().toInt();
@@ -277,6 +280,7 @@ void MainWindow::saveConfig()
     saveLocalTalkgroups();
     saveStaticTalkgroups();
     _settings->saveConfig();
+    _logger->set_log_level(_settings->log_level);
 }
 
 void MainWindow::loadTalkgroupRouting()
@@ -1015,7 +1019,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call time: %9")
+                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
                                             .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
                                             arg(logical_channels->at(j)->getDestination())
                                             .arg(usage1)
@@ -1050,7 +1054,7 @@ void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
             }
             else
             {
-                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call time: %9")
+                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
                                             .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
                                             .arg(logical_channels->at(j + 1)->getDestination())
                                             .arg(usage2)

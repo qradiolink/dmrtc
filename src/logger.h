@@ -42,21 +42,23 @@ class Logger  : public QObject
 public:
     enum
     {
-        LogLevelInfo,
-        LogLevelDebug,
-        LogLevelWarning,
-        LogLevelCritical,
-        LogLevelFatal
+        LogLevelDebug=0,
+        LogLevelInfo=1,
+        LogLevelWarning=2,
+        LogLevelCritical=3,
+        LogLevelFatal=4
     };
     explicit Logger(QObject *parent = 0);
     ~Logger();
     void log(int type, QString msg);
     void set_console_log(bool value);
+    void set_log_level(uint8_t level);
 
 signals:
     void applicationLog(QString msg);
 
 private:
+    uint8_t _level;
     QFile *_log_file;
     bool _console_log;
     QTextStream *_stream;
