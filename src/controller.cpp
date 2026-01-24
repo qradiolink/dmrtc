@@ -1367,7 +1367,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
                       .arg(dstId)
                       .arg(text_message));
         }
-        if(!from_gateway && _settings->use_trunking_protocol && !_registered_ms->contains(dstId))
+        if(!from_gateway && _settings->use_trunking_protocol && (group || !_registered_ms->contains(dstId)))
         {
             CDMRData text_message_data;
             _network_signalling->createUDTTransferMessage(text_message_data, srcId, dstId, text_message, 4, group); // TODO: format

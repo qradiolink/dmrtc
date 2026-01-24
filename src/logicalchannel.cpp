@@ -499,7 +499,8 @@ void LogicalChannel::setChannelIdle()
     _src_lock = 0;
     _frame_timeout = false;
     _data_mutex.unlock();
-    deallocateChannel();
+    CDMRData dummy_data;
+    updateStats(dummy_data, true);
     emit channelDeallocated(_id);
     _logger->log(Logger::LogLevelDebug, QString("Physical channel %1, slot %2 to destination %3 and source %4 is marked as idle and deallocated")
                  .arg(_physical_channel).arg(_slot).arg(_destination_address).arg(_source_address));
