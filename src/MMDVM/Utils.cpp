@@ -56,7 +56,7 @@ std::string CUtils::dump(int level, const std::string& title, const unsigned cha
 				output += '.';
 		}
 
-        output += '*\n';
+        output += "*\n";
 
 		offset += 16U;
 

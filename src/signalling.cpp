@@ -23,7 +23,7 @@ Signalling::Signalling(const Settings *settings)
 
 void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsigned int &pad_nibble)
 {
-    if(msg_size > 46)
+    if((msg_size > 46) || (msg_size < 1))
         return;
     UAB = _uab_pad_nibbles_mapping[0][msg_size - 1];
     pad_nibble = _uab_pad_nibbles_mapping[1][msg_size - 1];
