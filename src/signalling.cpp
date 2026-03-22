@@ -848,6 +848,18 @@ void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, u
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
+void Signalling::createRequestToSendPABXDigits(CDMRCSBK &csbk, unsigned int dstId)
+{
+    csbk.setCSBKO(CSBKO_AHOY);
+    csbk.setFID(0x00);
+    unsigned char data1 = csbk.getServiceOptions() << 1;
+    unsigned int data2 = csbk.getServiceKind();
+    csbk.setData1(data1);
+    csbk.setCBF(data2);
+    csbk.setDstId(dstId);
+    csbk.setSrcId(StandardAddreses::PABXI);
+}
+
 void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, unsigned int srcId,
                                                               unsigned int dstId, uint8_t GI, uint8_t uab)
 {

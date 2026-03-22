@@ -34,6 +34,7 @@ public:
     static unsigned int convertBase10ToBase11GroupNumber(unsigned int gid);
     static unsigned int base11(unsigned int value);
     static QList<QString> readNMEA(unsigned char *msg, unsigned int dsize);
+    static unsigned int parseBCDDigits(unsigned char *message_payload, unsigned int message_size, unsigned int pad_nibble);
 };
 
 #endif // UTILS_H

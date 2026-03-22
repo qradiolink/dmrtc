@@ -35,6 +35,7 @@ enum StandardAddreses
     AUTHI = 0xFFFECD,
     SUPLI = 0xFFFEC4,
     DISPATI = 0xFFFECB,
+    PABXI = 0xFFFEC1,
     LINEI = 0xFFFEC2,
     IPI = 0xFFFEC3,
     HDATA_GW = 0xFFFD02,

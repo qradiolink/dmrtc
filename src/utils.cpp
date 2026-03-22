@@ -177,4 +177,28 @@ QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
     return messages;
 }
 
+unsigned int Utils::parseBCDDigits(unsigned char *message_payload, unsigned int message_size, unsigned int pad_nibble)
+{
+    unsigned int size = message_size * 12 - 2; // size does not include CRC16
+    unsigned char msg[size];
+    memcpy(msg, message_payload, size);
+    uint8_t digit_size = size * 2 - pad_nibble;
+    unsigned int digits = 0;
+    for(unsigned int i=0,j=0;i<size;i++)
+    {
+        if(j >= digit_size)
+            break;
+        uint8_t digit;
+        digit = uint8_t(uint8_t((msg[i] >> 4) & 0x0F));
+        digits += digit * std::pow(10, digit_size - j - 1);
+        j++;
+        if(j >= digit_size)
+            break;
+        digit = (uint8_t(msg[i]) & 0x0F);
+        digits += digit * std::pow(10, digit_size - j - 1);
+        j++;
+    }
+    return digits;
+}
+
 
