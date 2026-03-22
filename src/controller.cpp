@@ -1394,7 +1394,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
 }
 
 void Controller::processDigits(unsigned int dstId, unsigned int srcId,
-                               DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway)
+                               DMRMessageHandler::data_message *dmessage, bool group)
 {
     if(group || dmessage->group)
         dstId = Utils::convertBase11GroupNumberToBase10(dstId);
@@ -1405,14 +1405,14 @@ void Controller::processDigits(unsigned int dstId, unsigned int srcId,
                                    .arg(srcId)
                                    .arg(dstId)
                                    .arg(dialId);
+        /// poke in PBX call logic
+        ///
+        ///
+
         _logger->log(Logger::LogLevelInfo, text_message);
         if(!_settings->headless_mode)
         {
             emit updateMessageLog(srcId, dstId, text_message, group);
-        }
-        if(_settings->xmpp_enabled)
-        {
-            emit callSetupToXmpp(dialId, srcId, group);
         }
         _control_channel->setText(QString("%1 uploaded PABX call digits: %2").arg(srcId).arg(dialId));
         if(!_settings->headless_mode)
@@ -1814,6 +1814,12 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                     {
                         processTextMessage(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP, from_gateway);
                     }
+                    /// Digits
+                    else if((message->udt_format == 2) && !from_gateway)
+                    {
+                        forward_to_gw = false;
+                        processDigits(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP);
+                    }
                     _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
                                  .arg(dmr_data.getSlotNo()).arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
                     if(!from_gateway)
@@ -1890,6 +1896,11 @@ void Controller::processData(CDMRData &dmr_data, unsigned int udp_channel_id, bo
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
                             }
 
+                        }
+                        else if((message->udt_format == 2) && !from_gateway)
+                        {
+                            forward_to_gw = false;
+                            processDigits(dstId, srcId, message, false);
                         }
                         else if(message->udt_format == 5)
                         {
