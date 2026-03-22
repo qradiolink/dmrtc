@@ -2681,6 +2681,19 @@ void Controller::processSignalling(CDMRData &dmr_data, int udp_channel_id)
                          .arg(srcId).arg(slotNo).arg(dstId));
             return;
         }
+
+        if(dstId == StandardAddreses::PABXI)
+        {
+            _signalling_generator->createRequestToSendPABXDigits(csbk, csbk.getSrcId());
+            transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
+            _control_channel->setText(QString("PABX call request: %1").arg(srcId));
+            if(!_settings->headless_mode)
+            {
+                emit updateLogicalChannels(&_logical_channels);
+            }
+            return;
+        }
+
         if(_registered_ms->contains(dstId))
         {
             /** FIXME: The standard call procedure does not include a wait notification */
