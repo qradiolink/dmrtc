@@ -169,6 +169,8 @@ private:
     void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *message);
     bool processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id);
     void processTextMessage(unsigned int dstId, unsigned int srcId, DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway);
+    void processDigits(unsigned int dstId, unsigned int srcId,
+                       DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway);
     void processDataProtocolMessage(unsigned int dstId, unsigned int srcId,
                                     DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id,
                                     unsigned int slotNo, bool from_gateway);

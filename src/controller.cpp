@@ -1393,6 +1393,39 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
     }
 }
 
+void Controller::processDigits(unsigned int dstId, unsigned int srcId,
+                               DMRMessageHandler::data_message *dmessage, bool group, bool from_gateway)
+{
+    if(group || dmessage->group)
+        dstId = Utils::convertBase11GroupNumberToBase10(dstId);
+    if(dmessage->udt_format == 2)
+    {
+        unsigned int dialId = Utils::parseBCDDigits(dmessage->message, dmessage->size, dmessage->pad_nibble);
+        QString text_message = QString("Received call digits via UDT from %1 to %2: %3")
+                                   .arg(srcId)
+                                   .arg(dstId)
+                                   .arg(dialId);
+        _logger->log(Logger::LogLevelInfo, text_message);
+        if(!_settings->headless_mode)
+        {
+            emit updateMessageLog(srcId, dstId, text_message, group);
+        }
+        if(_settings->xmpp_enabled)
+        {
+            emit callSetupToXmpp(dialId, srcId, group);
+        }
+        _control_channel->setText(QString("%1 uploaded PABX call digits: %2").arg(srcId).arg(dialId));
+        if(!_settings->headless_mode)
+        {
+            emit updateLogicalChannels(&_logical_channels);
+        }
+        CDMRCSBK csbk_wait;
+        _signalling_generator->createReplyCallQueued(csbk_wait, srcId);
+        transmitCSBK(csbk_wait, nullptr, _control_channel->getSlot(),
+                     _control_channel->getPhysicalChannel(), false, false);
+    }
+}
+
 void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slotNo,
                                             DMRMessageHandler::data_message *dmessage, unsigned int udp_channel_id)
 {
