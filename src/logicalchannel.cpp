@@ -52,6 +52,8 @@ LogicalChannel::LogicalChannel(const Settings *settings, Logger *logger, unsigne
     _colour_code = 1;
     _lcn = _physical_channel + 1;
     _stream_id = 0;
+    _stats_dst_id = 0;
+    _stats_src_id = 0;
     _call_uuid = new unsigned char[16U];
     memset(_call_uuid, 0, 16U);
     _data_frames = 0;
@@ -212,6 +214,8 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
             emit setCallStats(_stats_src_id, _stats_dst_id, _rssi, _ber, _max_ber, call_time, (_call_type == CallType::CALL_TYPE_MS));
         }
         _stream_id = 0;
+        _stats_dst_id = 0;
+        _stats_src_id = 0;
         _data_frames = 0;
         _rssi_accumulator = 0.0f;
         _ber_accumulator = 0.0f;
@@ -225,7 +229,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
     if(new_stream_id != old_stream_id)
     {
         _stream_id = new_stream_id;
-        if((old_stream_id != 0) && (_data_frames > 0))
+        if((old_stream_id != 0) && (_data_frames > 0) && (new_stream_id !=0))
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
