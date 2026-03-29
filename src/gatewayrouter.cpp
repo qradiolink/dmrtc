@@ -78,10 +78,14 @@ bool GatewayRouter::getPrivateCallGateway(unsigned int &id)
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
-        if(bool(gw.value("enable_private_calls").toInt()))
+        bool ok = false;
+        int enable = gw.value("enable_private_calls").toInt(&ok);
+        if(ok && bool(enable))
         {
-            id = (unsigned int)(gw.value("gateway_id").toInt());
-            return true;
+            ok = false;
+            id = (unsigned int)(gw.value("gateway_id").toInt(&ok));
+            if(ok)
+                return true;
         }
     }
     return false;
@@ -96,7 +100,10 @@ bool GatewayRouter::getTrunkingGateway(unsigned int &id)
         QMap<QString, QString> gw = it_gws.next();
         if(uint8_t(gw.value("gateway_type").toInt()) == 1) // TODO: proto version
         {
-            unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt());
+            bool ok = false;
+            unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt(&ok));
+            if(!ok)
+                continue;
             found_ids.append(found_id);
         }
     }
@@ -124,13 +131,19 @@ bool GatewayRouter::getPrefixRoute(unsigned int dstId, unsigned int &id)
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
-        int prefix = gw.value("talkgroup_prefix").toInt();
+        bool ok = false;
+        int prefix = gw.value("talkgroup_prefix").toInt(&ok);
+        if(!ok)
+            continue;
         int real_tg_id = dst - prefix;
         if(real_tg_id <= 0)
             continue;
         if(real_tg_id >= _settings->tg_prefix_separation)
             continue;
-        unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt());
+        ok = false;
+        unsigned int found_id = (unsigned int)(gw.value("gateway_id").toInt(&ok));
+        if(!ok)
+            continue;
         found_ids.append(found_id);
     }
     if(found_ids.size() == 1)
@@ -254,12 +267,16 @@ bool GatewayRouter::removeTalkgroupPrefix(unsigned int &tg_id, unsigned int gate
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
-        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
-        if(found_gw_id != gateway_id)
+        bool ok = false;
+        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt(&ok);
+        if(!ok || (found_gw_id != gateway_id))
             continue;
         if(gw.value("gateway_type").toInt() != 1)
             return false;
-        int prefix = gw.value("talkgroup_prefix").toInt();
+        ok = false;
+        int prefix = gw.value("talkgroup_prefix").toInt(&ok);
+        if(!ok)
+            return false;
         int real_tg_id = dst - prefix;
         if(real_tg_id <= 0)
             return false;
@@ -278,12 +295,16 @@ bool GatewayRouter::addTalkgroupPrefix(unsigned int &tg_id, unsigned int gateway
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
-        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
-        if(found_gw_id != gateway_id)
+        bool ok = false;
+        unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt(&ok);
+        if(!ok || (found_gw_id != gateway_id))
             continue;
         if(gw.value("gateway_type").toInt() != 1)
             return false;
-        int prefix = gw.value("talkgroup_prefix").toInt();
+        ok = false;
+        int prefix = gw.value("talkgroup_prefix").toInt(&ok);
+        if(!ok)
+            return false;
         int prefixed_tg_id = dst + prefix;
         if(prefixed_tg_id <= 0)
             return false;

@@ -78,12 +78,16 @@ bool DMRRewrite::removeTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_
         while(it_gws.hasNext())
         {
             QMap<QString, QString> gw = it_gws.next();
-            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
-            if(found_gw_id != gateway_id)
+            bool ok = false;
+            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt(&ok);
+            if(!ok || (found_gw_id != gateway_id))
                 continue;
             if(gw.value("gateway_type").toInt() != 1)
                 return false;
-            int prefix = gw.value("talkgroup_prefix").toInt();
+            ok = false;
+            int prefix = gw.value("talkgroup_prefix").toInt(&ok);
+            if(!ok)
+                return false;
             int real_tg_id = dst - prefix;
             if(real_tg_id <= 0)
                 return false;
@@ -108,12 +112,16 @@ bool DMRRewrite::addTalkgroupPrefix(CDMRData &dmr_data, unsigned int gateway_id)
         while(it_gws.hasNext())
         {
             QMap<QString, QString> gw = it_gws.next();
-            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt();
-            if(found_gw_id != gateway_id)
+            bool ok = false;
+            unsigned int found_gw_id = (unsigned int) gw.value("gateway_id").toInt(&ok);
+            if(!ok || (found_gw_id != gateway_id))
                 continue;
             if(gw.value("gateway_type").toInt() != 1)
                 return false;
-            int prefix = gw.value("talkgroup_prefix").toInt();
+            ok = false;
+            int prefix = gw.value("talkgroup_prefix").toInt(&ok);
+            if(!ok)
+                return false;
             int tg_id = dst + prefix;
             if(tg_id <= 0)
                 return false;
@@ -132,8 +140,9 @@ bool DMRRewrite::getTrunkingGatewayTalkgroupId(unsigned int &tg_id)
     while(it_gws.hasNext())
     {
         QMap<QString, QString> gw = it_gws.next();
-        unsigned int found_prefix = (unsigned int) gw.value("talkgroup_prefix").toInt();
-        if(prefix != found_prefix)
+        bool ok = false;
+        unsigned int found_prefix = (unsigned int) gw.value("talkgroup_prefix").toInt(&ok);
+        if(!ok || (prefix != found_prefix))
             continue;
         if(gw.value("gateway_type").toInt() == 1)
         {

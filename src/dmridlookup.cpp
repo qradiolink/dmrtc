@@ -46,11 +46,14 @@ DMRIdLookup::DMRIdLookup(const Settings *settings, Logger *logger, QObject *pare
         {
             QByteArray data_line = resfile.readLine();
             QString line = QString(data_line).replace("\t", ",");
-            QStringList fields = line.split(",");
+            QStringList fields = line.split(',');
             if(fields.length() < 3)
                 continue;
             QString data = fields[0] + " - " + fields[1] + " - " + fields[2];
-            _ids->insert(fields[0].toUInt(), data);
+            bool ok = false;
+            unsigned int dmr_id = fields[0].toUInt(&ok);
+            if(ok)
+                _ids->insert(dmr_id, data);
         }
     }
 }
