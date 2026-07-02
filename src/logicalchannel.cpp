@@ -229,7 +229,7 @@ void LogicalChannel::updateStats(CDMRData &dmr_data, bool end_call)
     if(new_stream_id != old_stream_id)
     {
         _stream_id = new_stream_id;
-        if((old_stream_id != 0) && (_data_frames > 0) && (new_stream_id !=0))
+        if((old_stream_id != 0) && (_data_frames > 0) && (new_stream_id !=0) && (_stats_src_id != 0))
         {
             _rssi = _rssi_accumulator / float(_data_frames);
             _ber = _ber_accumulator / float(_data_frames);
