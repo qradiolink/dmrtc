@@ -17,6 +17,7 @@
 #include "utils.h"
 #include "math.h"
 
+
 Utils::Utils()
 {
 
@@ -86,8 +87,8 @@ void Utils::parseUTF16(QString &text_message, unsigned int size, unsigned char *
     }
     else
     {
-        char16_t converted[size/2];
-        char16_t orig[size/2];
+        char16_t converted[4096U];
+        char16_t orig[4096U];
         memcpy(orig, msg, size);
         for(unsigned int i = 0;i<size/2;i++)
         {
@@ -180,7 +181,7 @@ QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
 unsigned int Utils::parseBCDDigits(unsigned char *message_payload, unsigned int message_size, unsigned int pad_nibble)
 {
     unsigned int size = message_size * 12 - 2; // size does not include CRC16
-    unsigned char msg[size];
+    unsigned char msg[48U];
     memcpy(msg, message_payload, size);
     uint8_t digit_size = size * 2 - pad_nibble;
     unsigned int digits = 0;

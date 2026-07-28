@@ -43,7 +43,7 @@ DMRMessageHandler::~DMRMessageHandler()
 
 void DMRMessageHandler::removeMessages()
 {
-    QVector ids = _messages.keys().toVector();
+    QVector<unsigned int> ids = _messages.keys().toVector();
     for(int i=0;i<ids.size();i++)
     {
         clearMessage(i);
@@ -159,6 +159,11 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
         msg->ber_accumulator += float(dmr_data.getBER()) / 1.41f;
         if(header.getUDT())
         {
+            if(msg->size > 4)
+            {
+                clearMessage(srcId);
+                return nullptr;
+            }
             msg->udt_format = header.getUDTFormat();
             msg->udt = true;
             _logger->log(Logger::LogLevelDebug, QString("Received UDT packet data header from %1 to %2 --- A: %3, GI:%4, "
@@ -238,7 +243,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
                     block_size = 24U;
                 else if((dmr_data.getDataType() == DT_RATE_34_DATA))
                     block_size = 18U;
-                unsigned char block[block_size];
+                unsigned char block[24U];
                 memset(block, 0, block_size);
                 unsigned char data[DMR_FRAME_LENGTH_BYTES];
                 dmr_data.getData(data);
@@ -429,7 +434,7 @@ bool DMRMessageHandler::block_crc(unsigned char *block, unsigned int block_size,
 {
     dbsn = (block[0] >> 1) & 0x7F;
     uint16_t crc_sent = (((block[0] & 1) << 8) | block[1]) ^ 0x0F0;
-    unsigned char data[block_size - 1];
+    unsigned char data[24U];
     memset(data, 0, block_size - 1);
     memcpy(data, block + 2U, block_size - 2);
     unsigned char s = 0;
@@ -479,7 +484,7 @@ bool DMRMessageHandler::message_crc32(data_message *msg, unsigned int type, unsi
     crc_sent |= msg->message[index + crc_msg_size + 2] << 8;
     crc_sent |= msg->message[index + crc_msg_size + 1] << 16;
     crc_sent |= msg->message[index + crc_msg_size] << 24;
-    unsigned char crc_data[crc_msg_size];
+    unsigned char crc_data[MAX_MESSAGE_SIZE];
     for(;index <crc_msg_size;index=index+2)
     {
         crc_data[index] = msg->message[index+1];
@@ -518,6 +523,8 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
 
             msg->payload_len |= msg->message[38];
             msg->payload_len = (msg->payload_len << 8) | msg->message[39];
+            if(msg->payload_len > MAX_MESSAGE_SIZE)
+                return false;
             if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
                 return false;
             memcpy(msg->payload, msg->message + 40, msg->payload_len);
@@ -540,6 +547,8 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
 
             msg->payload_len |= msg->message[36];
             msg->payload_len = (msg->payload_len << 8) | msg->message[37];
+            if(msg->payload_len > MAX_MESSAGE_SIZE)
+                return false;
             if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
                 return false;
             memcpy(msg->payload, msg->message + 38, msg->payload_len);
@@ -558,6 +567,8 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
     else
     {
         msg->payload_len = msg->size*(block_size - 2) - 4;
+        if(msg->payload_len > MAX_MESSAGE_SIZE)
+            return false;
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
     }
@@ -576,6 +587,8 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
     if(msg->sap == 4)
     {
         msg->payload_len = msg->size * block_size - 4;
+        if(msg->payload_len > MAX_MESSAGE_SIZE)
+            return false;
         memcpy(msg->payload, msg->message, msg->payload_len);
         unsigned int ip_hdr_size = sizeof(struct ip);
         const struct ip *ip_hdr = (struct ip*) msg->payload;
@@ -592,6 +605,8 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
                              .arg(ntohs(udp->source)).arg(ntohs(udp->dest)).arg(ntohs(udp->len)));
             // strip IP and UDP headers
             msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
+            if(msg->payload_len > MAX_MESSAGE_SIZE)
+                return false;
             // test standard format option
             if(msg->payload_len > 4)
             {
@@ -625,6 +640,8 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned in
     else
     {
         msg->payload_len = msg->size * block_size - 4;
+        if(msg->payload_len > MAX_MESSAGE_SIZE)
+            return false;
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
     }
@@ -639,6 +656,8 @@ bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned in
     if(msg->sap == 10 && msg->type == 13)
     {
         msg->payload_len = msg->size * block_size - 2 - (msg->pad_nibble / 8);
+        if(msg->payload_len > MAX_MESSAGE_SIZE)
+            return false;
         memcpy(msg->payload, msg->message + 2, msg->payload_len);
         /// No CRC
         return true;
@@ -646,6 +665,8 @@ bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned in
     else
     {
         msg->payload_len = msg->size * block_size - (msg->pad_nibble / 8);
+        if(msg->payload_len > MAX_MESSAGE_SIZE)
+            return false;
         memcpy(msg->payload, msg->message, msg->payload_len);
         return true;
     }

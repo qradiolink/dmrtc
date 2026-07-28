@@ -58,7 +58,7 @@ bool NetworkSignalling::validateNetMessage(unsigned char *message, unsigned int 
 void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int dmrId)
 {
     uint8_t size = 17;
-    unsigned char buffer[size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, size);
     uint64_t ts = getUnixTimestamp();
     ts = _be ? qbswap<quint64>(ts) : ts;
@@ -78,7 +78,7 @@ void NetworkSignalling::createRegistrationMessage(CDMRData &data , unsigned int 
 void NetworkSignalling::createDeRegistrationMessage(CDMRData &data, unsigned int dmrId)
 {
     uint8_t size = 17;
-    unsigned char buffer[size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, size);
     uint64_t ts = getUnixTimestamp();
     ts = _be ? qbswap<quint64>(ts) : ts;
@@ -108,7 +108,7 @@ bool NetworkSignalling::createGroupSubscriptionMessage(CDMRData &data, QList<uns
     }
     uint8_t tg_size = (tgs.size() > 64) ? 64U : tgs.size();
     uint8_t size = 6U + (tg_size * 3U);
-    unsigned char buffer[size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
@@ -139,7 +139,7 @@ bool NetworkSignalling::createGroupUnSubscriptionMessage(CDMRData &data, QList<u
     }
     uint8_t tg_size = (tgs.size() > 64) ? 64U : tgs.size();
     uint8_t size = 6U + (tg_size * 3U);
-    unsigned char buffer[size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
@@ -165,7 +165,7 @@ bool NetworkSignalling::createUDTTransferMessage(CDMRData &data, unsigned int sr
         return false;
     char *text = payload.toUtf8().data();
     uint8_t buf_size = 29U + payload_size;
-    unsigned char buffer[buf_size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);
@@ -191,7 +191,7 @@ bool NetworkSignalling::createUDTTransferMessage(CDMRData &data, unsigned int sr
 void NetworkSignalling::createUDTAcceptMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid)
 {
     uint8_t buf_size = 27U;
-    unsigned char buffer[buf_size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, buf_size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
@@ -211,7 +211,7 @@ void NetworkSignalling::createUDTAcceptMessage(CDMRData &data, unsigned int srcI
 void NetworkSignalling::createPrivateCallSetupMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char service_options)
 {
     uint8_t buf_size = 28U;
-    unsigned char buffer[buf_size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);
@@ -234,7 +234,7 @@ void NetworkSignalling::createPrivateCallSetupMessage(CDMRData &data, unsigned i
 void NetworkSignalling::createPrivateCallReplyMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid, bool accept)
 {
     uint8_t buf_size = 27U;
-    unsigned char buffer[buf_size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, buf_size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
@@ -254,7 +254,7 @@ void NetworkSignalling::createPrivateCallReplyMessage(CDMRData &data, unsigned i
 void NetworkSignalling::createStatusTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group)
 {
     uint8_t buf_size = 28U;
-    unsigned char buffer[buf_size];
+    unsigned char buffer[255U];
     memset(buffer, 0U, buf_size);
     uuid_t uuid;
     uuid_generate_random(uuid);

@@ -737,7 +737,7 @@ QString LogicalChannel::getGPSInfo()
 void LogicalChannel::processTalkerAlias()
 {
     unsigned int size = _ta_data.size();
-    if(size < 1)
+    if((size < 1) || (size > 28))
         return;
     unsigned int bit7_size = 8 * size / 7;
     if(((_ta_df == 1 || _ta_df == 2) && (size >= _ta_dl)) ||
@@ -751,7 +751,7 @@ void LogicalChannel::processTalkerAlias()
         }
         else if(_ta_df == 0)
         {
-            unsigned char converted[bit7_size];
+            unsigned char converted[32U];
             Utils::parseISO7bitToISO8bit((unsigned char*)_ta_data.constData(), converted, bit7_size, size);
             QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
             setText(txt, false);

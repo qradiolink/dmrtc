@@ -7,7 +7,7 @@ TEMPLATE = app
 
 CONFIG  += qt thread
 
-#QMAKE_CXXFLAGS += -Werror
+QMAKE_CXXFLAGS += -Wall -Wextra -Wpedantic -std=c++17
 QMAKE_CXXFLAGS += $$(CXXFLAGS)
 QMAKE_CFLAGS += $$(CFLAGS)
 QMAKE_LFLAGS += $$(LDFLAGS)

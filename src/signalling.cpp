@@ -1009,6 +1009,8 @@ void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames
                                               QString message, bool group, unsigned int slot_no)
 {
     unsigned int msg_size = message.size();
+    if(msg_size > 46U)
+        return;
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
     getUABPadNibble(msg_size, blocks, pad_nibble);
@@ -1017,7 +1019,7 @@ void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames
     dmr_data_frames.append(dmr_data_header);
 
     unsigned char *data_message = (unsigned char*)(message.toUtf8().constData());
-    unsigned char data[msg_size + pad_nibble / 2 + 2U];
+    unsigned char data[48U];
     memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
     memcpy(data, data_message, msg_size);
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];

@@ -48,11 +48,13 @@ void arc4_get_challenge_response(unsigned char *key, unsigned int key_length, un
     challenge = (unsigned int)(rand() & 0xFFFFFF);
     if(challenge > 0xFFFCDF)
         challenge = 0xFFFCDF; // clamp to spec
+    if(key_length > 16U)
+        key_length = 16U;
     unsigned int text_length = 259;
-    unsigned char text[text_length];
+    unsigned char text[259U];
     memset(text, 0, text_length);
     unsigned int concatenated_length = key_length + 3;
-    unsigned char concatenated[concatenated_length];
+    unsigned char concatenated[19U];
     memset(concatenated, 0, concatenated_length);
     memcpy(concatenated + 3, key, key_length);
     concatenated[0] = (challenge >> 16) & 0xFF;
@@ -60,10 +62,10 @@ void arc4_get_challenge_response(unsigned char *key, unsigned int key_length, un
     concatenated[2] = (challenge) & 0xFF;
     unsigned char S[perm];
     KSA(concatenated, S, concatenated_length);
-    unsigned char keystream[text_length];
+    unsigned char keystream[259U];
     PRGA(S, text, keystream, text_length);
     response = 0;
-    response |= keystream[256] << 16;
-    response |= keystream[257] << 8;
-    response |= keystream[258];
+    response |= keystream[256U] << 16;
+    response |= keystream[257U] << 8;
+    response |= keystream[258U];
 }

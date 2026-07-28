@@ -153,7 +153,6 @@ void UDPClient::writeDataToNetwork(unsigned char *data, int size)
         return;
     }
     _udp_socket_tx->writeDatagram((const char*)data, size, QHostAddress(_remote_address), _send_port);
-    //_udp_socket_tx->write((const char*)data, size);
 }
 
 
@@ -169,7 +168,7 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
         emit dmrData(payload, size, _channel_id, _gateway_connection);
         return true;
     }
-    if (memcmp(payload, "DMRC", 4U) == 0)
+    else if (memcmp(payload, "DMRC", 4U) == 0)
     {
         if(size < 12 || _gateway_connection)
         {
@@ -178,7 +177,7 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
         emit newMMDVMConfig(payload, size);
         return true;
     }
-    if (memcmp(payload, "DMRT", 4U) == 0)
+    else if (memcmp(payload, "DMRT", 4U) == 0)
     {
         if((size < 5) || (size > 255) || !_gateway_connection)
         {
@@ -189,22 +188,22 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
         emit newDMRNetworkMessage(payload, size);
         return true;
     }
-    if (memcmp(payload, "DMRP", 4U) == 0)
+    else if (memcmp(payload, "DMRP", 4U) == 0)
     {
         delete[] payload;
         return true;
     }
-    if (memcmp(payload, "DMRG", 4U) == 0)
+    else if (memcmp(payload, "DMRG", 4U) == 0)
     {
         delete[] payload;
         return true;
     }
-    if (memcmp(payload, "DMRA", 4U) == 0)
+    else if (memcmp(payload, "DMRA", 4U) == 0)
     {
         delete[] payload;
         return true;
     }
-    if (memcmp(payload, "DMRB", 4U) == 0)
+    else if (memcmp(payload, "DMRB", 4U) == 0)
     {
         delete[] payload;
         return true;
@@ -219,7 +218,7 @@ void UDPClient::writeDMRData(CDMRData &data)
         uint8_t packet_size = data.getMessageSize();
         if(packet_size < 1)
             return;
-        unsigned char buffer[packet_size];
+        unsigned char buffer[255U];
         ::memset(buffer, 0x00U, packet_size);
         uint8_t length = data.getMessage(buffer);
         writeDataToNetwork(buffer, length);
@@ -230,7 +229,7 @@ void UDPClient::writeDMRData(CDMRData &data)
     }
 
     uint32_t packet_size = _gateway_connection ? (HOMEBREW_DATA_PACKET_LENGTH + 16U) : HOMEBREW_DATA_PACKET_LENGTH;
-    unsigned char buffer[packet_size];
+    unsigned char buffer[HOMEBREW_DATA_PACKET_LENGTH + 16U];
     ::memset(buffer, 0x00U, packet_size);
     buffer[0U]  = 'D';
     buffer[1U]  = 'M';
@@ -298,7 +297,11 @@ void UDPClient::writeDMRConfig(QVector<unsigned char> &config)
     {
         return;
     }
-    unsigned char buffer[config.size() + 7U];
+    else if(config.size() > 2041)
+    {
+        return;
+    }
+    unsigned char buffer[2048U];
     ::memset(buffer, 0x00U, config.size() + 7U);
 
     buffer[0U]  = 'D';

@@ -33,6 +33,8 @@
 #include "MMDVM/DMRTrellis.h"
 #include "MMDVM/CRC.h"
 
+const unsigned int MAX_MESSAGE_SIZE = 4096U;
+
 class DMRMessageHandler : public QObject
 {
     Q_OBJECT
@@ -40,10 +42,10 @@ public:
     struct data_message
     {
         data_message() : size(0), type(0), pad_nibble(0), block(0), udt_format(0), sap(0),
-            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(true), crc_valid(false), retry(false),
+            payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(false), crc_valid(false), retry(false),
             rssi_accumulator(0.0f), ber_accumulator(0.0f), rssi(0.0f), ber(0.0f) {
-            memset(message, 0, 4096);
-            memset(payload, 0, 4096);
+            memset(message, 0, MAX_MESSAGE_SIZE);
+            memset(payload, 0, MAX_MESSAGE_SIZE);
             memset(missed_blocks, 0, 2*sizeof(uint64_t));
             for(int i=0;i<128;i++)
             {
@@ -55,8 +57,8 @@ public:
             real_src(msg->real_src), real_dst(msg->real_dst), seq_no(msg->seq_no), group(msg->group), udt(msg->udt),
             crc_valid(msg->crc_valid), retry(msg->retry), rssi_accumulator(msg->rssi_accumulator), ber_accumulator(msg->ber_accumulator),
             rssi(msg->rssi), ber(msg->ber) {
-            memcpy(message, msg->message, 4096);
-            memcpy(payload, msg->payload, 4096);
+            memcpy(message, msg->message, MAX_MESSAGE_SIZE);
+            memcpy(payload, msg->payload, MAX_MESSAGE_SIZE);
             memcpy(missed_blocks, msg->missed_blocks, 2*sizeof(uint64_t));
             for(int i=0;i<128;i++)
             {
@@ -82,8 +84,8 @@ public:
         float rssi;
         float ber;
         uint64_t missed_blocks[2];
-        unsigned char message[4096];
-        unsigned char payload[4096];
+        unsigned char message[MAX_MESSAGE_SIZE];
+        unsigned char payload[MAX_MESSAGE_SIZE];
         unsigned char data[128][24];
     };
     explicit DMRMessageHandler(const Settings *settings, Logger *logger, QObject *parent = nullptr);

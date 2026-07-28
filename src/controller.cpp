@@ -723,16 +723,21 @@ bool Controller::sendAuthCheck(unsigned int target_id)
         _logger->log(Logger::LogLevelInfo, QString("No valid authentication key stored for radio: %1").arg(target_id));
         return false;
     }
-    _logger->log(Logger::LogLevelInfo, QString("Sending AUTH check to radio: %1").arg(target_id));
-    _ack_handler->addAck(target_id, ServiceAction::ActionAuthCheck);
-    CDMRCSBK csbk;
     QString key = _settings->auth_keys.value(target_id);
     QByteArray ba_k = QByteArray::fromHex(key.toLatin1());
+    if(ba_k.size() != 16)
+    {
+        _logger->log(Logger::LogLevelWarning, QString("Authentication key format for radio: %1 is wrong").arg(target_id));
+        return false;
+    }
+    _logger->log(Logger::LogLevelInfo, QString("Sending AUTH check to radio: %1").arg(target_id));
+    _ack_handler->addAck(target_id, ServiceAction::ActionAuthCheck);
     unsigned char *k = (unsigned char*)ba_k.constData();
     unsigned int random_number = 0;
     unsigned int response = 0;
     arc4_get_challenge_response((unsigned char*)(k), ba_k.size(), random_number, response);
     _auth_responses->insert(target_id, response);
+    CDMRCSBK csbk;
     _signalling_generator->createAuthCheckAhoy(csbk, target_id, random_number);
     transmitCSBK(csbk, nullptr, _control_channel->getSlot(), _control_channel->getPhysicalChannel(), false, true);
     emit startAuthTimer();
@@ -1211,7 +1216,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
                                                       unsigned int udp_channel_id)
 {
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
-    unsigned char msg[size];
+    unsigned char msg[48U];
     memcpy(msg, dmessage->message, size);
     _ack_handler->removeAck(srcId, ServiceAction::RegistrationWithAttachment);
     bool existing_user = userRegister(srcId);
@@ -1263,7 +1268,7 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
                                           unsigned int udp_channel_id)
 {
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
-    unsigned char msg[size];
+    unsigned char msg[48U];
     memcpy(msg, dmessage->message, size);
     _ack_handler->removeAck(srcId, ServiceAction::CallDivert);
 
@@ -1301,7 +1306,7 @@ void Controller::processCallDivertMessage(unsigned int srcId, unsigned int slotN
 void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message *dmessage)
 {
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
-    unsigned char msg[size];
+    unsigned char msg[48U];
     memcpy(msg, dmessage->message, size);
     QList<QString> messages = Utils::readNMEA(msg , dmessage->size);
     QStringList allmsg(messages);
@@ -1334,7 +1339,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
     if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
     {
         unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
-        unsigned char msg[size];
+        unsigned char msg[48U];
         memcpy(msg, dmessage->message, size);
         QString text_message;
         // last character seems to be null termination
@@ -1343,7 +1348,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
         else if(dmessage->udt_format == 3)
         {
             unsigned int bit7_size = 8 * size / 7;
-            unsigned char converted[bit7_size];
+            unsigned char converted[96U];
             Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
             text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
         }
@@ -1657,7 +1662,7 @@ bool Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
         {
             unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
-            unsigned char msg[size];
+            unsigned char msg[48U];
             memcpy(msg, dmessage->message, size);
 
             // last character seems to be null termination
@@ -1666,7 +1671,7 @@ bool Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
             else if(dmessage->udt_format == 3)
             {
                 unsigned int bit7_size = 8 * size / 7;
-                unsigned char converted[bit7_size];
+                unsigned char converted[96U];
                 Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             }
@@ -1709,7 +1714,7 @@ bool Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
         if((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7))
         {
             unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
-            unsigned char msg[size];
+            unsigned char msg[48U];
             memcpy(msg, dmessage->message, size);
             QString text_message;
             // last character seems to be null termination
@@ -1718,7 +1723,7 @@ bool Controller::processTextServiceRequest(CDMRData &dmr_data, DMRMessageHandler
             else if(dmessage->udt_format == 3)
             {
                 unsigned int bit7_size = 8 * size / 7;
-                unsigned char converted[bit7_size];
+                unsigned char converted[96U];
                 Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             }
