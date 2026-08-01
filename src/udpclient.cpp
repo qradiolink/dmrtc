@@ -170,11 +170,7 @@ bool UDPClient::parseNetworkData(unsigned char* payload, int size)
     }
     else if (memcmp(payload, "DMRC", 4U) == 0)
     {
-        if(size < 12 || _gateway_connection)
-        {
-            return false;
-        }
-        emit newMMDVMConfig(payload, size);
+        delete[] payload;
         return true;
     }
     else if (memcmp(payload, "DMRT", 4U) == 0)

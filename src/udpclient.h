@@ -47,7 +47,6 @@ public:
 
 signals:
     void dmrData(unsigned char* dmr_data, unsigned int size, int udp_channel_id, bool gateway_connection);
-    void newMMDVMConfig(unsigned char* payload, int size);
     void newDMRNetworkMessage(unsigned char* payload, unsigned int size);
     void writeToNetwork(unsigned char* payload, int size);
 

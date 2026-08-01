@@ -23,7 +23,6 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     _settings = settings;
     _logger = logger;
     _id_lookup = id_lookup;
-    _mmdvm_config = new QVector<unsigned char>;
     _registered_ms = new QList<unsigned int>;
     _talkgroup_attachments = new QMap<unsigned int, QList<unsigned int>>;
     _talkgroup_dgna = new QMap<unsigned int, QList<unsigned int>>;
@@ -49,8 +48,6 @@ Controller::Controller(Settings *settings, Logger *logger, DMRIdLookup *id_looku
 
 Controller::~Controller()
 {
-    _mmdvm_config->clear();
-    delete _mmdvm_config;
     _registered_ms->clear();
     delete _registered_ms;
     _talkgroup_attachments->clear();
@@ -86,9 +83,7 @@ void Controller::stop()
 
 void Controller::run()
 {
-    /// Create logical channels
     uint8_t counter = 0;
-    QTimer gateway_timer;
     QTimer announce_system_freqs_timer;
     QTimer announce_adjacent_sites_timer;
     QTimer auth_timer;
@@ -102,6 +97,8 @@ void Controller::run()
     QObject::connect(&ping_radio_timer, SIGNAL(timeout()), this, SLOT(timeoutPingResponse()));
     QObject::connect(this, SIGNAL(stopPingTimer()), &ping_radio_timer, SLOT(stop()));
     QObject::connect(this, SIGNAL(startPingTimer(int)), &ping_radio_timer, SLOT(start(int)));
+
+    /// Create logical channels
     for(int i=0; i<_settings->channel_number; i++)
     {
 
@@ -164,9 +161,8 @@ void Controller::run()
         UDPClient *client = new UDPClient(_settings, _logger, i);
         _udp_channels.append(client);
         client->enable(true);
-        QObject::connect(client, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)), this, SLOT(inputNetDMRPayload(unsigned char*, unsigned int, int, bool)), Qt::DirectConnection);
-        QObject::connect(client, SIGNAL(newMMDVMConfig(unsigned char*,int)),
-                         this, SLOT(updateMMDVMConfig(unsigned char*,int)), Qt::DirectConnection);
+        QObject::connect(client, SIGNAL(dmrData(unsigned char*,uint,int,bool)),
+                         this, SLOT(inputNetDMRPayload(unsigned char*,uint,int,bool)), Qt::DirectConnection);
 
         // Disable all timeslots at startup
         CDMRData control1;
@@ -206,13 +202,6 @@ void Controller::run()
         }
     }
 
-    gateway_timer.setInterval(3000);
-    gateway_timer.setSingleShot(false);
-    if(_settings->gateway_enabled)
-    {
-        QObject::connect(&gateway_timer, SIGNAL(timeout()), this, SLOT(writeDMRConfig()));
-        gateway_timer.start();
-    }
     announce_system_freqs_timer.setInterval(_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
     announce_system_freqs_timer.start();
@@ -328,7 +317,6 @@ void Controller::run()
     {
         delete _gateway_channels[i];
     }
-    gateway_timer.stop();
     announce_system_freqs_timer.stop();
     emit finished();
 }
@@ -3284,41 +3272,6 @@ void Controller::transmitCSBK(CDMRCSBK &csbk, LogicalChannel *logical_channel, u
                 active_channels[i]->putRFQueue(announce_data);
             }
         }
-    }
-}
-
-void Controller::updateMMDVMConfig(unsigned char* payload, int size)
-{
-    if(_mmdvm_config->size() > 1)
-    {
-        delete[] payload;
-        return;
-    }
-
-    int configLen = size - 8;
-
-    unsigned char *start_conf = payload + 8U;
-    for(int i=0; i<configLen; i++)
-    {
-        _mmdvm_config->push_back(start_conf[i]);
-    }
-
-    _logger->log(Logger::LogLevelDebug, "Updated Gateway config");
-    delete[] payload;
-}
-
-void Controller::writeDMRConfig()
-{
-    if(_mmdvm_config->size() < 8)
-        return;
-    QVector<unsigned char> config;
-    for(int i = 0; i< _mmdvm_config->size(); i++)
-    {
-        config.push_back(_mmdvm_config->at(i));
-    }
-    for(int i=0;i<_gateway_channels.size();i++)
-    {
-        _gateway_channels[i]->writeDMRConfig(config);
     }
 }
 

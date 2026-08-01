@@ -84,9 +84,7 @@ public slots:
     void run();
     void stop();
     void inputNetDMRPayload(unsigned char *payload, unsigned int size, int udp_channel_id, bool from_gateway);
-    void updateMMDVMConfig(unsigned char* payload, int size);
     void processDMRNetworkMessage(unsigned char* payload ,unsigned int size);
-    void writeDMRConfig();
     void updateChannelsToGUI();
     void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, unsigned int call_time, bool private_call);
     void handleIdleChannelDeallocation(unsigned int channel_id);
@@ -199,7 +197,6 @@ private:
     Signalling *_signalling_generator;
     NetworkSignalling *_network_signalling;
     DMRMessageHandler *_dmr_message_handler;
-    QVector<unsigned char> *_mmdvm_config;
     QMutex _control_mutex;
     QVector<UDPClient*> _udp_channels;
     QVector<UDPClient*> _gateway_channels;
