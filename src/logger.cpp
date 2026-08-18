@@ -88,6 +88,18 @@ Logger::Logger(QObject* parent)
             newfile.write(txt.toStdString().c_str());
             newfile.close();
         }
+    } else {
+        QString time = QDateTime::currentDateTime().toString(".d-MMM-yyyy-hh:mm:ss");
+        QFileInfo log_file_old = log_file.absoluteFilePath().append(time);
+        QDir(log_file.absoluteFilePath()).rename(log_file.absoluteFilePath(), log_file_old.absoluteFilePath());
+        log_file = files.filePath(".config/dmrtc/dmrtc.log");
+        QString txt = "[Log start]\n";
+        QFile newfile(log_file.absoluteFilePath());
+
+        if (newfile.open(QIODevice::WriteOnly | QIODevice::Append)) {
+            newfile.write(txt.toStdString().c_str());
+            newfile.close();
+        }
     }
 
     m_log_file = new QFile(log_file.absoluteFilePath());
