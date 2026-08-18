@@ -134,7 +134,7 @@ Running the controller
 $ ./dmrtc
 </pre>
 
-- To run it in console, without the GUI interface, start it with the "-h" flag:
+- To run it in console, without the GUI interface, start it with the **-d** flag:
 
 <pre>
 $ ./dmrtc -d
