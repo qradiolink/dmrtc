@@ -1,18 +1,20 @@
-// Written by Adrian Musceac YO8RZZ , started October 2023.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "utils.h"
 #include "math.h"
@@ -41,18 +43,22 @@ unsigned int Utils::convertP3GroupNumberToCAI(unsigned int group_number)
 
 unsigned int Utils::convertBase11GroupNumberToBase10(unsigned int group_number)
 {
-    if(group_number < 1)
+    if (group_number < 1)
         return 0;
+
     unsigned int base_11 = Utils::base11(group_number);
-    if(base_11 < 99999)
+
+    if (base_11 < 99999)
         return base_11;
+
     unsigned int gid = base_11;
     unsigned int digit[7];
-    for(int i=0; i<7 ; i++)
-    {
+
+    for (int i = 0; i < 7 ; i++) {
         digit[i] = gid % 10;
         gid = gid / 10;
     }
+
     unsigned int big_three = (digit[6] * 121U + digit[5] * 11U + digit[4]) * 10000;
     unsigned int small_four =  digit[3] * 1000 + digit[2] * 100 + digit[1] * 10  + digit[0];
     return big_three + small_four;
@@ -60,72 +66,75 @@ unsigned int Utils::convertBase11GroupNumberToBase10(unsigned int group_number)
 
 unsigned int Utils::base11(unsigned int value)
 {
-    if(value < 1)
+    if (value < 1)
         return 0;
+
     return (value % 11) + 10 * base11(value / 11);
 }
 
 unsigned int Utils::convertBase10ToBase11GroupNumber(unsigned int gid)
 {
-    if((gid > 9999999) || (gid < 1))
+    if ((gid > 9999999) || (gid < 1))
         return 0;
+
     unsigned int digit[7];
-    for(int i=0; i<7 ; i++)
-    {
+
+    for (int i = 0; i < 7 ; i++) {
         digit[i] = gid % 10;
         gid = gid / 10;
     }
+
     unsigned int group_number = digit[0] + digit[1] * 11U + digit[2] * 121U + digit[3] * 1331U + digit[4] * 14641U + digit[5] * 146410U + digit[6] * 1464100U;
     return group_number;
 }
 
-void Utils::parseUTF16(QString &text_message, unsigned int size, unsigned char *msg)
+void Utils::parseUTF16(QString& text_message, unsigned int size, unsigned char* msg)
 {
-    if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
-    {
-        text_message = QString::fromUtf16((char16_t*)msg, size/2);
-    }
-    else
-    {
+    if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+        text_message = QString::fromUtf16((char16_t*)msg, size / 2);
+    } else {
         char16_t converted[4096U];
         char16_t orig[4096U];
         memcpy(orig, msg, size);
-        for(unsigned int i = 0;i<size/2;i++)
-        {
+
+        for (unsigned int i = 0; i < size / 2; i++) {
             char16_t c = (orig[i] << 8) & 0xFF00;
             c |= (orig[i] >> 8) & 0xFF;
             converted[i] = c;
         }
-        text_message = QString::fromUtf16(converted, size/2);
+
+        text_message = QString::fromUtf16(converted, size / 2);
     }
 }
 
-void Utils::parseISO7bitToISO8bit(unsigned char *msg, unsigned char *converted, unsigned int bit7_size, unsigned int size)
+void Utils::parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, unsigned int bit7_size, unsigned int size)
 {
     memset(converted, 0, size);
     uint8_t remainder = 0;
-    for(unsigned int i=0,j=1,k=0;i<size,k<bit7_size;i++,j=j+1,k++)
-    {
-        if(j>7)
-        {
+
+    for (unsigned int i = 0, j = 1, k = 0; i < size, k < bit7_size; i++, j = j + 1, k++) {
+        if (j > 7) {
             j = 1;
         }
+
         converted[k] = (remainder << (8 - j)) | (msg[i] >> j);
         remainder = 0;
         uint8_t mask = ((1 << j) - 1);
         remainder = msg[i] & mask;
-        if(mask == 0x7F)
-        {
+
+        if (mask == 0x7F) {
             k = k + 1;
-            if(k>=bit7_size)
+
+            if (k >= bit7_size)
                 break;
+
             converted[k] = remainder & 0x7F;
             remainder = 0;
         }
     }
 }
 
-QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
+QList<QString> Utils::readNMEA(unsigned char* msg, unsigned int dsize)
 {
     uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
     uint16_t NMINF, EMINF, COG;
@@ -150,23 +159,20 @@ QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
     UTChh = (msg[8] >> 1) & 0x1F;
     UTCmm = (msg[8] & 0x01) << 5;
     UTCmm |= (msg[9] >> 3);
-    if(dsize == 1)
-    {
+
+    if (dsize == 1) {
         UTCss = (msg[9] & 0x07);
         COG = 0;
-    }
-    else if(dsize == 2)
-    {
+    } else if (dsize == 2) {
         UTCss = (msg[9] & 0x07) << 3;
         UTCss |= msg[10] >> 5;
         COG = (msg[12] & 0x01) << 8;
         COG |= msg[13];
-    }
-    else
-    {
+    } else {
         UTCss = 0;
         COG = 0;
     }
+
     QString lat = NS ? "N" : "S";
     QString longit = EW ? "E" : "W";
     QList<QString> messages;
@@ -178,27 +184,31 @@ QList<QString> Utils::readNMEA(unsigned char *msg, unsigned int dsize)
     return messages;
 }
 
-unsigned int Utils::parseBCDDigits(unsigned char *message_payload, unsigned int message_size, unsigned int pad_nibble)
+unsigned int Utils::parseBCDDigits(unsigned char* message_payload, unsigned int message_size, unsigned int pad_nibble)
 {
     unsigned int size = message_size * 12 - 2; // size does not include CRC16
     unsigned char msg[48U];
     memcpy(msg, message_payload, size);
     uint8_t digit_size = size * 2 - pad_nibble;
     unsigned int digits = 0;
-    for(unsigned int i=0,j=0;i<size;i++)
-    {
-        if(j >= digit_size)
+
+    for (unsigned int i = 0, j = 0; i < size; i++) {
+        if (j >= digit_size)
             break;
+
         uint8_t digit;
         digit = uint8_t(uint8_t((msg[i] >> 4) & 0x0F));
         digits += digit * std::pow(10, digit_size - j - 1);
         j++;
-        if(j >= digit_size)
+
+        if (j >= digit_size)
             break;
+
         digit = (uint8_t(msg[i]) & 0x0F);
         digits += digit * std::pow(10, digit_size - j - 1);
         j++;
     }
+
     return digits;
 }
 

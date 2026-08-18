@@ -1,18 +1,20 @@
-// Written by Adrian Musceac YO8RZZ , started October 2025.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #ifndef NETWORKSIGNALLING_H
 #define NETWORKSIGNALLING_H
@@ -31,8 +33,7 @@ class NetworkSignalling : public QObject
 {
     Q_OBJECT
 public:
-    enum OpCode
-    {
+    enum OpCode {
         Registration = 0x01,
         RegistrationConfirmation = 0x41,
         DeRegistration = 0x02,
@@ -64,29 +65,29 @@ public:
         RCMinimumPower = 0x87,
     };
 
-    explicit NetworkSignalling(const Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit NetworkSignalling(const Settings* settings, Logger* logger, QObject* parent = nullptr);
     ~NetworkSignalling();
 
-    bool validateNetMessage(unsigned char *message, unsigned int size);
+    bool validateNetMessage(unsigned char* message, unsigned int size);
 
-    void createRegistrationMessage(CDMRData &data, unsigned int dmrId);
-    void createDeRegistrationMessage(CDMRData &data, unsigned int dmrId);
-    bool createGroupSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs);
-    bool createGroupUnSubscriptionMessage(CDMRData &data, QList<unsigned int> tgs);
-    bool createUDTTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId,
+    void createRegistrationMessage(CDMRData& data, unsigned int dmrId);
+    void createDeRegistrationMessage(CDMRData& data, unsigned int dmrId);
+    bool createGroupSubscriptionMessage(CDMRData& data, QList<unsigned int> tgs);
+    bool createGroupUnSubscriptionMessage(CDMRData& data, QList<unsigned int> tgs);
+    bool createUDTTransferMessage(CDMRData& data, unsigned int srcId, unsigned int dstId,
                                   QString payload, unsigned char format, bool group);
-    void createUDTAcceptMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid);
-    void createPrivateCallSetupMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char service_options);
-    void createPrivateCallReplyMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, unsigned char *uuid, bool accept);
-    void createStatusTransferMessage(CDMRData &data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group);
-    bool parseUDTTransferMessage(unsigned char *payload, unsigned int size, unsigned int &srcId, unsigned int &dstId,
-                                  QString &message, unsigned char &format, bool &group, unsigned char *uuid);
-    bool parseUDTAcceptMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, unsigned int &dstId,
-                               unsigned char *uuid);
-    bool parseRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId, bool &accept);
-    bool parseDeRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int &srcId);
-    bool parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
-    bool parseUnSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int> &confirmed_tgs);
+    void createUDTAcceptMessage(CDMRData& data, unsigned int srcId, unsigned int dstId, unsigned char* uuid);
+    void createPrivateCallSetupMessage(CDMRData& data, unsigned int srcId, unsigned int dstId, unsigned char service_options);
+    void createPrivateCallReplyMessage(CDMRData& data, unsigned int srcId, unsigned int dstId, unsigned char* uuid, bool accept);
+    void createStatusTransferMessage(CDMRData& data, unsigned int srcId, unsigned int dstId, uint8_t status, bool group);
+    bool parseUDTTransferMessage(unsigned char* payload, unsigned int size, unsigned int& srcId, unsigned int& dstId,
+                                 QString& message, unsigned char& format, bool& group, unsigned char* uuid);
+    bool parseUDTAcceptMessage(unsigned char* payload, unsigned int size, unsigned int& srcId, unsigned int& dstId,
+                               unsigned char* uuid);
+    bool parseRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int& srcId, bool& accept);
+    bool parseDeRegistrationConfirmationMessage(unsigned char* payload, unsigned int size, unsigned int& srcId);
+    bool parseSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int>& confirmed_tgs);
+    bool parseUnSubscriptionConfirmationMessage(unsigned char* payload, unsigned int size, QList<unsigned int>& confirmed_tgs);
 
 
 
@@ -94,9 +95,9 @@ signals:
 
 private:
     uint64_t getUnixTimestamp();
-    const Settings *_settings;
-    Logger *_logger;
-    bool _be;
+    const Settings* m_settings;
+    Logger* m_logger;
+    bool m_be;
 
 };
 

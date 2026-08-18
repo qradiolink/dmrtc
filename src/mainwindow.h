@@ -1,18 +1,20 @@
-// Written by Adrian Musceac YO8RZZ , started October 2023.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
@@ -30,8 +32,9 @@
 #include "src/dmridlookup.h"
 #include "src/standard_PDU.h"
 
-namespace Ui {
-class MainWindow;
+namespace Ui
+{
+    class MainWindow;
 }
 
 class MainWindow : public QMainWindow
@@ -39,11 +42,11 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(Settings *settings, Logger *logger, DMRIdLookup *_id_lookup, QWidget *parent = nullptr);
+    explicit MainWindow(Settings* settings, Logger* logger, DMRIdLookup* m_id_lookup, QWidget* parent = nullptr);
     ~MainWindow();
 
 public slots:
-    void setLogicalChannels(QVector<LogicalChannel *> *logical_channels);
+    void setLogicalChannels(QVector<LogicalChannel*>* logical_channels);
     void channelStateChange(int row, int col, bool state);
     void updateRegisteredMSList(QList<uint>* registered_ms);
     void updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups);
@@ -110,11 +113,11 @@ signals:
     void sendAnnouncement();
 
 private:
-    Ui::MainWindow *ui;
-    Settings *_settings;
-    Logger *_logger;
-    ChannelViewModel *_logical_channel_model;
-    DMRIdLookup *_id_lookup;
+    Ui::MainWindow* ui;
+    Settings* m_settings;
+    Logger* m_logger;
+    ChannelViewModel* m_logical_channel_model;
+    DMRIdLookup* m_id_lookup;
     void setConfig();
     void loadTalkgroupRouting();
     void loadCallPriorities();

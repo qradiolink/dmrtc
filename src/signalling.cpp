@@ -1,44 +1,46 @@
-// Written by Adrian Musceac YO8RZZ , started October 2023.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "signalling.h"
 
-Signalling::Signalling(const Settings *settings)
+Signalling::Signalling(const Settings* settings)
 {
-    _settings = settings;
+    m_settings = settings;
 }
 
-void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int &UAB, unsigned int &pad_nibble)
+void Signalling::getUABPadNibble(unsigned int msg_size, unsigned int& UAB, unsigned int& pad_nibble)
 {
-    if((msg_size > 46) || (msg_size < 1))
+    if ((msg_size > 46) || (msg_size < 1))
         return;
-    UAB = _uab_pad_nibbles_mapping[0][msg_size - 1];
-    pad_nibble = _uab_pad_nibbles_mapping[1][msg_size - 1];
+
+    UAB = m_uab_pad_nibbles_mapping[0][msg_size - 1];
+    pad_nibble = m_uab_pad_nibbles_mapping[1][msg_size - 1];
 }
 
-void Signalling::rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId)
+void Signalling::rewriteUDTHeader(CDMRData& dmr_data, unsigned int dstId)
 {
-    if(dmr_data.getDataType() == DT_DATA_HEADER)
-    {
+    if (dmr_data.getDataType() == DT_DATA_HEADER) {
         unsigned char data[DMR_FRAME_LENGTH_BYTES];
         dmr_data.getData(data);
         CDMRDataHeader header;
         header.put(data);
-        if(header.getUDT())
-        {
+
+        if (header.getUDT()) {
             header.setDstId(dstId);
             header.construct();
             header.get(data);
@@ -53,7 +55,7 @@ void Signalling::rewriteUDTHeader(CDMRData &dmr_data, unsigned int dstId)
 }
 
 CDMRData Signalling::createUDTMessageHeader(unsigned int srcId, unsigned int dstId,
-                                     unsigned int blocks, unsigned int pad_nibble, bool group)
+        unsigned int blocks, unsigned int pad_nibble, bool group)
 {
     CDMRDataHeader header;
     header.setA(false);
@@ -89,7 +91,7 @@ CDMRData Signalling::createUDTMessageHeader(unsigned int srcId, unsigned int dst
 }
 
 CDMRData Signalling::createUDTDGNAHeader(unsigned int srcId, unsigned int dstId,
-                                     unsigned int blocks)
+        unsigned int blocks)
 {
     CDMRDataHeader header;
     header.setA(true);
@@ -125,7 +127,7 @@ CDMRData Signalling::createUDTDGNAHeader(unsigned int srcId, unsigned int dstId,
 }
 
 CDMRData Signalling::createUDTCallDivertHeader(unsigned int srcId, unsigned int dstId,
-                                     unsigned int blocks, unsigned int sap)
+        unsigned int blocks, unsigned int sap)
 {
     CDMRDataHeader header;
     header.setA(false);
@@ -161,17 +163,18 @@ CDMRData Signalling::createUDTCallDivertHeader(unsigned int srcId, unsigned int 
 }
 
 CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, unsigned int dstId, unsigned int seq_no,
-                                     unsigned int &blocks, unsigned int sap, bool group, uint64_t *failed_blocks)
+        unsigned int& blocks, unsigned int sap, bool group, uint64_t* failed_blocks)
 {
     bool retry = false;
-    for(uint8_t i=0;i< 2;i++)
-    {
-        if(failed_blocks[i])
-        {
-            if(i > 0) blocks = 2;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        if (failed_blocks[i]) {
+            if (i > 0) blocks = 2;
+
             retry = true;
         }
     }
+
     CDMRDataHeader header;
     unsigned char data[10];
     memset(data, 0U, 10U);
@@ -184,17 +187,16 @@ CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, un
     data[6] = (srcId >> 8) & 0xFF;
     data[7] = (srcId & 0xFF);
     data[8] |= blocks;
-    if(!retry)
-    {
+
+    if (!retry) {
         data[9] |= 0 << 6;
         data[9] |= 1 << 3;
-    }
-    else
-    {
+    } else {
         // FIXME: radio will reply with just a data header and unreadable data block for some reason????
         data[9] |= 2 << 6;
         data[9] |= 0 << 3;
     }
+
     data[9] |= seq_no & 0x07;      // TODO: status
     header.setData(data);
     unsigned char header_data[DMR_FRAME_LENGTH_BYTES];
@@ -215,25 +217,27 @@ CDMRData Signalling::createConfirmedMessageResponseHeader(unsigned int srcId, un
     return dmr_data_header;
 }
 
-CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t *failed_blocks, uint8_t block)
+CDMRData Signalling::createConfirmedDataResponsePayload(unsigned int srcId, unsigned int dstId, uint64_t* failed_blocks, uint8_t block)
 {
     unsigned char dblock[12U];
     unsigned char crc_data[8U];
     memset(dblock, 0xFF, 8U);
-    for(uint8_t i=0;i< 64;i++)
-    {
+
+    for (uint8_t i = 0; i < 64; i++) {
         uint8_t block_failed = (failed_blocks[block] >> i) & 0x01;
-        if (block_failed)
-        {
-            dblock[i/8U] &= ~(1 << (i % 8));
+
+        if (block_failed) {
+            dblock[i / 8U] &= ~(1 << (i % 8));
         }
     }
+
     memset(dblock + 8U, 0, 4U);
-    for(uint i =0;i < 8U;i=i+2)
-    {
-        crc_data[i] = dblock[i+1];
-        crc_data[i+1] = dblock[i];
+
+    for (uint i = 0; i < 8U; i = i + 2) {
+        crc_data[i] = dblock[i + 1];
+        crc_data[i + 1] = dblock[i];
     }
+
     crc_t crc = crc32_init();
     crc = crc32_update(crc, crc_data, 8U);
     crc = crc32_finalize(crc);
@@ -299,26 +303,21 @@ CDMRData Signalling::createDataTerminatorLC(unsigned int srcId, unsigned int dst
 }
 
 
-void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CDMRCSBK &csbk)
+void Signalling::createLateEntryAnnouncement(LogicalChannel* logical_channel, CDMRCSBK& csbk)
 {
     uint8_t emergency_call = 0; // TODO
     uint8_t late_entry = 1; // TODO
-    if(logical_channel->getCallType() == CallType::CALL_TYPE_GROUP)
-    {
+
+    if (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP) {
         csbk.setCSBKO(CSBKO_TV_GRANT);
-    }
-    else if(logical_channel->getCallType() == CallType::CALL_TYPE_MS)
-    {
+    } else if (logical_channel->getCallType() == CallType::CALL_TYPE_MS) {
         csbk.setCSBKO(CSBKO_PV_GRANT);
-    }
-    else if(logical_channel->getCallType() == CallType::CALL_TYPE_INDIV_PACKET)
-    {
+    } else if (logical_channel->getCallType() == CallType::CALL_TYPE_INDIV_PACKET) {
         csbk.setCSBKO(CSBKO_PD_GRANT);
-    }
-    else if(logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET)
-    {
+    } else if (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET) {
         csbk.setCSBKO(CSBKO_TD_GRANT);
     }
+
     uint16_t phys_chan = logical_channel->getLogicalChannel();
     uint8_t c1 = phys_chan >> 4;
     csbk.setData1(c1);
@@ -330,34 +329,35 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel *logical_channel, CD
     data2 |= emergency_call << 1;
     data2 |= aligned_timing;
     csbk.setCBF(data2);
-    if((logical_channel->getCallType() == CallType::CALL_TYPE_GROUP) ||
-            (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET))
-    {
+
+    if ((logical_channel->getCallType() == CallType::CALL_TYPE_GROUP) ||
+        (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET)) {
         csbk.setDstId(Utils::convertBase10ToBase11GroupNumber(logical_channel->getDestination()));
-    }
-    else
-    {
+    } else {
         csbk.setDstId(logical_channel->getDestination());
     }
+
     csbk.setSrcId(logical_channel->getSource());
 }
 
-bool Signalling::createAbsoluteParameters(CDMRCSBK &csbk1, CDMRCSBK &csbk2,
-                                               LogicalChannel *&logical_channel)
+bool Signalling::createAbsoluteParameters(CDMRCSBK& csbk1, CDMRCSBK& csbk2,
+        LogicalChannel*& logical_channel)
 {
-    if(!_settings->use_absolute_channel_grants)
+    if (!m_settings->use_absolute_channel_grants)
         return false;
-    if(logical_channel == nullptr)
-    {
+
+    if (logical_channel == nullptr) {
         return false;
     }
+
     uint64_t params;
     uint8_t colour_code;
     bool valid = logical_channel->getChannelParams(params, colour_code);
-    if(!valid)
-    {
+
+    if (!valid) {
         return false;
     }
+
     // Continuation CSBK
     csbk2.setCSBKO(csbk1.getCSBKO());
     csbk2.setFID((unsigned char)colour_code & 0x0F);
@@ -377,12 +377,12 @@ bool Signalling::createAbsoluteParameters(CDMRCSBK &csbk1, CDMRCSBK &csbk2,
     return true;
 }
 
-void Signalling::createRegistrationRequest(CDMRCSBK &csbk)
+void Signalling::createRegistrationRequest(CDMRCSBK& csbk)
 {
     uint8_t announcement_type = 0x04 << 3; // MassReg
     uint8_t reg = 1;
     uint8_t par = 3; // PAR AB
-    uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
+    uint16_t system_id = (uint16_t)m_settings->system_identity_code << 2;
     system_id = system_id | par;
     uint16_t bcast_parms1 = 8 << 2; // Reg Window (100 sec) + ALOHA mask
     uint32_t bcast_parms2 = 0;
@@ -392,22 +392,22 @@ void Signalling::createRegistrationRequest(CDMRCSBK &csbk)
     csbk.setData1(data1);
     unsigned char data2 = bcast_parms1;
     csbk.setCBF(data2);
-    unsigned int data3 = (reg << 4 ) << 16;
+    unsigned int data3 = (reg << 4) << 16;
     data3 |= 8 << 16; // random backoff
     data3 |= system_id;
     csbk.setDstId(data3);
     csbk.setSrcId(bcast_parms2);
 }
 
-void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMRCSBK &csbk_cont, QMap<QString, uint64_t> channel)
+void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK& csbk1, CDMRCSBK& csbk_cont, QMap<QString, uint64_t> channel)
 {
     uint8_t announcement_type = 0x05 << 3;
     uint32_t reg = 1;
-    uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
+    uint16_t system_id = (uint16_t)m_settings->system_identity_code << 2;
     system_id = system_id | 0x03; // AB MSs
-    uint32_t bcast_parms2 = (!_settings->use_fixed_channel_plan) ?
-                channel.value("logical_channel") :
-                (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
+    uint32_t bcast_parms2 = (!m_settings->use_fixed_channel_plan) ?
+                            channel.value("logical_channel") :
+                            (channel.value("tx_freq") - m_settings->freq_base) / m_settings->freq_separation + 1;;
     csbk1.setCSBKO(CSBKO_C_BCAST, false, false);
     csbk1.setFID(0x00);
     unsigned char data1 = (unsigned char) announcement_type;
@@ -425,9 +425,9 @@ void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMR
     csbk_cont.setCSBKO(CSBKO_C_BCAST);
     csbk_cont.setFID(0x00);
 
-    uint64_t lcn = (!_settings->use_fixed_channel_plan) ?
-                channel.value("logical_channel") :
-                (channel.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
+    uint64_t lcn = (!m_settings->use_fixed_channel_plan) ?
+                   channel.value("logical_channel") :
+                   (channel.value("tx_freq") - m_settings->freq_base) / m_settings->freq_separation + 1;;
     uint64_t tx_value_khz = channel.value("tx_freq") % 1000000 / 125;
     uint64_t rx_value_khz = channel.value("rx_freq") % 1000000 / 125;
     uint64_t tx_value_Mhz = channel.value("tx_freq") / 1000000;
@@ -445,16 +445,16 @@ void Signalling::createLogicalPhysicalChannelsAnnouncement(CDMRCSBK &csbk1, CDMR
     csbk_cont.setDataType(DT_MBC_CONTINUATION);
 }
 
-void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, uint64_t> site)
+void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK& csbk, QMap<QString, uint64_t> site)
 {
     uint8_t announcement_type = 0x06 << 3;
     uint32_t reg = 1;
-    uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
+    uint16_t system_id = (uint16_t)m_settings->system_identity_code << 2;
     system_id = system_id | 0x03; // AB MSs
     uint32_t bcast_parms1 = site.value("system_id");
-    uint32_t bcast_parms2 = (!_settings->use_fixed_channel_plan) ?
-                site.value("logical_channel") :
-                (site.value("tx_freq") - _settings->freq_base) / _settings->freq_separation + 1;;
+    uint32_t bcast_parms2 = (!m_settings->use_fixed_channel_plan) ?
+                            site.value("logical_channel") :
+                            (site.value("tx_freq") - m_settings->freq_base) / m_settings->freq_separation + 1;;
     uint32_t confirmed_priority = 1;
     uint32_t adjacent_priority = 1; // TODO
     uint32_t active_connection = 3;
@@ -464,7 +464,7 @@ void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, ui
     csbk.setCSBKO(CSBKO_C_BCAST);
     csbk.setFID(0x00);
     unsigned char data1 = (unsigned char) announcement_type | ((bcast_parms1 >> 11) & 0x03);
-    unsigned char data2 = (unsigned char) ((bcast_parms1 >> 3) & 0xFF);
+    unsigned char data2 = (unsigned char)((bcast_parms1 >> 3) & 0xFF);
     csbk.setData1(data1);
     csbk.setCBF(data2);
     unsigned int data3 = ((bcast_parms1 & 0x03) << 21);
@@ -476,10 +476,10 @@ void Signalling::createAdjacentSiteAnnouncement(CDMRCSBK &csbk, QMap<QString, ui
     csbk.setSrcId(bcast_parms2);
 }
 
-void Signalling::createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time)
+void Signalling::createLocalTimeAnnouncement(CDMRCSBK& csbk, QDateTime date_time)
 {
     uint32_t reg = 1;
-    uint16_t system_id = (uint16_t)_settings->system_identity_code << 2;
+    uint16_t system_id = (uint16_t)m_settings->system_identity_code << 2;
     system_id = system_id | 0x03; // AB MSs
     uint8_t announcement_type = 0x03 << 3;
     unsigned int broadcast_parms1 = 0;
@@ -509,7 +509,7 @@ void Signalling::createLocalTimeAnnouncement(CDMRCSBK &csbk, QDateTime date_time
     csbk.setSrcId(bcast_parms2);
 }
 
-void Signalling::createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, bool group)
+void Signalling::createPresenceCheckAhoy(CDMRCSBK& csbk, unsigned int target_id, bool group)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
@@ -521,7 +521,7 @@ void Signalling::createPresenceCheckAhoy(CDMRCSBK &csbk, unsigned int target_id,
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, unsigned int challenge, unsigned char options)
+void Signalling::createAuthCheckAhoy(CDMRCSBK& csbk, unsigned int target_id, unsigned int challenge, unsigned char options)
 {
     unsigned char data1 = options << 1;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -533,14 +533,16 @@ void Signalling::createAuthCheckAhoy(CDMRCSBK &csbk, unsigned int target_id, uns
     csbk.setSrcId(challenge & 0xFFFFFF);
 }
 
-void Signalling::createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, unsigned int srcId, bool from_ts)
+void Signalling::createReplyMessageAccepted(CDMRCSBK& csbk, unsigned int dstId, unsigned int srcId, bool from_ts)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     csbk.setFID(0x00);
     unsigned int response_info = 0x00;
     unsigned int reason = 0x60; // reason: message_accepted
-    if(!from_ts)
+
+    if (!from_ts)
         reason = 0x44;
+
     unsigned int data1 = (response_info << 1) | reason >> 7;
     unsigned int data2 = (reason << 1);
     csbk.setData1(data1);
@@ -549,7 +551,7 @@ void Signalling::createReplyMessageAccepted(CDMRCSBK &csbk, unsigned int dstId, 
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyRegistrationAccepted(CDMRCSBK& csbk, unsigned int dstId)
 {
     uint8_t accepted_registrations_mask = 0xFE; // be generous in case the manufacturer isn't
     csbk.setCSBKO(CSBKO_ACKD);
@@ -560,7 +562,7 @@ void Signalling::createReplyRegistrationAccepted(CDMRCSBK &csbk, unsigned int ds
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
-void Signalling::createReplyRegistrationRefused(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyRegistrationRefused(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -575,7 +577,7 @@ void Signalling::createReplyRegistrationRefused(CDMRCSBK &csbk, unsigned int dst
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
-void Signalling::createReplyRegistrationDenied(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyRegistrationDenied(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -590,7 +592,7 @@ void Signalling::createReplyRegistrationDenied(CDMRCSBK &csbk, unsigned int dstI
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
-void Signalling::createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyCallDivertAccepted(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     csbk.setData1(0x00); // 0x60
@@ -599,12 +601,14 @@ void Signalling::createReplyCallDivertAccepted(CDMRCSBK &csbk, unsigned int dstI
     csbk.setSrcId(StandardAddreses::DIVERTI);
 }
 
-void Signalling::createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivateVoiceCallRequest(CDMRCSBK& csbk, bool local, unsigned int srcId, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     unsigned int service_kind_flag = 1; // FOACSU: 1, OACSU: 0
-    if(!local)
+
+    if (!local)
         service_kind_flag = 0;
+
     csbk.setFID(0x00);
     csbk.setData1(service_kind_flag);
     csbk.setCBF(0x00);
@@ -612,7 +616,7 @@ void Signalling::createPrivateVoiceCallRequest(CDMRCSBK &csbk, bool local, unsig
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createPrivatePacketCallAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivatePacketCallAhoy(CDMRCSBK& csbk, unsigned int srcId, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     unsigned int service_kind_flag = 0;
@@ -627,7 +631,7 @@ void Signalling::createPrivatePacketCallAhoy(CDMRCSBK &csbk, unsigned int srcId,
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivateVoiceGrant(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int srcId, unsigned int dstId)
 {
     uint8_t emergency_call = 0; // TODO
     uint8_t late_entry = 0; // TODO
@@ -648,7 +652,7 @@ void Signalling::createPrivateVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+void Signalling::createGroupVoiceGrant(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int srcId, unsigned int dstId)
 {
     uint8_t emergency_call = 0; // TODO
     uint8_t late_entry = 0;
@@ -669,11 +673,11 @@ void Signalling::createGroupVoiceGrant(CDMRCSBK &csbk, LogicalChannel *logical_c
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+void Signalling::createPrivatePacketDataGrant(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int srcId, unsigned int dstId)
 {
     unsigned int service_options = csbk.getServiceOptions();
-    bool SIMI = (bool) (service_options >> 2) & 0x01;
-    bool hi_rate = (bool) (service_options >> 3) & 0x01; // TODO
+    bool SIMI = (bool)(service_options >> 2) & 0x01;
+    bool hi_rate = (bool)(service_options >> 3) & 0x01;  // TODO
     uint8_t emergency_call = 0; // TODO
     uint8_t rate = hi_rate ? 1 : 0; // TODO
     unsigned char csbko = SIMI ? CSBKO_PD_GRANT_MI : CSBKO_PD_GRANT;
@@ -694,11 +698,11 @@ void Signalling::createPrivatePacketDataGrant(CDMRCSBK &csbk, LogicalChannel *lo
     csbk.setSrcId(dstId);
 }
 
-void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int srcId, unsigned int dstId)
+void Signalling::createGroupPacketDataGrant(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int srcId, unsigned int dstId)
 {
     unsigned int service_options = csbk.getServiceOptions();
-    bool SIMI = (bool) (service_options >> 2) & 0x01;
-    bool hi_rate = (bool) (service_options >> 3) & 0x01; // TODO
+    bool SIMI = (bool)(service_options >> 2) & 0x01;
+    bool hi_rate = (bool)(service_options >> 3) & 0x01;  // TODO
     uint8_t emergency_call = 0; // TODO
     uint8_t rate = hi_rate ? 1 : 0; // TODO
     unsigned char csbko = SIMI ? CSBKO_TD_GRANT_MI : CSBKO_TD_GRANT;
@@ -719,7 +723,7 @@ void Signalling::createGroupPacketDataGrant(CDMRCSBK &csbk, LogicalChannel *logi
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel *logical_channel, unsigned int dstId, bool group_call)
+void Signalling::createClearChannelUserInitiated(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int dstId, bool group_call)
 {
     csbk.setCSBKO(CSBKO_P_CLEAR);
     uint16_t channel = 0;
@@ -733,7 +737,7 @@ void Signalling::createClearChannelUserInitiated(CDMRCSBK &csbk, LogicalChannel 
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createChannelIdleDeallocation(CDMRCSBK &csbk, unsigned int call_type)
+void Signalling::createChannelIdleDeallocation(CDMRCSBK& csbk, unsigned int call_type)
 {
     csbk.setCSBKO(CSBKO_P_CLEAR);
     csbk.setFID(0x00);
@@ -744,12 +748,12 @@ void Signalling::createChannelIdleDeallocation(CDMRCSBK &csbk, unsigned int call
     c2 |= (uint8_t)call_type;
     csbk.setCBF(c2);
     // All clear
-    //csbk.setDstId(_logical_channels.at(channel_id)->getDestination());
+    //csbk.setDstId(m_logical_channels.at(channel_id)->getDestination());
     csbk.setDstId(StandardAddreses::ALLMSI);
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int dstId, unsigned int UAB)
+void Signalling::createRequestToUploadTgAttachments(CDMRCSBK& csbk, unsigned int dstId, unsigned int UAB)
 {
     unsigned int data1 = csbk.getServiceOptions() << 1;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -762,7 +766,7 @@ void Signalling::createRequestToUploadTgAttachments(CDMRCSBK &csbk, unsigned int
     csbk.setSrcId(StandardAddreses::TATTSI);
 }
 
-void Signalling::createReplyCallRejected(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId)
+void Signalling::createReplyCallRejected(CDMRCSBK& csbk, unsigned int srcId, unsigned int dstId)
 {
     unsigned char recipient_refused = 0x14;
     csbk.setCSBKO(CSBKO_ACKD);
@@ -773,7 +777,7 @@ void Signalling::createReplyCallRejected(CDMRCSBK &csbk, unsigned int srcId, uns
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createCancelPrivateCallAhoy(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createCancelPrivateCallAhoy(CDMRCSBK& csbk, unsigned int dstId)
 {
     unsigned char cancel_call = 0x0F;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -784,7 +788,7 @@ void Signalling::createCancelPrivateCallAhoy(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool group_call)
+void Signalling::createCallDisconnect(CDMRCSBK& csbk, unsigned int dstId, bool group_call)
 {
     csbk.setCSBKO(CSBKO_P_CLEAR);
     uint16_t channel = 0;
@@ -797,7 +801,7 @@ void Signalling::createCallDisconnect(CDMRCSBK &csbk, unsigned int dstId, bool g
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK &csbk, unsigned int dstId)
+unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK& csbk, unsigned int dstId)
 {
     unsigned int number_of_blocks = (csbk.getCBF() >> 4) & 0x03;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -810,7 +814,7 @@ unsigned int Signalling::createRequestToUploadMessage(CDMRCSBK &csbk, unsigned i
     return number_of_blocks;
 }
 
-unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigned int dstId)
+unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK& csbk, unsigned int dstId)
 {
     unsigned int number_of_blocks = (csbk.getCBF() >> 4) & 0x03;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -823,8 +827,8 @@ unsigned int Signalling::createRequestToUploadDivertInfo(CDMRCSBK &csbk, unsigne
     return number_of_blocks;
 }
 
-void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId,
-                                                    unsigned int format, unsigned int num_blocks)
+void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK& csbk, unsigned int srcId, unsigned int dstId,
+        unsigned int format, unsigned int num_blocks)
 {
     unsigned int service_options = format << 1;
     csbk.setCSBKO(CSBKO_AHOY);
@@ -836,7 +840,7 @@ void Signalling::createRequestToUploadUDTPolledData(CDMRCSBK &csbk, unsigned int
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
@@ -848,7 +852,7 @@ void Signalling::createRequestToSendGroupCallSupplimentaryData(CDMRCSBK &csbk, u
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createRequestToSendPABXDigits(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createRequestToSendPABXDigits(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
@@ -860,8 +864,8 @@ void Signalling::createRequestToSendPABXDigits(CDMRCSBK &csbk, unsigned int dstI
     csbk.setSrcId(StandardAddreses::PABXI);
 }
 
-void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, unsigned int srcId,
-                                                              unsigned int dstId, uint8_t GI, uint8_t uab)
+void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK& csbk, unsigned int srcId,
+        unsigned int dstId, uint8_t GI, uint8_t uab)
 {
     csbk.setCSBKO(CSBKO_AHOY);
     csbk.setFID(0x00);
@@ -875,7 +879,7 @@ void Signalling::createRequestToSendPacketExtendedAddressInfo(CDMRCSBK &csbk, un
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group)
+void Signalling::createStatusTransportAhoy(CDMRCSBK& csbk, unsigned int srcId, unsigned int dstId, bool group)
 {
     unsigned int status2 = (csbk.getCBF() >> 4) & 0x03;
     status2 |= (group) ? 1 << 2 : 0;
@@ -889,7 +893,7 @@ void Signalling::createStatusTransportAhoy(CDMRCSBK &csbk, unsigned int srcId, u
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createStatusPollAhoy(CDMRCSBK &csbk, unsigned int srcId, unsigned int dstId, bool group)
+void Signalling::createStatusPollAhoy(CDMRCSBK& csbk, unsigned int srcId, unsigned int dstId, bool group)
 {
     unsigned int status2 = 0x03;
     status2 |= (group) ? 1 << 2 : 0;
@@ -904,7 +908,7 @@ void Signalling::createStatusPollAhoy(CDMRCSBK &csbk, unsigned int srcId, unsign
     csbk.setSrcId(srcId);
 }
 
-void Signalling::createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyWaitForSignalling(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     csbk.setFID(0x00);
@@ -914,7 +918,7 @@ void Signalling::createReplyWaitForSignalling(CDMRCSBK &csbk, unsigned int dstId
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyCallQueued(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -929,7 +933,7 @@ void Signalling::createReplyCallQueued(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyCallDenied(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -944,7 +948,7 @@ void Signalling::createReplyCallDenied(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyNotRegistered(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -959,7 +963,7 @@ void Signalling::createReplyNotRegistered(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyDeregistrationAccepted(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -974,7 +978,7 @@ void Signalling::createReplyDeregistrationAccepted(CDMRCSBK &csbk, unsigned int 
     csbk.setSrcId(StandardAddreses::REGI);
 }
 
-void Signalling::createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId)
+void Signalling::createReplyUDTCRCError(CDMRCSBK& csbk, unsigned int dstId)
 {
     csbk.setCSBKO(CSBKO_ACKD);
     unsigned int response_info = 0;
@@ -989,7 +993,7 @@ void Signalling::createReplyUDTCRCError(CDMRCSBK &csbk, unsigned int dstId)
     csbk.setSrcId(StandardAddreses::TSI);
 }
 
-void Signalling::createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type)
+void Signalling::createClearChannelAll(CDMRCSBK& csbk, unsigned int call_type)
 {
     csbk.setCSBKO(CSBKO_P_CLEAR);
     csbk.setFID(0x00);
@@ -1005,12 +1009,14 @@ void Signalling::createClearChannelAll(CDMRCSBK &csbk, unsigned int call_type)
 }
 
 void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
-                                              unsigned int srcId, unsigned int dstId,
-                                              QString message, bool group, unsigned int slot_no)
+        unsigned int srcId, unsigned int dstId,
+        QString message, bool group, unsigned int slot_no)
 {
     unsigned int msg_size = message.size();
-    if(msg_size > 46U)
+
+    if (msg_size > 46U)
         return;
+
     unsigned int blocks = 0;
     unsigned int pad_nibble = 0;
     getUABPadNibble(msg_size, blocks, pad_nibble);
@@ -1018,17 +1024,17 @@ void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames
     dmr_data_header.setSlotNo(slot_no);
     dmr_data_frames.append(dmr_data_header);
 
-    unsigned char *data_message = (unsigned char*)(message.toUtf8().constData());
+    unsigned char* data_message = (unsigned char*)(message.toUtf8().constData());
     unsigned char data[48U];
     memset(data, 0U, msg_size + pad_nibble / 2 + 2U);
     memcpy(data, data_message, msg_size);
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
     CCRC::addCCITT162(data, msg_size + pad_nibble / 2 + 2U);
     unsigned int i;
-    for(i=0;i<blocks - 1;i++)
-    {
+
+    for (i = 0; i < blocks - 1; i++) {
         unsigned char payload[12];
-        memcpy(payload, data + i*12U, 12U);
+        memcpy(payload, data + i * 12U, 12U);
         CBPTC19696 bptc1;
         bptc1.encode(payload, payload_data[i]);
         CDMRSlotType slotType1;
@@ -1047,9 +1053,10 @@ void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames
         dmr_data.setData(payload_data[i]);
         dmr_data_frames.append(dmr_data);
     }
+
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
-    memcpy(final_block, data + i*12U, 10U);
+    memcpy(final_block, data + i * 12U, 10U);
     final_block[10U] = data[msg_size + pad_nibble / 2];
     final_block[11U] = data[msg_size + pad_nibble / 2 + 1U];
     CBPTC19696 bptc3;
@@ -1072,8 +1079,8 @@ void Signalling::buildUDTShortMessageSequence(QVector<CDMRData>& dmr_data_frames
 }
 
 void Signalling::buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
-                                              unsigned int dstId,
-                                              unsigned char *data, unsigned int blocks, unsigned int slot_no)
+        unsigned int dstId,
+        unsigned char* data, unsigned int blocks, unsigned int slot_no)
 {
     CDMRData dmr_data_header = createUDTDGNAHeader(StandardAddreses::DGNAI, dstId, blocks);
     dmr_data_header.setSlotNo(slot_no);
@@ -1082,10 +1089,10 @@ void Signalling::buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_fr
     unsigned char payload_data[4][DMR_FRAME_LENGTH_BYTES];
     CCRC::addCCITT162(data, 48U);
     unsigned int i;
-    for(i=0;i<blocks - 1;i++)
-    {
+
+    for (i = 0; i < blocks - 1; i++) {
         unsigned char payload[12];
-        memcpy(payload, data + i*12U, 12U);
+        memcpy(payload, data + i * 12U, 12U);
         CBPTC19696 bptc1;
         bptc1.encode(payload, payload_data[i]);
         CDMRSlotType slotType1;
@@ -1104,9 +1111,10 @@ void Signalling::buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_fr
         dmr_data.setData(payload_data[i]);
         dmr_data_frames.append(dmr_data);
     }
+
     unsigned char final_block[12U];
     memset(final_block, 0, 12U);
-    memcpy(final_block, data + i*12U, 10U);
+    memcpy(final_block, data + i * 12U, 10U);
     final_block[10U] = data[46];
     final_block[11U] = data[47];
     CBPTC19696 bptc3;
@@ -1129,8 +1137,8 @@ void Signalling::buildUDTDGNAShortMessageSequence(QVector<CDMRData>& dmr_data_fr
 }
 
 void Signalling::buildUDTCallDivertShortMessageSequence(QVector<CDMRData>& dmr_data_frames,
-                                              unsigned int srcId, unsigned int dstId,
-                                              unsigned char *data, unsigned int blocks, unsigned int sap, unsigned int slot_no)
+        unsigned int srcId, unsigned int dstId,
+        unsigned char* data, unsigned int blocks, unsigned int sap, unsigned int slot_no)
 {
     CDMRData dmr_data_header = createUDTCallDivertHeader(srcId, dstId, blocks, sap);
     dmr_data_header.setSlotNo(slot_no);
@@ -1159,11 +1167,11 @@ void Signalling::buildUDTCallDivertShortMessageSequence(QVector<CDMRData>& dmr_d
     dmr_data_frames.append(dmr_data);
 }
 
-CDMRData Signalling::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK &csbk, bool channel_grant)
+CDMRData Signalling::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK& csbk, bool channel_grant)
 {
     CDMRData dmr_data_wait;
-    if(channel_grant)
-    {
+
+    if (channel_grant) {
         CDMRCSBK csbk_wait;
         createReplyWaitForSignalling(csbk_wait, csbk.getDstId());
         dmr_data_wait.setSeqNo(0);
@@ -1184,10 +1192,11 @@ CDMRData Signalling::createWaitForSignallingAnswer(unsigned int slotNo, CDMRCSBK
         dmr_data_wait.setSrcId(csbk_wait.getSrcId());
         dmr_data_wait.setData(repacked_data_wait);
     }
+
     return dmr_data_wait;
 }
 
-CDMRData Signalling::createDataFromCSBK(unsigned int slotNo, CDMRCSBK &csbk)
+CDMRData Signalling::createDataFromCSBK(unsigned int slotNo, CDMRCSBK& csbk)
 {
     unsigned char dataType = csbk.getDataType();
     CDMRData dmr_data;

@@ -1,25 +1,27 @@
-// Written by Adrian Musceac YO8RZZ , started October 2023.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "settings.h"
 
-Settings::Settings(Logger *logger)
+Settings::Settings(Logger* logger)
 {
-    _logger = logger;
-    _config_file = setupConfig();
+    m_logger = logger;
+    m_config_file = setupConfig();
 
     /// not saved to config
     tg_prefix_separation = 1000000;
@@ -67,29 +69,30 @@ Settings::Settings(Logger *logger)
 
 Settings::~Settings()
 {
-    delete _config_file;
+    delete m_config_file;
 }
 
-QFileInfo *Settings::setupConfig()
+QFileInfo* Settings::setupConfig()
 {
     QDir files = QDir::homePath();
-    if(!QDir(files.absolutePath()+"/.config/dmrtc").exists())
-    {
-        QDir().mkdir(files.absolutePath()+"/.config/dmrtc");
+
+    if (!QDir(files.absolutePath() + "/.config/dmrtc").exists()) {
+        QDir().mkdir(files.absolutePath() + "/.config/dmrtc");
     }
+
     QFileInfo old_file = files.filePath(".config/dmrtc.cfg");
-    if(old_file.exists())
-    {
+
+    if (old_file.exists()) {
         QDir().rename(old_file.filePath(), files.filePath(".config/dmrtc/dmrtc.cfg"));
     }
+
     QFileInfo new_file = files.filePath(".config/dmrtc/dmrtc.cfg");
-    if(!new_file.exists())
-    {
+
+    if (!new_file.exists()) {
         QString config = "// Automatically generated\n";
         QFile newfile(new_file.absoluteFilePath());
 
-        if (newfile.open(QIODevice::ReadWrite))
-        {
+        if (newfile.open(QIODevice::ReadWrite)) {
             newfile.write(config.toStdString().c_str());
             newfile.close();
         }
@@ -103,655 +106,561 @@ QFileInfo *Settings::setupConfig()
 void Settings::readConfig()
 {
     libconfig::Config cfg;
-    try
-    {
-        cfg.readFile(_config_file->absoluteFilePath().toStdString().c_str());
-    }
-    catch(const libconfig::FileIOException &fioex)
-    {
-        _logger->log(Logger::LogLevelFatal, "I/O error while reading configuration file.");
+
+    try {
+        cfg.readFile(m_config_file->absoluteFilePath().toStdString().c_str());
+    } catch (const libconfig::FileIOException& fioex) {
+        m_logger->log(Logger::LogLevelFatal, "I/O error while reading configuration file.");
         exit(EXIT_FAILURE); // a bit radical
-    }
-    catch(const libconfig::ParseException &pex)
-    {
-        _logger->log(Logger::LogLevelFatal,
-                  QString("Configuration parse error at %1: %2 - %3").arg(pex.getFile()).arg(
-                         pex.getLine()).arg(pex.getError()));
+    } catch (const libconfig::ParseException& pex) {
+        m_logger->log(Logger::LogLevelFatal,
+                      QString("Configuration parse error at %1: %2 - %3").arg(pex.getFile()).arg(
+                          pex.getLine()).arg(pex.getError()));
         exit(EXIT_FAILURE); // a bit radical
     }
 
     /// Read values
 
-    try
-    {
+    try {
         control_port = cfg.lookup("control_port");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         control_port = 4939;
     }
-    try
-    {
+
+    try {
         log_level = cfg.lookup("log_level");
-        if((log_level > 4) || (log_level < 0))
+
+        if ((log_level > 4) || (log_level < 0))
             log_level = 0;
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         log_level = 0;
     }
-    try
-    {
+
+    try {
         mmdvm_listen_port = cfg.lookup("mmdvm_listen_port");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         mmdvm_listen_port = 44550;
     }
-    try
-    {
+
+    try {
         mmdvm_send_port = cfg.lookup("mmdvm_send_port");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         mmdvm_send_port = 44560;
     }
-    try
-    {
+
+    try {
         gateway_listen_port = cfg.lookup("gateway_listen_port");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         gateway_listen_port = 44660;
     }
-    try
-    {
+
+    try {
         gateway_send_port = cfg.lookup("gateway_send_port");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         gateway_send_port = 44670;
     }
-    try
-    {
+
+    try {
         headless_mode = cfg.lookup("headless_mode");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         window_width = 1400;
     }
-    try
-    {
+
+    try {
         headless_mode = cfg.lookup("headless_mode");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         headless_mode = 0;
     }
-    try
-    {
+
+    try {
         window_width = cfg.lookup("window_width");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         window_width = 1400;
     }
-    try
-    {
+
+    try {
         window_height = cfg.lookup("window_height");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         window_height = 700;
     }
-    try
-    {
+
+    try {
         channel_number = cfg.lookup("channel_number");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         channel_number = 4;
     }
-    if((channel_number < 1) || (channel_number > 7))
-    {
-        _logger->log(Logger::LogLevelFatal, "Number of channels needs to be at least 1 and at most 7.");
+
+    if ((channel_number < 1) || (channel_number > 7)) {
+        m_logger->log(Logger::LogLevelFatal, "Number of channels needs to be at least 1 and at most 7.");
         exit(EXIT_FAILURE);
     }
-    try
-    {
+
+    try {
         gateway_number = cfg.lookup("gateway_number");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         gateway_number = 1;
     }
-    if((gateway_number < 1) || (gateway_number > 30))
-    {
-        _logger->log(Logger::LogLevelFatal, "Number of gateways needs to be at least 1 and at most 30.");
+
+    if ((gateway_number < 1) || (gateway_number > 30)) {
+        m_logger->log(Logger::LogLevelFatal, "Number of gateways needs to be at least 1 and at most 30.");
         exit(EXIT_FAILURE);
     }
-    try
-    {
+
+    try {
         udp_local_address = QString(cfg.lookup("udp_local_address"));
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         udp_local_address = "127.0.0.1";
     }
-    try
-    {
+
+    try {
         mmdvm_remote_address = QString(cfg.lookup("mmdvm_remote_address"));
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         mmdvm_remote_address = "127.0.0.1";
     }
-    try
-    {
+
+    try {
         gateway_remote_address = QString(cfg.lookup("gateway_remote_address"));
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         gateway_remote_address = "127.0.0.1";
     }
-    try
-    {
+
+    try {
         control_channel_physical_id = cfg.lookup("control_channel_physical_id");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         control_channel_physical_id = 0;
     }
-    try
-    {
+
+    try {
         control_channel_slot = cfg.lookup("control_channel_slot");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         control_channel_slot = 1;
     }
-    try
-    {
+
+    try {
         gateway_enabled = cfg.lookup("gateway_enabled");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         gateway_enabled = 1;
     }
-    try
-    {
+
+    try {
         announce_priority = cfg.lookup("announce_priority");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         announce_priority = 0;
     }
-    try
-    {
+
+    try {
         system_announcement_message = QString(cfg.lookup("system_announcement_message"));
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         system_announcement_message = "DMR tier III trunked radio site";
     }
-    try
-    {
+
+    try {
         payload_channel_idle_timeout = cfg.lookup("payload_channel_idle_timeout");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         payload_channel_idle_timeout = 5;
     }
-    try
-    {
+
+    try {
         system_identity_code = cfg.lookup("system_identity_code");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         system_identity_code = 1;
     }
-    try
-    {
+
+    try {
         freq_base = cfg.lookup("freq_base");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         freq_base = 430000000;
     }
-    try
-    {
+
+    try {
         freq_separation = cfg.lookup("freq_separation");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         freq_separation = 25000;
     }
-    try
-    {
+
+    try {
         freq_duplexsplit = cfg.lookup("freq_duplexsplit");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         freq_duplexsplit = 8000000;
     }
-    try
-    {
+
+    try {
         use_absolute_channel_grants = cfg.lookup("use_absolute_channel_grants");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         use_absolute_channel_grants = 0;
     }
-    try
-    {
+
+    try {
         use_fixed_channel_plan = cfg.lookup("use_fixed_channel_plan");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         use_fixed_channel_plan = 0;
     }
-    try
-    {
+
+    try {
         announce_system_message = cfg.lookup("announce_system_message");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         announce_system_message = 1;
     }
-    try
-    {
+
+    try {
         prevent_mmdvm_overflows = cfg.lookup("prevent_mmdvm_overflows");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         prevent_mmdvm_overflows = 1;
     }
-    try
-    {
+
+    try {
         receive_tg_attach = cfg.lookup("receive_tg_attach");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         receive_tg_attach = 0;
     }
-    try
-    {
+
+    try {
         registration_required = cfg.lookup("registration_required");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         registration_required = 1;
     }
-    try
-    {
+
+    try {
         authentication_required = cfg.lookup("authentication_required");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         authentication_required = 0;
     }
-    try
-    {
+
+    try {
         transmit_subscribed_tg_only = cfg.lookup("transmit_subscribed_tg_only");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         transmit_subscribed_tg_only = 0;
     }
-    try
-    {
+
+    try {
         subscribe_static_tgs = cfg.lookup("subscribe_static_tgs");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         subscribe_static_tgs = 0;
     }
-    try
-    {
+
+    try {
         send_network_registrations = cfg.lookup("send_network_registrations");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         send_network_registrations = 0;
     }
-    try
-    {
+
+    try {
         use_trunking_protocol = cfg.lookup("use_trunking_protocol");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         use_trunking_protocol = 0;
     }
-    try
-    {
+
+    try {
         announce_system_freqs_interval = cfg.lookup("announce_system_freqs_interval");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         announce_system_freqs_interval = 120;
     }
-    try
-    {
+
+    try {
         announce_adjacent_bs_interval = cfg.lookup("announce_adjacent_bs_interval");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         announce_adjacent_bs_interval = 30;
     }
-    try
-    {
+
+    try {
         announce_late_entry_interval = cfg.lookup("announce_late_entry_interval");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         announce_late_entry_interval = 1;
     }
-    try
-    {
+
+    try {
         channel_disable_bitmask = cfg.lookup("channel_disable_bitmask");
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         channel_disable_bitmask = 0;
     }
-    try
-    {
-        const libconfig::Setting &talkgroup_routing = cfg.lookup("talkgroup_routing");
-        for(int i = 0; i < talkgroup_routing.getLength(); ++i)
-        {
-          const libconfig::Setting &talkgroup = talkgroup_routing[i];
-          unsigned int tg_id, gateway_id;
 
-          if(!(talkgroup.lookupValue("tg_id", tg_id)
-               && talkgroup.lookupValue("gateway_id", gateway_id)))
-            continue;
-          talkgroup_routing_table.insert(tg_id, gateway_id);
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &slot_map = cfg.lookup("slot_rewrite");
-        for(int i = 0; i < slot_map.getLength(); ++i)
-        {
-          const libconfig::Setting &slot_rewrite = slot_map[i];
-          unsigned int tg_id, slot_no;
+    try {
+        const libconfig::Setting& talkgroup_routing = cfg.lookup("talkgroup_routing");
 
-          if(!(slot_rewrite.lookupValue("tg_id", tg_id)
-               && slot_rewrite.lookupValue("slot_no", slot_no)))
-            continue;
-          slot_rewrite_table.insert(tg_id, slot_no);
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &channel_map = cfg.lookup("logical_physical_channels");
-        for(int i = 0; i < channel_map.getLength(); ++i)
-        {
-          const libconfig::Setting &channel = channel_map[i];
-          long long channel_id, logical_channel, tx_freq, rx_freq, colour_code;
+        for (int i = 0; i < talkgroup_routing.getLength(); ++i) {
+            const libconfig::Setting& talkgroup = talkgroup_routing[i];
+            unsigned int tg_id, gateway_id;
 
-          if(!(channel.lookupValue("channel_id", channel_id)
-               && channel.lookupValue("logical_channel", logical_channel)
-               && channel.lookupValue("tx_freq", tx_freq) &&
-               channel.lookupValue("rx_freq", rx_freq) &&
-               channel.lookupValue("colour_code", colour_code)))
-            continue;
-          QMap<QString, uint64_t> channel_map{{"channel_id", (uint64_t)channel_id},
-                                              {"logical_channel", (uint64_t)logical_channel},
-                                              {"tx_freq", (uint64_t)tx_freq},
-                                              {"rx_freq", (uint64_t)rx_freq},
-                                              {"colour_code", (uint64_t)colour_code}};
-          logical_physical_channels.append(channel_map);
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &adjacent_site_map = cfg.lookup("adjacent_sites");
-        for(int i = 0; i < adjacent_site_map.getLength(); ++i)
-        {
-          const libconfig::Setting &channel = adjacent_site_map[i];
-          long long system_id, logical_channel, tx_freq, rx_freq, colour_code;
+            if (!(talkgroup.lookupValue("tg_id", tg_id)
+                  && talkgroup.lookupValue("gateway_id", gateway_id)))
+                continue;
 
-          if(!(channel.lookupValue("system_id", system_id)
-               && channel.lookupValue("logical_channel", logical_channel)
-               && channel.lookupValue("tx_freq", tx_freq) &&
-               channel.lookupValue("rx_freq", rx_freq) &&
-               channel.lookupValue("colour_code", colour_code)))
-            continue;
-          QMap<QString, uint64_t> channel_map{{"system_id", (uint64_t)system_id},
-                                              {"logical_channel", (uint64_t)logical_channel},
-                                              {"tx_freq", (uint64_t)tx_freq},
-                                              {"rx_freq", (uint64_t)rx_freq},
-                                              {"colour_code", (uint64_t)colour_code}};
-          adjacent_sites.append(channel_map);
+            talkgroup_routing_table.insert(tg_id, gateway_id);
         }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
     }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &service_map = cfg.lookup("service_ids");
-        for(int i = 0; i < service_map.getLength(); ++i)
-        {
-          const libconfig::Setting &service = service_map[i];
-          std::string service_name;
-          unsigned int id;
 
-          if(!(service.lookupValue("service_name", service_name)
-               && service.lookupValue("id", id)))
-            continue;
-          service_ids.insert(QString::fromStdString(service_name), id);
+    try {
+        const libconfig::Setting& slot_map = cfg.lookup("slot_rewrite");
+
+        for (int i = 0; i < slot_map.getLength(); ++i) {
+            const libconfig::Setting& slot_rewrite = slot_map[i];
+            unsigned int tg_id, slot_no;
+
+            if (!(slot_rewrite.lookupValue("tg_id", tg_id)
+                  && slot_rewrite.lookupValue("slot_no", slot_no)))
+                continue;
+
+            slot_rewrite_table.insert(tg_id, slot_no);
         }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
     }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+
+    try {
+        const libconfig::Setting& channel_map = cfg.lookup("logical_physical_channels");
+
+        for (int i = 0; i < channel_map.getLength(); ++i) {
+            const libconfig::Setting& channel = channel_map[i];
+            long long channel_id, logical_channel, tx_freq, rx_freq, colour_code;
+
+            if (!(channel.lookupValue("channel_id", channel_id)
+                  && channel.lookupValue("logical_channel", logical_channel)
+                  && channel.lookupValue("tx_freq", tx_freq) &&
+                  channel.lookupValue("rx_freq", rx_freq) &&
+                  channel.lookupValue("colour_code", colour_code)))
+                continue;
+
+            QMap<QString, uint64_t> channel_map{{"channel_id", (uint64_t)channel_id},
+                {"logical_channel", (uint64_t)logical_channel},
+                {"tx_freq", (uint64_t)tx_freq},
+                {"rx_freq", (uint64_t)rx_freq},
+                {"colour_code", (uint64_t)colour_code}};
+            logical_physical_channels.append(channel_map);
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+    }
+
+    try {
+        const libconfig::Setting& adjacent_site_map = cfg.lookup("adjacent_sites");
+
+        for (int i = 0; i < adjacent_site_map.getLength(); ++i) {
+            const libconfig::Setting& channel = adjacent_site_map[i];
+            long long system_id, logical_channel, tx_freq, rx_freq, colour_code;
+
+            if (!(channel.lookupValue("system_id", system_id)
+                  && channel.lookupValue("logical_channel", logical_channel)
+                  && channel.lookupValue("tx_freq", tx_freq) &&
+                  channel.lookupValue("rx_freq", rx_freq) &&
+                  channel.lookupValue("colour_code", colour_code)))
+                continue;
+
+            QMap<QString, uint64_t> channel_map{{"system_id", (uint64_t)system_id},
+                {"logical_channel", (uint64_t)logical_channel},
+                {"tx_freq", (uint64_t)tx_freq},
+                {"rx_freq", (uint64_t)rx_freq},
+                {"colour_code", (uint64_t)colour_code}};
+            adjacent_sites.append(channel_map);
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+    }
+
+    try {
+        const libconfig::Setting& service_map = cfg.lookup("service_ids");
+
+        for (int i = 0; i < service_map.getLength(); ++i) {
+            const libconfig::Setting& service = service_map[i];
+            std::string service_name;
+            unsigned int id;
+
+            if (!(service.lookupValue("service_name", service_name)
+                  && service.lookupValue("id", id)))
+                continue;
+
+            service_ids.insert(QString::fromStdString(service_name), id);
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         service_ids = {{"help", 1}, {"dgna", 2}, {"signal_report", 3}, {"all_call", 4}, {"location", 1048677}};
     }
-    try
-    {
-        const libconfig::Setting &call_prio = cfg.lookup("call_priorities");
-        for(int i = 0; i < call_prio.getLength(); ++i)
-        {
-          const libconfig::Setting &talkgroup = call_prio[i];
-          unsigned int id, priority;
 
-          if(!(talkgroup.lookupValue("id", id)
-               && talkgroup.lookupValue("priority", priority)))
-            continue;
-          call_priorities.insert(id, priority);
+    try {
+        const libconfig::Setting& call_prio = cfg.lookup("call_priorities");
+
+        for (int i = 0; i < call_prio.getLength(); ++i) {
+            const libconfig::Setting& talkgroup = call_prio[i];
+            unsigned int id, priority;
+
+            if (!(talkgroup.lookupValue("id", id)
+                  && talkgroup.lookupValue("priority", priority)))
+                continue;
+
+            call_priorities.insert(id, priority);
         }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         call_priorities = {{112, 3}, {226, 2}, {9, 1}};
     }
-    try
-    {
-        const libconfig::Setting &call_div = cfg.lookup("call_diverts");
-        for(int i = 0; i < call_div.getLength(); ++i)
-        {
-          const libconfig::Setting &div = call_div[i];
-          unsigned int id, divert;
 
-          if(!(div.lookupValue("id", id)
-               && div.lookupValue("divert", divert)))
-            continue;
-          call_diverts.insert(id, divert);
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &auth_k = cfg.lookup("auth_keys");
-        for(int i = 0; i < auth_k.getLength(); ++i)
-        {
-          const libconfig::Setting &ak = auth_k[i];
-          unsigned int id;
-          std::string key;
+    try {
+        const libconfig::Setting& call_div = cfg.lookup("call_diverts");
 
-          if(!(ak.lookupValue("id", id)
-               && ak.lookupValue("key", key)))
-            continue;
-          auth_keys.insert(id, QString::fromStdString(key));
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &gw_ids = cfg.lookup("gateway_ids");
-        for(int i = 0; i < gw_ids.getLength(); ++i)
-        {
-          const libconfig::Setting &gw = gw_ids[i];
-          std::string gateway_id, gateway_name, gateway_type, talkgroup_prefix, enable_private_calls;
+        for (int i = 0; i < call_div.getLength(); ++i) {
+            const libconfig::Setting& div = call_div[i];
+            unsigned int id, divert;
 
-          if(!(gw.lookupValue("gateway_id", gateway_id)
-               && gw.lookupValue("gateway_name", gateway_name)
-               && gw.lookupValue("gateway_type", gateway_type)
-               && gw.lookupValue("talkgroup_prefix", talkgroup_prefix)
-               && gw.lookupValue("enable_private_calls", enable_private_calls)))
-            continue;
-          QMap<QString, QString> gw_map {{"gateway_id", QString::fromStdString(gateway_id)},
-                                          {"gateway_name", QString::fromStdString(gateway_name)},
-                                          {"gateway_type", QString::fromStdString(gateway_type)},
-                                          {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)},
-                                          {"enable_private_calls", QString::fromStdString(enable_private_calls)}
-                                        };
-          gateways.append(gw_map);
+            if (!(div.lookupValue("id", id)
+                  && div.lookupValue("divert", divert)))
+                continue;
+
+            call_diverts.insert(id, divert);
         }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
     }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+
+    try {
+        const libconfig::Setting& auth_k = cfg.lookup("auth_keys");
+
+        for (int i = 0; i < auth_k.getLength(); ++i) {
+            const libconfig::Setting& ak = auth_k[i];
+            unsigned int id;
+            std::string key;
+
+            if (!(ak.lookupValue("id", id)
+                  && ak.lookupValue("key", key)))
+                continue;
+
+            auth_keys.insert(id, QString::fromStdString(key));
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+    }
+
+    try {
+        const libconfig::Setting& gw_ids = cfg.lookup("gateway_ids");
+
+        for (int i = 0; i < gw_ids.getLength(); ++i) {
+            const libconfig::Setting& gw = gw_ids[i];
+            std::string gateway_id, gateway_name, gateway_type, talkgroup_prefix, enable_private_calls;
+
+            if (!(gw.lookupValue("gateway_id", gateway_id)
+                  && gw.lookupValue("gateway_name", gateway_name)
+                  && gw.lookupValue("gateway_type", gateway_type)
+                  && gw.lookupValue("talkgroup_prefix", talkgroup_prefix)
+                  && gw.lookupValue("enable_private_calls", enable_private_calls)))
+                continue;
+
+            QMap<QString, QString> gw_map {{"gateway_id", QString::fromStdString(gateway_id)},
+                {"gateway_name", QString::fromStdString(gateway_name)},
+                {"gateway_type", QString::fromStdString(gateway_type)},
+                {"talkgroup_prefix", QString::fromStdString(talkgroup_prefix)},
+                {"enable_private_calls", QString::fromStdString(enable_private_calls)}
+            };
+            gateways.append(gw_map);
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
         QMap<QString, QString> default_map {{"gateway_id", "0"},
-                                            {"gateway_name", "Default gateway"},
-                                            {"gateway_type", "0"},
-                                            {"talkgroup_prefix", "0"},
-                                            {"enable_private_calls", "1"}
-                                            };
+            {"gateway_name", "Default gateway"},
+            {"gateway_type", "0"},
+            {"talkgroup_prefix", "0"},
+            {"enable_private_calls", "1"}
+        };
         gateways.append(default_map);
     }
-    try
-    {
-        const libconfig::Setting &tg_ids = cfg.lookup("local_tg_ids");
-        for(int i = 0; i < tg_ids.getLength(); ++i)
-        {
-          const libconfig::Setting &tg = tg_ids[i];
-          local_tg_ids.append(tg);
-        }
-    }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
-    }
-    try
-    {
-        const libconfig::Setting &static_talkgroups = cfg.lookup("static_talkgroups_requested");
-        for(int i = 0; i < static_talkgroups.getLength(); ++i)
-        {
-          const libconfig::Setting &talkgroup = static_talkgroups[i];
-          unsigned int tg_id, gateway_id;
 
-          if(!(talkgroup.lookupValue("tg_id", tg_id)
-               && talkgroup.lookupValue("gateway_id", gateway_id)))
-            continue;
-          static_talkgroups_requested.insert(tg_id, gateway_id);
+    try {
+        const libconfig::Setting& tg_ids = cfg.lookup("local_tg_ids");
+
+        for (int i = 0; i < tg_ids.getLength(); ++i) {
+            const libconfig::Setting& tg = tg_ids[i];
+            local_tg_ids.append(tg);
         }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
     }
-    catch(const libconfig::SettingNotFoundException &nfex)
-    {
+
+    try {
+        const libconfig::Setting& static_talkgroups = cfg.lookup("static_talkgroups_requested");
+
+        for (int i = 0; i < static_talkgroups.getLength(); ++i) {
+            const libconfig::Setting& talkgroup = static_talkgroups[i];
+            unsigned int tg_id, gateway_id;
+
+            if (!(talkgroup.lookupValue("tg_id", tg_id)
+                  && talkgroup.lookupValue("gateway_id", gateway_id)))
+                continue;
+
+            static_talkgroups_requested.insert(tg_id, gateway_id);
+        }
+    } catch (const libconfig::SettingNotFoundException& nfex) {
     }
 
 
     /// Finished reading config
-    _logger->set_log_level((uint8_t)log_level);
+    m_logger->set_log_level((uint8_t)log_level);
 
 }
 
 void Settings::saveConfig()
 {
     libconfig::Config cfg;
-    libconfig::Setting &root = cfg.getRoot();
-    root.add("control_port",libconfig::Setting::TypeInt) = control_port;
-    root.add("log_level",libconfig::Setting::TypeInt) = log_level;
-    root.add("mmdvm_listen_port",libconfig::Setting::TypeInt) = mmdvm_listen_port;
-    root.add("mmdvm_send_port",libconfig::Setting::TypeInt) = mmdvm_send_port;
-    root.add("gateway_listen_port",libconfig::Setting::TypeInt) = gateway_listen_port;
-    root.add("gateway_send_port",libconfig::Setting::TypeInt) = gateway_send_port;
-    root.add("window_width",libconfig::Setting::TypeInt) = window_width;
-    root.add("window_height",libconfig::Setting::TypeInt) = window_height;
-    root.add("headless_mode",libconfig::Setting::TypeInt) = headless_mode;
-    root.add("channel_number",libconfig::Setting::TypeInt) = channel_number;
-    root.add("gateway_number",libconfig::Setting::TypeInt) = gateway_number;
-    root.add("udp_local_address",libconfig::Setting::TypeString) = udp_local_address.toStdString();
-    root.add("mmdvm_remote_address",libconfig::Setting::TypeString) = mmdvm_remote_address.toStdString();
-    root.add("gateway_remote_address",libconfig::Setting::TypeString) = gateway_remote_address.toStdString();
-    root.add("control_channel_physical_id",libconfig::Setting::TypeInt) = control_channel_physical_id;
-    root.add("control_channel_slot",libconfig::Setting::TypeInt) = control_channel_slot;
-    root.add("gateway_enabled",libconfig::Setting::TypeInt) = gateway_enabled;
-    root.add("announce_priority",libconfig::Setting::TypeInt) = announce_priority;
-    root.add("system_announcement_message",libconfig::Setting::TypeString) = system_announcement_message.toStdString();
-    root.add("payload_channel_idle_timeout",libconfig::Setting::TypeInt) = payload_channel_idle_timeout;
-    root.add("system_identity_code",libconfig::Setting::TypeInt) = system_identity_code;
-    root.add("freq_base",libconfig::Setting::TypeInt) = freq_base;
-    root.add("freq_separation",libconfig::Setting::TypeInt) = freq_separation;
-    root.add("freq_duplexsplit",libconfig::Setting::TypeInt) = freq_duplexsplit;
-    root.add("use_absolute_channel_grants",libconfig::Setting::TypeInt) = use_absolute_channel_grants;
-    root.add("use_fixed_channel_plan",libconfig::Setting::TypeInt) = use_fixed_channel_plan;
-    root.add("announce_system_message",libconfig::Setting::TypeInt) = announce_system_message;
-    root.add("prevent_mmdvm_overflows",libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
-    root.add("receive_tg_attach",libconfig::Setting::TypeInt) = receive_tg_attach;
-    root.add("registration_required",libconfig::Setting::TypeInt) = registration_required;
-    root.add("authentication_required",libconfig::Setting::TypeInt) = authentication_required;
-    root.add("transmit_subscribed_tg_only",libconfig::Setting::TypeInt) = transmit_subscribed_tg_only;
-    root.add("subscribe_static_tgs",libconfig::Setting::TypeInt) = subscribe_static_tgs;
-    root.add("send_network_registrations",libconfig::Setting::TypeInt) = send_network_registrations;
-    root.add("use_trunking_protocol",libconfig::Setting::TypeInt) = use_trunking_protocol;
-    root.add("announce_system_freqs_interval",libconfig::Setting::TypeInt) = announce_system_freqs_interval;
-    root.add("announce_adjacent_bs_interval",libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;
-    root.add("announce_late_entry_interval",libconfig::Setting::TypeInt) = announce_late_entry_interval;
-    root.add("channel_disable_bitmask",libconfig::Setting::TypeInt) = channel_disable_bitmask;
+    libconfig::Setting& root = cfg.getRoot();
+    root.add("control_port", libconfig::Setting::TypeInt) = control_port;
+    root.add("log_level", libconfig::Setting::TypeInt) = log_level;
+    root.add("mmdvm_listen_port", libconfig::Setting::TypeInt) = mmdvm_listen_port;
+    root.add("mmdvm_send_port", libconfig::Setting::TypeInt) = mmdvm_send_port;
+    root.add("gateway_listen_port", libconfig::Setting::TypeInt) = gateway_listen_port;
+    root.add("gateway_send_port", libconfig::Setting::TypeInt) = gateway_send_port;
+    root.add("window_width", libconfig::Setting::TypeInt) = window_width;
+    root.add("window_height", libconfig::Setting::TypeInt) = window_height;
+    root.add("headless_mode", libconfig::Setting::TypeInt) = headless_mode;
+    root.add("channel_number", libconfig::Setting::TypeInt) = channel_number;
+    root.add("gateway_number", libconfig::Setting::TypeInt) = gateway_number;
+    root.add("udp_local_address", libconfig::Setting::TypeString) = udp_local_address.toStdString();
+    root.add("mmdvm_remote_address", libconfig::Setting::TypeString) = mmdvm_remote_address.toStdString();
+    root.add("gateway_remote_address", libconfig::Setting::TypeString) = gateway_remote_address.toStdString();
+    root.add("control_channel_physical_id", libconfig::Setting::TypeInt) = control_channel_physical_id;
+    root.add("control_channel_slot", libconfig::Setting::TypeInt) = control_channel_slot;
+    root.add("gateway_enabled", libconfig::Setting::TypeInt) = gateway_enabled;
+    root.add("announce_priority", libconfig::Setting::TypeInt) = announce_priority;
+    root.add("system_announcement_message", libconfig::Setting::TypeString) = system_announcement_message.toStdString();
+    root.add("payload_channel_idle_timeout", libconfig::Setting::TypeInt) = payload_channel_idle_timeout;
+    root.add("system_identity_code", libconfig::Setting::TypeInt) = system_identity_code;
+    root.add("freq_base", libconfig::Setting::TypeInt) = freq_base;
+    root.add("freq_separation", libconfig::Setting::TypeInt) = freq_separation;
+    root.add("freq_duplexsplit", libconfig::Setting::TypeInt) = freq_duplexsplit;
+    root.add("use_absolute_channel_grants", libconfig::Setting::TypeInt) = use_absolute_channel_grants;
+    root.add("use_fixed_channel_plan", libconfig::Setting::TypeInt) = use_fixed_channel_plan;
+    root.add("announce_system_message", libconfig::Setting::TypeInt) = announce_system_message;
+    root.add("prevent_mmdvm_overflows", libconfig::Setting::TypeInt) = prevent_mmdvm_overflows;
+    root.add("receive_tg_attach", libconfig::Setting::TypeInt) = receive_tg_attach;
+    root.add("registration_required", libconfig::Setting::TypeInt) = registration_required;
+    root.add("authentication_required", libconfig::Setting::TypeInt) = authentication_required;
+    root.add("transmit_subscribed_tg_only", libconfig::Setting::TypeInt) = transmit_subscribed_tg_only;
+    root.add("subscribe_static_tgs", libconfig::Setting::TypeInt) = subscribe_static_tgs;
+    root.add("send_network_registrations", libconfig::Setting::TypeInt) = send_network_registrations;
+    root.add("use_trunking_protocol", libconfig::Setting::TypeInt) = use_trunking_protocol;
+    root.add("announce_system_freqs_interval", libconfig::Setting::TypeInt) = announce_system_freqs_interval;
+    root.add("announce_adjacent_bs_interval", libconfig::Setting::TypeInt) = announce_adjacent_bs_interval;
+    root.add("announce_late_entry_interval", libconfig::Setting::TypeInt) = announce_late_entry_interval;
+    root.add("channel_disable_bitmask", libconfig::Setting::TypeInt) = channel_disable_bitmask;
     /// Talkgroup routing
-    root.add("talkgroup_routing",libconfig::Setting::TypeList);
-    libconfig::Setting &talkgroup_routing = root["talkgroup_routing"];
+    root.add("talkgroup_routing", libconfig::Setting::TypeList);
+    libconfig::Setting& talkgroup_routing = root["talkgroup_routing"];
     QMapIterator<unsigned int, unsigned int> i(talkgroup_routing_table);
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        libconfig::Setting &talkgroup = talkgroup_routing.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& talkgroup = talkgroup_routing.add(libconfig::Setting::TypeGroup);
         talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)i.key();
         talkgroup.add("gateway_id", libconfig::Setting::TypeInt) = (int)i.value();
     }
+
     /// SLot rewrites
-    root.add("slot_rewrite",libconfig::Setting::TypeList);
-    libconfig::Setting &slot_rewrite = root["slot_rewrite"];
+    root.add("slot_rewrite", libconfig::Setting::TypeList);
+    libconfig::Setting& slot_rewrite = root["slot_rewrite"];
     QMapIterator<unsigned int, unsigned int> it_slot(slot_rewrite_table);
-    while(it_slot.hasNext())
-    {
+
+    while (it_slot.hasNext()) {
         it_slot.next();
-        libconfig::Setting &talkgroup = slot_rewrite.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& talkgroup = slot_rewrite.add(libconfig::Setting::TypeGroup);
         talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)it_slot.key();
         talkgroup.add("slot_no", libconfig::Setting::TypeInt) = (int)it_slot.value();
     }
+
     /// Logical physical channels
-    root.add("logical_physical_channels",libconfig::Setting::TypeList);
-    libconfig::Setting &lpc = root["logical_physical_channels"];
+    root.add("logical_physical_channels", libconfig::Setting::TypeList);
+    libconfig::Setting& lpc = root["logical_physical_channels"];
     QListIterator<QMap<QString, uint64_t>> it_lpc(logical_physical_channels);
-    while(it_lpc.hasNext())
-    {
+
+    while (it_lpc.hasNext()) {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
-        libconfig::Setting &channel = lpc.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& channel = lpc.add(libconfig::Setting::TypeGroup);
         channel.add("channel_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("channel_id");
         channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
@@ -760,13 +669,13 @@ void Settings::saveConfig()
     }
 
     /// Adjacent sites
-    root.add("adjacent_sites",libconfig::Setting::TypeList);
-    libconfig::Setting &adjacent_site = root["adjacent_sites"];
+    root.add("adjacent_sites", libconfig::Setting::TypeList);
+    libconfig::Setting& adjacent_site = root["adjacent_sites"];
     QListIterator<QMap<QString, uint64_t>> it_sites(adjacent_sites);
-    while(it_sites.hasNext())
-    {
+
+    while (it_sites.hasNext()) {
         QMap<QString, uint64_t> channel_map = it_sites.next();
-        libconfig::Setting &channel = adjacent_site.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& channel = adjacent_site.add(libconfig::Setting::TypeGroup);
         channel.add("system_id", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("system_id");
         channel.add("logical_channel", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("logical_channel");
         channel.add("tx_freq", libconfig::Setting::TypeInt64) = (int64_t)channel_map.value("tx_freq");
@@ -775,60 +684,61 @@ void Settings::saveConfig()
     }
 
     /// Service ids
-    root.add("service_ids",libconfig::Setting::TypeList);
-    libconfig::Setting &service_ids_config = root["service_ids"];
+    root.add("service_ids", libconfig::Setting::TypeList);
+    libconfig::Setting& service_ids_config = root["service_ids"];
     QMapIterator<QString, unsigned int> it_services(service_ids);
-    while(it_services.hasNext())
-    {
+
+    while (it_services.hasNext()) {
         it_services.next();
-        libconfig::Setting &service = service_ids_config.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& service = service_ids_config.add(libconfig::Setting::TypeGroup);
         service.add("service_name", libconfig::Setting::TypeString) = it_services.key().toStdString();
         service.add("id", libconfig::Setting::TypeInt) = (int)it_services.value();
     }
+
     /// Call priorities
-    root.add("call_priorities",libconfig::Setting::TypeList);
-    libconfig::Setting &call_prio = root["call_priorities"];
+    root.add("call_priorities", libconfig::Setting::TypeList);
+    libconfig::Setting& call_prio = root["call_priorities"];
     QMapIterator<unsigned int, unsigned int> it_prio(call_priorities);
-    while(it_prio.hasNext())
-    {
+
+    while (it_prio.hasNext()) {
         it_prio.next();
-        libconfig::Setting &id = call_prio.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& id = call_prio.add(libconfig::Setting::TypeGroup);
         id.add("id", libconfig::Setting::TypeInt) = (int)it_prio.key();
         id.add("priority", libconfig::Setting::TypeInt) = (int)it_prio.value();
     }
 
     /// Call diverts
-    root.add("call_diverts",libconfig::Setting::TypeList);
-    libconfig::Setting &call_div = root["call_diverts"];
+    root.add("call_diverts", libconfig::Setting::TypeList);
+    libconfig::Setting& call_div = root["call_diverts"];
     QMapIterator<unsigned int, unsigned int> it_div(call_diverts);
-    while(it_div.hasNext())
-    {
+
+    while (it_div.hasNext()) {
         it_div.next();
-        libconfig::Setting &id = call_div.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& id = call_div.add(libconfig::Setting::TypeGroup);
         id.add("id", libconfig::Setting::TypeInt) = (int)it_div.key();
         id.add("divert", libconfig::Setting::TypeInt) = (int)it_div.value();
     }
 
     /// Auth keys
-    root.add("auth_keys",libconfig::Setting::TypeList);
-    libconfig::Setting &auth_k = root["auth_keys"];
+    root.add("auth_keys", libconfig::Setting::TypeList);
+    libconfig::Setting& auth_k = root["auth_keys"];
     QMapIterator<unsigned int, QString> it_k(auth_keys);
-    while(it_k.hasNext())
-    {
+
+    while (it_k.hasNext()) {
         it_k.next();
-        libconfig::Setting &id = auth_k.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& id = auth_k.add(libconfig::Setting::TypeGroup);
         id.add("id", libconfig::Setting::TypeInt) = (int)it_k.key();
         id.add("key", libconfig::Setting::TypeString) = it_k.value().toStdString();
     }
 
     /// Gateway ids
-    root.add("gateway_ids",libconfig::Setting::TypeList);
-    libconfig::Setting &gw_ids = root["gateway_ids"];
+    root.add("gateway_ids", libconfig::Setting::TypeList);
+    libconfig::Setting& gw_ids = root["gateway_ids"];
     QListIterator<QMap<QString, QString>> it_gws(gateways);
-    while(it_gws.hasNext())
-    {
+
+    while (it_gws.hasNext()) {
         QMap<QString, QString> gw_map = it_gws.next();
-        libconfig::Setting &gw = gw_ids.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& gw = gw_ids.add(libconfig::Setting::TypeGroup);
         gw.add("gateway_id", libconfig::Setting::TypeString) = gw_map.value("gateway_id").toStdString();
         gw.add("gateway_name", libconfig::Setting::TypeString) = gw_map.value("gateway_name").toStdString();
         gw.add("gateway_type", libconfig::Setting::TypeString) = gw_map.value("gateway_type").toStdString();
@@ -837,36 +747,34 @@ void Settings::saveConfig()
     }
 
     /// Local TG ids
-    root.add("local_tg_ids",libconfig::Setting::TypeList);
-    libconfig::Setting &tg_ids = root["local_tg_ids"];
+    root.add("local_tg_ids", libconfig::Setting::TypeList);
+    libconfig::Setting& tg_ids = root["local_tg_ids"];
     QListIterator<unsigned int> it_tgs(local_tg_ids);
-    while(it_tgs.hasNext())
-    {
+
+    while (it_tgs.hasNext()) {
         unsigned int tg_id = it_tgs.next();
         tg_ids.add(libconfig::Setting::TypeInt) = (int32_t)tg_id;
     }
+
     /// Static talkgroups
-    root.add("static_talkgroups_requested",libconfig::Setting::TypeList);
-    libconfig::Setting &static_talkgroups = root["static_talkgroups_requested"];
+    root.add("static_talkgroups_requested", libconfig::Setting::TypeList);
+    libconfig::Setting& static_talkgroups = root["static_talkgroups_requested"];
     QMapIterator<unsigned int, unsigned int> it_static_tg(static_talkgroups_requested);
-    while(it_static_tg.hasNext())
-    {
+
+    while (it_static_tg.hasNext()) {
         it_static_tg.next();
-        libconfig::Setting &talkgroup = static_talkgroups.add(libconfig::Setting::TypeGroup);
+        libconfig::Setting& talkgroup = static_talkgroups.add(libconfig::Setting::TypeGroup);
         talkgroup.add("tg_id", libconfig::Setting::TypeInt) = (int)it_static_tg.key();
         talkgroup.add("gateway_id", libconfig::Setting::TypeInt) = (int)it_static_tg.value();
     }
 
 
     /// Write to file
-    try
-    {
-        cfg.writeFile(_config_file->absoluteFilePath().toStdString().c_str());
-    }
-    catch(const libconfig::FileIOException &fioex)
-    {
-        _logger->log(Logger::LogLevelFatal, "I/O error while writing configuration file: " +
-                     _config_file->absoluteFilePath());
+    try {
+        cfg.writeFile(m_config_file->absoluteFilePath().toStdString().c_str());
+    } catch (const libconfig::FileIOException& fioex) {
+        m_logger->log(Logger::LogLevelFatal, "I/O error while writing configuration file: " +
+                      m_config_file->absoluteFilePath());
         exit(EXIT_FAILURE);
     }
 }

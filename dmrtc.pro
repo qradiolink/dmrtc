@@ -19,48 +19,11 @@ linux-g++ {
 }
 
 
-SOURCES += src/main.cpp \
-    src/ackhandler.cpp \
-    src/crc32.cpp \
-    src/crc9.cpp \
-    src/dmrmessagehandler.cpp \
-    src/networksignalling.cpp \
-    src/rc4.cpp \
-    src/channelviewmodel.cpp \
-    src/dmridlookup.cpp \
-    src/dmrrewrite.cpp \
-    src/gatewayrouter.cpp \
-    src/logicalchannel.cpp \
-    src/settings.cpp \
-    src/logger.cpp \
-    src/signalling.cpp \
-    src/udpclient.cpp \
-    src/controller.cpp \
-    src/mainwindow.cpp \
-    src/utils.cpp
+SOURCES += $$files(src/*.cpp)
 SOURCES += $$files(src/MMDVM/*.cpp)
 
 
-HEADERS += src/settings.h \
-    src/ackhandler.h \
-    src/channelviewmodel.h \
-    src/crc32.h \
-    src/crc9.h \
-    src/dmr_commands.h \
-    src/dmridlookup.h \
-    src/dmrmessagehandler.h \
-    src/dmrrewrite.h \
-    src/gatewayrouter.h \
-    src/logger.h \
-    src/logicalchannel.h \
-    src/networksignalling.h \
-    src/signalling.h \
-    src/standard_PDU.h \
-    src/udpclient.h \
-    src/controller.h \
-    src/mainwindow.h \
-    src/rc4.h \
-    src/utils.h
+HEADERS += $$files(src/*.h)
 HEADERS += $$files(src/MMDVM/*.h)
 
 INCLUDEPATH += $$_PRO_FILE_PWD_/src/MMDVM/
@@ -72,8 +35,7 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/src/MMDVM/
     INCLUDEPATH += $$INCDIR
 }
 
-FORMS    += \
-    src/mainwindow.ui
+FORMS    += src/mainwindow.ui
 
 
 LIBS += -lrt -lpthread # need to include on some distros

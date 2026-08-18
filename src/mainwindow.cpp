@@ -1,35 +1,37 @@
-// Written by Adrian Musceac YO8RZZ , started October 2023.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_lookup, QWidget *parent) :
+MainWindow::MainWindow(Settings* settings, Logger* logger, DMRIdLookup* id_lookup, QWidget* parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setWindowTitle("DMR tier III Trunking controller");
-    _settings = settings;
-    _logger = logger;
-    _id_lookup = id_lookup;
-    _logical_channel_model = new ChannelViewModel;
+    setWindowTitle("DMR tier III Trunking Controller");
+    m_settings = settings;
+    m_logger = logger;
+    m_id_lookup = id_lookup;
+    m_logical_channel_model = new ChannelViewModel;
 
-    QObject::connect(_logical_channel_model, SIGNAL(channelStateChange(int,int,bool)),
-                     this, SLOT(channelStateChange(int,int,bool)));
+    QObject::connect(m_logical_channel_model, SIGNAL(channelStateChange(int, int, bool)),
+                     this, SLOT(channelStateChange(int, int, bool)));
     QObject::connect(ui->requestRegistrationButton, SIGNAL(clicked(bool)), this, SLOT(requestRegistration()));
     QObject::connect(ui->pushButtonPingRadio, SIGNAL(clicked(bool)), this, SLOT(sendPing()));
     QObject::connect(ui->pushButtonSaveSettings, SIGNAL(clicked(bool)), this, SLOT(saveConfig()));
@@ -76,9 +78,9 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
     QObject::connect(ui->pushButtonAddLocalTG, SIGNAL(clicked(bool)),
                      this, SLOT(addLocalTalkgroup()));
     QObject::connect(ui->pushButtonRemoveStaticTG, SIGNAL(clicked(bool)),
-                         this, SLOT(deleteStaticTalkgroup()));
+                     this, SLOT(deleteStaticTalkgroup()));
     QObject::connect(ui->pushButtonAddStaticTG, SIGNAL(clicked(bool)),
-                         this, SLOT(addStaticTalkgroup()));
+                     this, SLOT(addStaticTalkgroup()));
     QObject::connect(ui->pushButtonGroupFirst, SIGNAL(clicked(bool)),
                      ui->groupCallsTableWidget, SLOT(scrollToTop()));
     QObject::connect(ui->pushButtonGroupLast, SIGNAL(clicked(bool)),
@@ -91,7 +93,7 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
 
     ui->tabWidgetSettings->setCurrentIndex(0);
     ui->tabWidgetDashboard->setCurrentIndex(0);
-    ui->channelTableView->setModel(_logical_channel_model);
+    ui->channelTableView->setModel(m_logical_channel_model);
     ui->channelTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->channelTableView->verticalHeader()->setVisible(true);
@@ -135,92 +137,94 @@ MainWindow::MainWindow(Settings *settings, Logger *logger, DMRIdLookup *id_looku
 
 MainWindow::~MainWindow()
 {
-    for(int i=0;i < ui->privateCallsTableWidget->rowCount();i++)
-    {
-        QTableWidgetItem *dateitem = ui->privateCallsTableWidget->item(i, 0);
+    for (int i = 0; i < ui->privateCallsTableWidget->rowCount(); i++) {
+        QTableWidgetItem* dateitem = ui->privateCallsTableWidget->item(i, 0);
         delete dateitem;
-        QTableWidgetItem *srcitem = ui->privateCallsTableWidget->item(i, 1);
+        QTableWidgetItem* srcitem = ui->privateCallsTableWidget->item(i, 1);
         delete srcitem;
-        QTableWidgetItem *dstitem = ui->privateCallsTableWidget->item(i, 2);
+        QTableWidgetItem* dstitem = ui->privateCallsTableWidget->item(i, 2);
         delete dstitem;
-        QTableWidgetItem *rssiitem = ui->privateCallsTableWidget->item(i, 3);
+        QTableWidgetItem* rssiitem = ui->privateCallsTableWidget->item(i, 3);
         delete rssiitem;
-        QTableWidgetItem *beritem = ui->privateCallsTableWidget->item(i, 4);
+        QTableWidgetItem* beritem = ui->privateCallsTableWidget->item(i, 4);
         delete beritem;
-        QTableWidgetItem *timeitem = ui->privateCallsTableWidget->item(i, 5);
+        QTableWidgetItem* timeitem = ui->privateCallsTableWidget->item(i, 5);
         delete timeitem;
     }
+
     ui->privateCallsTableWidget->clear();
-    for(int i=0;i < ui->groupCallsTableWidget->rowCount();i++)
-    {
-        QTableWidgetItem *dateitem = ui->groupCallsTableWidget->item(i, 0);
+
+    for (int i = 0; i < ui->groupCallsTableWidget->rowCount(); i++) {
+        QTableWidgetItem* dateitem = ui->groupCallsTableWidget->item(i, 0);
         delete dateitem;
-        QTableWidgetItem *srcitem = ui->groupCallsTableWidget->item(i, 1);
+        QTableWidgetItem* srcitem = ui->groupCallsTableWidget->item(i, 1);
         delete srcitem;
-        QTableWidgetItem *dstitem = ui->groupCallsTableWidget->item(i, 2);
+        QTableWidgetItem* dstitem = ui->groupCallsTableWidget->item(i, 2);
         delete dstitem;
-        QTableWidgetItem *rssiitem = ui->groupCallsTableWidget->item(i, 3);
+        QTableWidgetItem* rssiitem = ui->groupCallsTableWidget->item(i, 3);
         delete rssiitem;
-        QTableWidgetItem *beritem = ui->groupCallsTableWidget->item(i, 4);
+        QTableWidgetItem* beritem = ui->groupCallsTableWidget->item(i, 4);
         delete beritem;
-        QTableWidgetItem *timeitem = ui->groupCallsTableWidget->item(i, 5);
+        QTableWidgetItem* timeitem = ui->groupCallsTableWidget->item(i, 5);
         delete timeitem;
     }
+
     ui->groupCallsTableWidget->clear();
-    for(int i=0;i < ui->tableWidgetMessages->rowCount();i++)
-    {
-        QTableWidgetItem *dateitem = ui->tableWidgetMessages->item(i, 0);
+
+    for (int i = 0; i < ui->tableWidgetMessages->rowCount(); i++) {
+        QTableWidgetItem* dateitem = ui->tableWidgetMessages->item(i, 0);
         delete dateitem;
-        QTableWidgetItem *srcitem = ui->tableWidgetMessages->item(i, 1);
+        QTableWidgetItem* srcitem = ui->tableWidgetMessages->item(i, 1);
         delete srcitem;
-        QTableWidgetItem *dstitem = ui->tableWidgetMessages->item(i, 2);
+        QTableWidgetItem* dstitem = ui->tableWidgetMessages->item(i, 2);
         delete dstitem;
-        QTableWidgetItem *msgitem = ui->tableWidgetMessages->item(i, 3);
+        QTableWidgetItem* msgitem = ui->tableWidgetMessages->item(i, 3);
         delete msgitem;
     }
+
     ui->tableWidgetMessages->clear();
     ui->channelTableView->reset();
-    delete _logical_channel_model;
+    delete m_logical_channel_model;
     delete ui;
 
 }
 
 void MainWindow::setConfig()
 {
-    ui->lineEditLocalIPAddress->setText(_settings->udp_local_address);
-    ui->lineEditMMDVMAddress->setText(_settings->mmdvm_remote_address);
-    ui->lineEditGatewayAddress->setText(_settings->gateway_remote_address);
-    ui->lineEditMMDVMListenBasePort->setText(QString::number(_settings->mmdvm_listen_port));
-    ui->lineEditMMDVMSendBasePort->setText(QString::number(_settings->mmdvm_send_port));
-    ui->lineEditGatewayListenBasePort->setText(QString::number(_settings->gateway_listen_port));
-    ui->lineEditGatewaySendBasePort->setText(QString::number(_settings->gateway_send_port));
-    ui->spinBoxNumberOfChannels->setValue(_settings->channel_number);
-    ui->spinBoxLogLevel->setValue(_settings->log_level);
-    ui->lineEditControlChannelPhysicalId->setText(QString::number(_settings->control_channel_physical_id));
-    ui->spinBoxControlChannelSlot->setValue(_settings->control_channel_slot);
-    ui->spinBoxNumberOfGateways->setValue(_settings->gateway_number);
-    ui->lineEditPayloadChannelTimeout->setText(QString::number(_settings->payload_channel_idle_timeout));
-    ui->lineEditSystemCode->setText(QString::number(_settings->system_identity_code));
-    ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(_settings->announce_system_freqs_interval));
-    ui->lineEditAnnounceLateEntryInterval->setText(QString::number(_settings->announce_late_entry_interval));
-    ui->lineEditAnnounceAdjacentBSInterval->setText(QString::number(_settings->announce_adjacent_bs_interval));
-    ui->lineEditBaseFrequency->setText(QString::number(_settings->freq_base));
-    ui->lineEditFrequencySeparation->setText(QString::number(_settings->freq_separation));
-    ui->lineEditDuplexSplit->setText(QString::number(_settings->freq_duplexsplit));
-    ui->textEditSystemMessage->setText(_settings->system_announcement_message);
-    ui->checkBoxAnnouncePriority->setChecked((bool)_settings->announce_priority);
-    ui->checkBoxAbsoluteGrants->setChecked((bool)_settings->use_absolute_channel_grants);
-    ui->checkBoxFixedChannelPlan->setChecked((bool)_settings->use_fixed_channel_plan);
-    ui->checkBoxGatewayEnabled->setChecked((bool)_settings->gateway_enabled);
-    ui->checkBoxAnnounceSystemMessage->setChecked((bool)_settings->announce_system_message);
-    ui->checkBoxPreventMMDVMOverflows->setChecked((bool)_settings->prevent_mmdvm_overflows);
-    ui->checkBoxReceiveAttachments->setChecked((bool)_settings->receive_tg_attach);
-    ui->checkBoxRegistrationRequired->setChecked((bool)_settings->registration_required);
-    ui->checkBoxAuthenticationRequired->setChecked((bool)_settings->authentication_required);
-    ui->checkBoxTransmitSubscribedTGOnly->setChecked((bool)_settings->transmit_subscribed_tg_only);
-    ui->checkBoxSubscribeStaticTGs->setChecked((bool)_settings->subscribe_static_tgs);
-    ui->checkBoxSendNetworkRegistrations->setChecked((bool)_settings->send_network_registrations);
-    ui->checkBoxUseTrunkingProtocol->setChecked((bool)_settings->use_trunking_protocol);
+    ui->lineEditLocalIPAddress->setText(m_settings->udp_local_address);
+    ui->lineEditMMDVMAddress->setText(m_settings->mmdvm_remote_address);
+    ui->lineEditGatewayAddress->setText(m_settings->gateway_remote_address);
+    ui->lineEditMMDVMListenBasePort->setText(QString::number(m_settings->mmdvm_listen_port));
+    ui->lineEditMMDVMSendBasePort->setText(QString::number(m_settings->mmdvm_send_port));
+    ui->lineEditGatewayListenBasePort->setText(QString::number(m_settings->gateway_listen_port));
+    ui->lineEditGatewaySendBasePort->setText(QString::number(m_settings->gateway_send_port));
+    ui->spinBoxNumberOfChannels->setValue(m_settings->channel_number);
+    ui->spinBoxLogLevel->setValue(m_settings->log_level);
+    ui->lineEditControlChannelPhysicalId->setText(QString::number(m_settings->control_channel_physical_id));
+    ui->spinBoxControlChannelSlot->setValue(m_settings->control_channel_slot);
+    ui->spinBoxNumberOfGateways->setValue(m_settings->gateway_number);
+    ui->lineEditPayloadChannelTimeout->setText(QString::number(m_settings->payload_channel_idle_timeout));
+    ui->lineEditSystemCode->setText(QString::number(m_settings->system_identity_code));
+    ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(m_settings->announce_system_freqs_interval));
+    ui->lineEditAnnounceLateEntryInterval->setText(QString::number(m_settings->announce_late_entry_interval));
+    ui->lineEditAnnounceAdjacentBSInterval->setText(QString::number(m_settings->announce_adjacent_bs_interval));
+    ui->lineEditBaseFrequency->setText(QString::number(m_settings->freq_base));
+    ui->lineEditFrequencySeparation->setText(QString::number(m_settings->freq_separation));
+    ui->lineEditDuplexSplit->setText(QString::number(m_settings->freq_duplexsplit));
+    ui->textEditSystemMessage->setText(m_settings->system_announcement_message);
+    ui->checkBoxAnnouncePriority->setChecked((bool)m_settings->announce_priority);
+    ui->checkBoxAbsoluteGrants->setChecked((bool)m_settings->use_absolute_channel_grants);
+    ui->checkBoxFixedChannelPlan->setChecked((bool)m_settings->use_fixed_channel_plan);
+    ui->checkBoxGatewayEnabled->setChecked((bool)m_settings->gateway_enabled);
+    ui->checkBoxAnnounceSystemMessage->setChecked((bool)m_settings->announce_system_message);
+    ui->checkBoxPreventMMDVMOverflows->setChecked((bool)m_settings->prevent_mmdvm_overflows);
+    ui->checkBoxReceiveAttachments->setChecked((bool)m_settings->receive_tg_attach);
+    ui->checkBoxRegistrationRequired->setChecked((bool)m_settings->registration_required);
+    ui->checkBoxAuthenticationRequired->setChecked((bool)m_settings->authentication_required);
+    ui->checkBoxTransmitSubscribedTGOnly->setChecked((bool)m_settings->transmit_subscribed_tg_only);
+    ui->checkBoxSubscribeStaticTGs->setChecked((bool)m_settings->subscribe_static_tgs);
+    ui->checkBoxSendNetworkRegistrations->setChecked((bool)m_settings->send_network_registrations);
+    ui->checkBoxUseTrunkingProtocol->setChecked((bool)m_settings->use_trunking_protocol);
 
     loadTalkgroupRouting();
     loadCallPriorities();
@@ -235,40 +239,40 @@ void MainWindow::setConfig()
 
 void MainWindow::saveConfig()
 {
-    _settings->udp_local_address = ui->lineEditLocalIPAddress->text();
-    _settings->mmdvm_remote_address = ui->lineEditMMDVMAddress->text();
-    _settings->gateway_remote_address = ui->lineEditGatewayAddress->text();
-    _settings->mmdvm_listen_port = ui->lineEditMMDVMListenBasePort->text().toInt();
-    _settings->mmdvm_send_port = ui->lineEditMMDVMSendBasePort->text().toInt();
-    _settings->gateway_listen_port = ui->lineEditGatewayListenBasePort->text().toInt();
-    _settings->gateway_send_port = ui->lineEditGatewaySendBasePort->text().toInt();
-    _settings->channel_number = ui->spinBoxNumberOfChannels->text().toInt();
-    _settings->log_level = ui->spinBoxLogLevel->text().toInt();
-    _settings->control_channel_physical_id = ui->lineEditControlChannelPhysicalId->text().toInt();
-    _settings->control_channel_slot = ui->spinBoxControlChannelSlot->value();
-    _settings->gateway_number = ui->spinBoxNumberOfGateways->text().toInt();
-    _settings->payload_channel_idle_timeout = ui->lineEditPayloadChannelTimeout->text().toInt();
-    _settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
-    _settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
-    _settings->announce_late_entry_interval = ui->lineEditAnnounceLateEntryInterval->text().toInt();
-    _settings->announce_adjacent_bs_interval = ui->lineEditAnnounceAdjacentBSInterval->text().toInt();
-    _settings->freq_base = ui->lineEditBaseFrequency->text().toInt();
-    _settings->freq_separation = ui->lineEditFrequencySeparation->text().toInt();
-    _settings->freq_duplexsplit = ui->lineEditDuplexSplit->text().toInt();
-    _settings->system_announcement_message = ui->textEditSystemMessage->toPlainText();
-    _settings->announce_priority = (int)ui->checkBoxAnnouncePriority->isChecked();
-    _settings->use_absolute_channel_grants = (int)ui->checkBoxAbsoluteGrants->isChecked();
-    _settings->use_fixed_channel_plan = (int)ui->checkBoxFixedChannelPlan->isChecked();
-    _settings->gateway_enabled = (int)ui->checkBoxGatewayEnabled->isChecked();
-    _settings->announce_system_message = (int)ui->checkBoxAnnounceSystemMessage->isChecked();
-    _settings->prevent_mmdvm_overflows = (int)ui->checkBoxPreventMMDVMOverflows->isChecked();
-    _settings->receive_tg_attach = (int)ui->checkBoxReceiveAttachments->isChecked();
-    _settings->registration_required = (int)ui->checkBoxRegistrationRequired->isChecked();
-    _settings->authentication_required = (int)ui->checkBoxAuthenticationRequired->isChecked();
-    _settings->transmit_subscribed_tg_only = (int)ui->checkBoxTransmitSubscribedTGOnly->isChecked();
-    _settings->subscribe_static_tgs = (int)ui->checkBoxSubscribeStaticTGs->isChecked();
-    _settings->send_network_registrations = (int)ui->checkBoxSendNetworkRegistrations->isChecked();
-    _settings->use_trunking_protocol = (int)ui->checkBoxUseTrunkingProtocol->isChecked();
+    m_settings->udp_local_address = ui->lineEditLocalIPAddress->text();
+    m_settings->mmdvm_remote_address = ui->lineEditMMDVMAddress->text();
+    m_settings->gateway_remote_address = ui->lineEditGatewayAddress->text();
+    m_settings->mmdvm_listen_port = ui->lineEditMMDVMListenBasePort->text().toInt();
+    m_settings->mmdvm_send_port = ui->lineEditMMDVMSendBasePort->text().toInt();
+    m_settings->gateway_listen_port = ui->lineEditGatewayListenBasePort->text().toInt();
+    m_settings->gateway_send_port = ui->lineEditGatewaySendBasePort->text().toInt();
+    m_settings->channel_number = ui->spinBoxNumberOfChannels->text().toInt();
+    m_settings->log_level = ui->spinBoxLogLevel->text().toInt();
+    m_settings->control_channel_physical_id = ui->lineEditControlChannelPhysicalId->text().toInt();
+    m_settings->control_channel_slot = ui->spinBoxControlChannelSlot->value();
+    m_settings->gateway_number = ui->spinBoxNumberOfGateways->text().toInt();
+    m_settings->payload_channel_idle_timeout = ui->lineEditPayloadChannelTimeout->text().toInt();
+    m_settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
+    m_settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
+    m_settings->announce_late_entry_interval = ui->lineEditAnnounceLateEntryInterval->text().toInt();
+    m_settings->announce_adjacent_bs_interval = ui->lineEditAnnounceAdjacentBSInterval->text().toInt();
+    m_settings->freq_base = ui->lineEditBaseFrequency->text().toInt();
+    m_settings->freq_separation = ui->lineEditFrequencySeparation->text().toInt();
+    m_settings->freq_duplexsplit = ui->lineEditDuplexSplit->text().toInt();
+    m_settings->system_announcement_message = ui->textEditSystemMessage->toPlainText();
+    m_settings->announce_priority = (int)ui->checkBoxAnnouncePriority->isChecked();
+    m_settings->use_absolute_channel_grants = (int)ui->checkBoxAbsoluteGrants->isChecked();
+    m_settings->use_fixed_channel_plan = (int)ui->checkBoxFixedChannelPlan->isChecked();
+    m_settings->gateway_enabled = (int)ui->checkBoxGatewayEnabled->isChecked();
+    m_settings->announce_system_message = (int)ui->checkBoxAnnounceSystemMessage->isChecked();
+    m_settings->prevent_mmdvm_overflows = (int)ui->checkBoxPreventMMDVMOverflows->isChecked();
+    m_settings->receive_tg_attach = (int)ui->checkBoxReceiveAttachments->isChecked();
+    m_settings->registration_required = (int)ui->checkBoxRegistrationRequired->isChecked();
+    m_settings->authentication_required = (int)ui->checkBoxAuthenticationRequired->isChecked();
+    m_settings->transmit_subscribed_tg_only = (int)ui->checkBoxTransmitSubscribedTGOnly->isChecked();
+    m_settings->subscribe_static_tgs = (int)ui->checkBoxSubscribeStaticTGs->isChecked();
+    m_settings->send_network_registrations = (int)ui->checkBoxSendNetworkRegistrations->isChecked();
+    m_settings->use_trunking_protocol = (int)ui->checkBoxUseTrunkingProtocol->isChecked();
 
     saveTalkgroupRouting();
     saveCallPriorities();
@@ -279,27 +283,27 @@ void MainWindow::saveConfig()
     saveGateways();
     saveLocalTalkgroups();
     saveStaticTalkgroups();
-    _settings->saveConfig();
-    _logger->set_log_level(_settings->log_level);
+    m_settings->saveConfig();
+    m_logger->set_log_level(m_settings->log_level);
 }
 
 void MainWindow::loadTalkgroupRouting()
 {
-    QMapIterator<unsigned int, unsigned int> i(_settings->talkgroup_routing_table);
+    QMapIterator<unsigned int, unsigned int> i(m_settings->talkgroup_routing_table);
     QStringList header_tg_routing;
     header_tg_routing.append("Talkgroup");
     header_tg_routing.append("Gateway Id");
-    ui->tableWidgetTalkgroupRouting->setRowCount(_settings->talkgroup_routing_table.size());
+    ui->tableWidgetTalkgroupRouting->setRowCount(m_settings->talkgroup_routing_table.size());
     ui->tableWidgetTalkgroupRouting->setColumnCount(2);
     ui->tableWidgetTalkgroupRouting->setHorizontalHeaderLabels(header_tg_routing);
     ui->tableWidgetTalkgroupRouting->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetTalkgroupRouting->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        QTableWidgetItem *tg = new QTableWidgetItem(QString::number(i.key()));
-        QTableWidgetItem *gateway = new QTableWidgetItem(QString::number(i.value()));
+        QTableWidgetItem* tg = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem* gateway = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetTalkgroupRouting->setItem(row, 0, tg);
         ui->tableWidgetTalkgroupRouting->setItem(row, 1, gateway);
@@ -309,21 +313,21 @@ void MainWindow::loadTalkgroupRouting()
 
 void MainWindow::saveTalkgroupRouting()
 {
-    _settings->talkgroup_routing_table.clear();
+    m_settings->talkgroup_routing_table.clear();
     int rows = ui->tableWidgetTalkgroupRouting->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetTalkgroupRouting->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetTalkgroupRouting->item(i, 1);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetTalkgroupRouting->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetTalkgroupRouting->item(i, 1);
         bool ok1, ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
         }
-        if(ok1 && ok2)
-        {
-            _settings->talkgroup_routing_table.insert(item1->text().toInt(), item2->text().toInt());
+
+        if (ok1 && ok2) {
+            m_settings->talkgroup_routing_table.insert(item1->text().toInt(), item2->text().toInt());
         }
     }
 }
@@ -331,8 +335,8 @@ void MainWindow::saveTalkgroupRouting()
 void MainWindow::addTalkgroupRow()
 {
     ui->tableWidgetTalkgroupRouting->setRowCount(ui->tableWidgetTalkgroupRouting->rowCount() + 1);
-    QTableWidgetItem *tg = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *gateway = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* tg = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* gateway = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetTalkgroupRouting->setItem(ui->tableWidgetTalkgroupRouting->rowCount() - 1, 0, tg);
     ui->tableWidgetTalkgroupRouting->setItem(ui->tableWidgetTalkgroupRouting->rowCount() - 1, 1, gateway);
@@ -343,34 +347,34 @@ void MainWindow::deleteTalkgroupRow()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetTalkgroupRouting->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetTalkgroupRouting->removeRow(row);
     }
 }
 
 void MainWindow::loadCallPriorities()
 {
-    QMapIterator<unsigned int, unsigned int> i(_settings->call_priorities);
+    QMapIterator<unsigned int, unsigned int> i(m_settings->call_priorities);
     QStringList header_call_priorities;
     header_call_priorities.append("Id");
     header_call_priorities.append("Priority");
-    ui->tableWidgetCallPriorities->setRowCount(_settings->call_priorities.size());
+    ui->tableWidgetCallPriorities->setRowCount(m_settings->call_priorities.size());
     ui->tableWidgetCallPriorities->setColumnCount(2);
     ui->tableWidgetCallPriorities->setHorizontalHeaderLabels(header_call_priorities);
     ui->tableWidgetCallPriorities->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetCallPriorities->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.key()));
-        QTableWidgetItem *priority = new QTableWidgetItem(QString::number(i.value()));
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem* priority = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetCallPriorities->setItem(row, 0, id);
         ui->tableWidgetCallPriorities->setItem(row, 1, priority);
@@ -380,21 +384,21 @@ void MainWindow::loadCallPriorities()
 
 void MainWindow::saveCallPriorities()
 {
-    _settings->call_priorities.clear();
+    m_settings->call_priorities.clear();
     int rows = ui->tableWidgetCallPriorities->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetCallPriorities->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetCallPriorities->item(i, 1);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetCallPriorities->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetCallPriorities->item(i, 1);
         bool ok1, ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
         }
-        if(ok1 && ok2)
-        {
-            _settings->call_priorities.insert(item1->text().toInt(), item2->text().toInt());
+
+        if (ok1 && ok2) {
+            m_settings->call_priorities.insert(item1->text().toInt(), item2->text().toInt());
         }
     }
 }
@@ -402,8 +406,8 @@ void MainWindow::saveCallPriorities()
 void MainWindow::addCallPriorityRow()
 {
     ui->tableWidgetCallPriorities->setRowCount(ui->tableWidgetCallPriorities->rowCount() + 1);
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *priority = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* priority = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetCallPriorities->setItem(ui->tableWidgetCallPriorities->rowCount() - 1, 0, id);
     ui->tableWidgetCallPriorities->setItem(ui->tableWidgetCallPriorities->rowCount() - 1, 1, priority);
@@ -414,35 +418,35 @@ void MainWindow::deleteCallPriorityRow()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetCallPriorities->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetCallPriorities->removeRow(row);
     }
 }
 
 void MainWindow::loadSlotRewrite()
 {
-    QMapIterator<unsigned int, unsigned int> i(_settings->slot_rewrite_table);
+    QMapIterator<unsigned int, unsigned int> i(m_settings->slot_rewrite_table);
     QStringList header_slot_rewrite;
     header_slot_rewrite.append("Talkgroup");
     header_slot_rewrite.append("Network Timeslot");
     ui->tableWidgetSlotRewrite->verticalHeader()->setVisible(false);
-    ui->tableWidgetSlotRewrite->setRowCount(_settings->slot_rewrite_table.size());
+    ui->tableWidgetSlotRewrite->setRowCount(m_settings->slot_rewrite_table.size());
     ui->tableWidgetSlotRewrite->setColumnCount(2);
     ui->tableWidgetSlotRewrite->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetSlotRewrite->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->tableWidgetSlotRewrite->setHorizontalHeaderLabels(header_slot_rewrite);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        QTableWidgetItem *tg = new QTableWidgetItem(QString::number(i.key()));
-        QTableWidgetItem *slot = new QTableWidgetItem(QString::number(i.value()));
+        QTableWidgetItem* tg = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem* slot = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetSlotRewrite->setItem(row, 0, tg);
         ui->tableWidgetSlotRewrite->setItem(row, 1, slot);
@@ -452,21 +456,21 @@ void MainWindow::loadSlotRewrite()
 
 void MainWindow::saveSlotRewrite()
 {
-    _settings->slot_rewrite_table.clear();
+    m_settings->slot_rewrite_table.clear();
     int rows = ui->tableWidgetSlotRewrite->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetSlotRewrite->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetSlotRewrite->item(i, 1);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetSlotRewrite->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetSlotRewrite->item(i, 1);
         bool ok1, ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
         }
-        if(ok1 && ok2)
-        {
-            _settings->slot_rewrite_table.insert(item1->text().toInt(), item2->text().toInt());
+
+        if (ok1 && ok2) {
+            m_settings->slot_rewrite_table.insert(item1->text().toInt(), item2->text().toInt());
         }
     }
 }
@@ -474,8 +478,8 @@ void MainWindow::saveSlotRewrite()
 void MainWindow::addSlotRewrite()
 {
     ui->tableWidgetSlotRewrite->setRowCount(ui->tableWidgetSlotRewrite->rowCount() + 1);
-    QTableWidgetItem *tg = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *slot = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* tg = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* slot = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetSlotRewrite->setItem(ui->tableWidgetSlotRewrite->rowCount() - 1, 0, tg);
     ui->tableWidgetSlotRewrite->setItem(ui->tableWidgetSlotRewrite->rowCount() - 1, 1, slot);
@@ -486,13 +490,13 @@ void MainWindow::deleteSlotRewrite()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetSlotRewrite->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetSlotRewrite->removeRow(row);
     }
 }
@@ -506,22 +510,22 @@ void MainWindow::loadLogicalPhysicalChannels()
     header_lpc.append("TX Frequency");
     header_lpc.append("Colour code");
     ui->tableWidgetLogicalPhysicalChannels->setColumnCount(5);
-    ui->tableWidgetLogicalPhysicalChannels->setRowCount(_settings->logical_physical_channels.size());
+    ui->tableWidgetLogicalPhysicalChannels->setRowCount(m_settings->logical_physical_channels.size());
     ui->tableWidgetLogicalPhysicalChannels->verticalHeader()->setVisible(false);
     ui->tableWidgetLogicalPhysicalChannels->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetLogicalPhysicalChannels->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->tableWidgetLogicalPhysicalChannels->setHorizontalHeaderLabels(header_lpc);
 
-    QListIterator<QMap<QString, uint64_t>> it_lpc(_settings->logical_physical_channels);
+    QListIterator<QMap<QString, uint64_t>> it_lpc(m_settings->logical_physical_channels);
     int row = 0;
-    while(it_lpc.hasNext())
-    {
+
+    while (it_lpc.hasNext()) {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("channel_id")));
-        QTableWidgetItem *lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
-        QTableWidgetItem *rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
-        QTableWidgetItem *tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
-        QTableWidgetItem *cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(channel_map.value("channel_id")));
+        QTableWidgetItem* lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
+        QTableWidgetItem* rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
+        QTableWidgetItem* tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
+        QTableWidgetItem* cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
 
         ui->tableWidgetLogicalPhysicalChannels->setItem(row, 0, id);
         ui->tableWidgetLogicalPhysicalChannels->setItem(row, 1, lc);
@@ -534,34 +538,34 @@ void MainWindow::loadLogicalPhysicalChannels()
 
 void MainWindow::saveLogicalPhysicalChannels()
 {
-    _settings->logical_physical_channels.clear();
+    m_settings->logical_physical_channels.clear();
     int rows = ui->tableWidgetLogicalPhysicalChannels->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetLogicalPhysicalChannels->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetLogicalPhysicalChannels->item(i, 1);
-        QTableWidgetItem *item3 = ui->tableWidgetLogicalPhysicalChannels->item(i, 2);
-        QTableWidgetItem *item4 = ui->tableWidgetLogicalPhysicalChannels->item(i, 3);
-        QTableWidgetItem *item5 = ui->tableWidgetLogicalPhysicalChannels->item(i, 4);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetLogicalPhysicalChannels->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetLogicalPhysicalChannels->item(i, 1);
+        QTableWidgetItem* item3 = ui->tableWidgetLogicalPhysicalChannels->item(i, 2);
+        QTableWidgetItem* item4 = ui->tableWidgetLogicalPhysicalChannels->item(i, 3);
+        QTableWidgetItem* item5 = ui->tableWidgetLogicalPhysicalChannels->item(i, 4);
         bool ok1, ok2, ok3, ok4, ok5 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
-                && item4->text().size() > 0 && item5->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
+            && item4->text().size() > 0 && item5->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
             item3->text().toInt(&ok3);
             item4->text().toInt(&ok4);
             item5->text().toInt(&ok5);
         }
-        if(ok1 && ok2 && ok3 && ok4)
-        {
+
+        if (ok1 && ok2 && ok3 && ok4) {
             QMap<QString, uint64_t> map;
             map.insert("channel_id", item1->text().toInt());
             map.insert("logical_channel", item2->text().toInt());
             map.insert("rx_freq", item3->text().toInt());
             map.insert("tx_freq", item4->text().toInt());
             map.insert("colour_code", item5->text().toInt());
-            _settings->logical_physical_channels.append(map);
+            m_settings->logical_physical_channels.append(map);
         }
     }
 }
@@ -569,11 +573,11 @@ void MainWindow::saveLogicalPhysicalChannels()
 void MainWindow::addLogicalPhysicalChannel()
 {
     ui->tableWidgetLogicalPhysicalChannels->setRowCount(ui->tableWidgetLogicalPhysicalChannels->rowCount() + 1);
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *lc = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *rx_freq = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *tx_freq = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *cc = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* lc = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* rx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* tx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* cc = new QTableWidgetItem(QString(""));
     ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 0, id);
     ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 1, lc);
     ui->tableWidgetLogicalPhysicalChannels->setItem(ui->tableWidgetLogicalPhysicalChannels->rowCount() - 1, 2, rx_freq);
@@ -586,13 +590,13 @@ void MainWindow::deleteLogicalPhysicalChannel()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetLogicalPhysicalChannels->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetLogicalPhysicalChannels->removeRow(row);
     }
 }
@@ -606,22 +610,22 @@ void MainWindow::loadAdjacentSites()
     header_lpc.append("TX Frequency");
     header_lpc.append("Colour code");
     ui->tableWidgetAjacentSites->setColumnCount(5);
-    ui->tableWidgetAjacentSites->setRowCount(_settings->adjacent_sites.size());
+    ui->tableWidgetAjacentSites->setRowCount(m_settings->adjacent_sites.size());
     ui->tableWidgetAjacentSites->verticalHeader()->setVisible(false);
     ui->tableWidgetAjacentSites->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetAjacentSites->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     ui->tableWidgetAjacentSites->setHorizontalHeaderLabels(header_lpc);
 
-    QListIterator<QMap<QString, uint64_t>> it_lpc(_settings->adjacent_sites);
+    QListIterator<QMap<QString, uint64_t>> it_lpc(m_settings->adjacent_sites);
     int row = 0;
-    while(it_lpc.hasNext())
-    {
+
+    while (it_lpc.hasNext()) {
         QMap<QString, uint64_t> channel_map = it_lpc.next();
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(channel_map.value("system_id")));
-        QTableWidgetItem *lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
-        QTableWidgetItem *rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
-        QTableWidgetItem *tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
-        QTableWidgetItem *cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(channel_map.value("system_id")));
+        QTableWidgetItem* lc = new QTableWidgetItem(QString::number(channel_map.value("logical_channel")));
+        QTableWidgetItem* rx_freq = new QTableWidgetItem(QString::number(channel_map.value("rx_freq")));
+        QTableWidgetItem* tx_freq = new QTableWidgetItem(QString::number(channel_map.value("tx_freq")));
+        QTableWidgetItem* cc = new QTableWidgetItem(QString::number(channel_map.value("colour_code")));
 
         ui->tableWidgetAjacentSites->setItem(row, 0, id);
         ui->tableWidgetAjacentSites->setItem(row, 1, lc);
@@ -634,34 +638,34 @@ void MainWindow::loadAdjacentSites()
 
 void MainWindow::saveAdjacentSites()
 {
-    _settings->adjacent_sites.clear();
+    m_settings->adjacent_sites.clear();
     int rows = ui->tableWidgetAjacentSites->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetAjacentSites->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetAjacentSites->item(i, 1);
-        QTableWidgetItem *item3 = ui->tableWidgetAjacentSites->item(i, 2);
-        QTableWidgetItem *item4 = ui->tableWidgetAjacentSites->item(i, 3);
-        QTableWidgetItem *item5 = ui->tableWidgetAjacentSites->item(i, 4);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetAjacentSites->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetAjacentSites->item(i, 1);
+        QTableWidgetItem* item3 = ui->tableWidgetAjacentSites->item(i, 2);
+        QTableWidgetItem* item4 = ui->tableWidgetAjacentSites->item(i, 3);
+        QTableWidgetItem* item5 = ui->tableWidgetAjacentSites->item(i, 4);
         bool ok1, ok2, ok3, ok4, ok5 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
-                && item4->text().size() > 0 && item5->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() > 0
+            && item4->text().size() > 0 && item5->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
             item3->text().toInt(&ok3);
             item4->text().toInt(&ok4);
             item5->text().toInt(&ok5);
         }
-        if(ok1 && ok2 && ok3 && ok4)
-        {
+
+        if (ok1 && ok2 && ok3 && ok4) {
             QMap<QString, uint64_t> map;
             map.insert("system_id", item1->text().toInt());
             map.insert("logical_channel", item2->text().toInt());
             map.insert("rx_freq", item3->text().toInt());
             map.insert("tx_freq", item4->text().toInt());
             map.insert("colour_code", item5->text().toInt());
-            _settings->adjacent_sites.append(map);
+            m_settings->adjacent_sites.append(map);
         }
     }
 }
@@ -669,11 +673,11 @@ void MainWindow::saveAdjacentSites()
 void MainWindow::addAdjacentSite()
 {
     ui->tableWidgetAjacentSites->setRowCount(ui->tableWidgetAjacentSites->rowCount() + 1);
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *lc = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *rx_freq = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *tx_freq = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *cc = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* lc = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* rx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* tx_freq = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* cc = new QTableWidgetItem(QString(""));
     ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 0, id);
     ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 1, lc);
     ui->tableWidgetAjacentSites->setItem(ui->tableWidgetAjacentSites->rowCount() - 1, 2, rx_freq);
@@ -686,35 +690,35 @@ void MainWindow::deleteAdjacentSite()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetAjacentSites->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetAjacentSites->removeRow(row);
     }
 }
 
 void MainWindow::loadServiceIds()
 {
-    QMapIterator<QString, unsigned int> i(_settings->service_ids);
+    QMapIterator<QString, unsigned int> i(m_settings->service_ids);
     QStringList header_service_ids;
     header_service_ids.append("Service");
     header_service_ids.append("System Id");
-    ui->tableWidgetServiceIds->setRowCount(_settings->service_ids.size());
+    ui->tableWidgetServiceIds->setRowCount(m_settings->service_ids.size());
     ui->tableWidgetServiceIds->setColumnCount(2);
     ui->tableWidgetServiceIds->setHorizontalHeaderLabels(header_service_ids);
     ui->tableWidgetServiceIds->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetServiceIds->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        QTableWidgetItem *service = new QTableWidgetItem(i.key());
+        QTableWidgetItem* service = new QTableWidgetItem(i.key());
         service->setFlags(service->flags() & ~Qt::ItemIsEditable);
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.value()));
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetServiceIds->setItem(row, 0, service);
         ui->tableWidgetServiceIds->setItem(row, 1, id);
@@ -724,20 +728,20 @@ void MainWindow::loadServiceIds()
 
 void MainWindow::saveServiceIds()
 {
-    _settings->service_ids.clear();
+    m_settings->service_ids.clear();
     int rows = ui->tableWidgetServiceIds->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetServiceIds->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetServiceIds->item(i, 1);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetServiceIds->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetServiceIds->item(i, 1);
         bool ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0) {
             item2->text().toInt(&ok2);
         }
-        if(ok2)
-        {
-            _settings->service_ids.insert(item1->text(), item2->text().toInt());
+
+        if (ok2) {
+            m_settings->service_ids.insert(item1->text(), item2->text().toInt());
         }
     }
 }
@@ -745,8 +749,8 @@ void MainWindow::saveServiceIds()
 void MainWindow::addServiceId()
 {
     ui->tableWidgetServiceIds->setRowCount(ui->tableWidgetServiceIds->rowCount() + 1);
-    QTableWidgetItem *service = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* service = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetServiceIds->setItem(ui->tableWidgetServiceIds->rowCount() - 1, 0, service);
     ui->tableWidgetServiceIds->setItem(ui->tableWidgetServiceIds->rowCount() - 1, 1, id);
@@ -757,40 +761,40 @@ void MainWindow::deleteServiceId()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetServiceIds->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetServiceIds->removeRow(row);
     }
 }
 
 void MainWindow::loadGateways()
 {
-    QListIterator<QMap<QString, QString>> i(_settings->gateways);
+    QListIterator<QMap<QString, QString>> i(m_settings->gateways);
     QStringList header_gateway_ids;
     header_gateway_ids.append("Id");
     header_gateway_ids.append("Name");
     header_gateway_ids.append("Type");
     header_gateway_ids.append("Talkgroup prefix");
     header_gateway_ids.append("Enable private calls");
-    ui->tableWidgetGateways->setRowCount(_settings->gateways.size());
+    ui->tableWidgetGateways->setRowCount(m_settings->gateways.size());
     ui->tableWidgetGateways->setColumnCount(5);
     ui->tableWidgetGateways->setHorizontalHeaderLabels(header_gateway_ids);
     ui->tableWidgetGateways->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetGateways->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         QMap<QString, QString> gw_map = i.next();
-        QTableWidgetItem *id = new QTableWidgetItem(gw_map.value("gateway_id"));
-        QTableWidgetItem *name = new QTableWidgetItem(gw_map.value("gateway_name"));
-        QTableWidgetItem *type = new QTableWidgetItem(gw_map.value("gateway_type"));
-        QTableWidgetItem *prefix = new QTableWidgetItem(gw_map.value("talkgroup_prefix"));
-        QTableWidgetItem *private_calls = new QTableWidgetItem(gw_map.value("enable_private_calls"));
+        QTableWidgetItem* id = new QTableWidgetItem(gw_map.value("gateway_id"));
+        QTableWidgetItem* name = new QTableWidgetItem(gw_map.value("gateway_name"));
+        QTableWidgetItem* type = new QTableWidgetItem(gw_map.value("gateway_type"));
+        QTableWidgetItem* prefix = new QTableWidgetItem(gw_map.value("talkgroup_prefix"));
+        QTableWidgetItem* private_calls = new QTableWidgetItem(gw_map.value("enable_private_calls"));
 
         ui->tableWidgetGateways->setItem(row, 0, id);
         ui->tableWidgetGateways->setItem(row, 1, name);
@@ -803,35 +807,35 @@ void MainWindow::loadGateways()
 
 void MainWindow::saveGateways()
 {
-    _settings->gateways.clear();
+    m_settings->gateways.clear();
     int rows = ui->tableWidgetGateways->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetGateways->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetGateways->item(i, 1);
-        QTableWidgetItem *item3 = ui->tableWidgetGateways->item(i, 2);
-        QTableWidgetItem *item4 = ui->tableWidgetGateways->item(i, 3);
-        QTableWidgetItem *item5 = ui->tableWidgetGateways->item(i, 4);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetGateways->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetGateways->item(i, 1);
+        QTableWidgetItem* item3 = ui->tableWidgetGateways->item(i, 2);
+        QTableWidgetItem* item4 = ui->tableWidgetGateways->item(i, 3);
+        QTableWidgetItem* item5 = ui->tableWidgetGateways->item(i, 4);
         bool ok1 = false;
         bool ok2 = false;
         bool ok3 = false;
         bool ok4 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() && item4->text().size() && item5->text().size())
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0 && item3->text().size() && item4->text().size() && item5->text().size()) {
             item1->text().toInt(&ok1);
             item3->text().toInt(&ok2);
             item4->text().toInt(&ok3);
             item5->text().toInt(&ok4);
         }
-        if(ok1 && ok2 && ok3 && ok4)
-        {
+
+        if (ok1 && ok2 && ok3 && ok4) {
             QMap<QString, QString> gw_map;
             gw_map.insert("gateway_id", item1->text());
             gw_map.insert("gateway_name", item2->text());
             gw_map.insert("gateway_type", item3->text());
             gw_map.insert("talkgroup_prefix", item4->text());
             gw_map.insert("enable_private_calls", item5->text());
-            _settings->gateways.append(gw_map);
+            m_settings->gateways.append(gw_map);
         }
     }
 }
@@ -839,11 +843,11 @@ void MainWindow::saveGateways()
 void MainWindow::addGateway()
 {
     ui->tableWidgetGateways->setRowCount(ui->tableWidgetGateways->rowCount() + 1);
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *name = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *type = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *prefix = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *private_calls = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* name = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* type = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* prefix = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* private_calls = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 0, id);
     ui->tableWidgetGateways->setItem(ui->tableWidgetGateways->rowCount() - 1, 1, name);
@@ -857,32 +861,32 @@ void MainWindow::deleteGateway()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetGateways->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetGateways->removeRow(row);
     }
 }
 
 void MainWindow::loadLocalTalkgroups()
 {
-    QListIterator<unsigned int> i(_settings->local_tg_ids);
+    QListIterator<unsigned int> i(m_settings->local_tg_ids);
     QStringList header_local_tgs;
     header_local_tgs.append("Talkgroup");
-    ui->tableWidgetLocalTGs->setRowCount(_settings->local_tg_ids.size());
+    ui->tableWidgetLocalTGs->setRowCount(m_settings->local_tg_ids.size());
     ui->tableWidgetLocalTGs->setColumnCount(1);
     ui->tableWidgetLocalTGs->setHorizontalHeaderLabels(header_local_tgs);
     ui->tableWidgetLocalTGs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetLocalTGs->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
 
-        QTableWidgetItem *id = new QTableWidgetItem(QString::number(i.next()));
+    while (i.hasNext()) {
+
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(i.next()));
         ui->tableWidgetLocalTGs->setItem(row, 0, id);
         row++;
     }
@@ -890,19 +894,19 @@ void MainWindow::loadLocalTalkgroups()
 
 void MainWindow::saveLocalTalkgroups()
 {
-    _settings->local_tg_ids.clear();
+    m_settings->local_tg_ids.clear();
     int rows = ui->tableWidgetLocalTGs->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetLocalTGs->item(i, 0);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetLocalTGs->item(i, 0);
         bool ok2 = false;
-        if(item1->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0) {
             item1->text().toInt(&ok2);
         }
-        if(ok2)
-        {
-            _settings->local_tg_ids.append(item1->text().toInt());
+
+        if (ok2) {
+            m_settings->local_tg_ids.append(item1->text().toInt());
         }
     }
 }
@@ -910,7 +914,7 @@ void MainWindow::saveLocalTalkgroups()
 void MainWindow::addLocalTalkgroup()
 {
     ui->tableWidgetLocalTGs->setRowCount(ui->tableWidgetLocalTGs->rowCount() + 1);
-    QTableWidgetItem *id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetLocalTGs->setItem(ui->tableWidgetLocalTGs->rowCount() - 1, 0, id);
     ui->tableWidgetLocalTGs->scrollToBottom();
@@ -920,34 +924,34 @@ void MainWindow::deleteLocalTalkgroup()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetLocalTGs->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetLocalTGs->removeRow(row);
     }
 }
 
 void MainWindow::loadStaticTalkgroups()
 {
-    QMapIterator<unsigned int, unsigned int> i(_settings->static_talkgroups_requested);
+    QMapIterator<unsigned int, unsigned int> i(m_settings->static_talkgroups_requested);
     QStringList header_static_tg;
     header_static_tg.append("Talkgroup");
     header_static_tg.append("Gateway Id");
-    ui->tableWidgetStaticTGs->setRowCount(_settings->static_talkgroups_requested.size());
+    ui->tableWidgetStaticTGs->setRowCount(m_settings->static_talkgroups_requested.size());
     ui->tableWidgetStaticTGs->setColumnCount(2);
     ui->tableWidgetStaticTGs->setHorizontalHeaderLabels(header_static_tg);
     ui->tableWidgetStaticTGs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidgetStaticTGs->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
     int row = 0;
-    while(i.hasNext())
-    {
+
+    while (i.hasNext()) {
         i.next();
-        QTableWidgetItem *tg = new QTableWidgetItem(QString::number(i.key()));
-        QTableWidgetItem *gateway = new QTableWidgetItem(QString::number(i.value()));
+        QTableWidgetItem* tg = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem* gateway = new QTableWidgetItem(QString::number(i.value()));
 
         ui->tableWidgetStaticTGs->setItem(row, 0, tg);
         ui->tableWidgetStaticTGs->setItem(row, 1, gateway);
@@ -957,21 +961,21 @@ void MainWindow::loadStaticTalkgroups()
 
 void MainWindow::saveStaticTalkgroups()
 {
-    _settings->static_talkgroups_requested.clear();
+    m_settings->static_talkgroups_requested.clear();
     int rows = ui->tableWidgetStaticTGs->rowCount();
-    for(int i=0;i<rows;i++)
-    {
-        QTableWidgetItem *item1 = ui->tableWidgetStaticTGs->item(i, 0);
-        QTableWidgetItem *item2 = ui->tableWidgetStaticTGs->item(i, 1);
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetStaticTGs->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetStaticTGs->item(i, 1);
         bool ok1, ok2 = false;
-        if(item1->text().size() > 0 && item2->text().size() > 0)
-        {
+
+        if (item1->text().size() > 0 && item2->text().size() > 0) {
             item1->text().toInt(&ok1);
             item2->text().toInt(&ok2);
         }
-        if(ok1 && ok2)
-        {
-            _settings->static_talkgroups_requested.insert(item1->text().toInt(), item2->text().toInt());
+
+        if (ok1 && ok2) {
+            m_settings->static_talkgroups_requested.insert(item1->text().toInt(), item2->text().toInt());
         }
     }
 }
@@ -979,8 +983,8 @@ void MainWindow::saveStaticTalkgroups()
 void MainWindow::addStaticTalkgroup()
 {
     ui->tableWidgetStaticTGs->setRowCount(ui->tableWidgetStaticTGs->rowCount() + 1);
-    QTableWidgetItem *tg = new QTableWidgetItem(QString(""));
-    QTableWidgetItem *gateway = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* tg = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* gateway = new QTableWidgetItem(QString(""));
 
     ui->tableWidgetStaticTGs->setItem(ui->tableWidgetStaticTGs->rowCount() - 1, 0, tg);
     ui->tableWidgetStaticTGs->setItem(ui->tableWidgetStaticTGs->rowCount() - 1, 1, gateway);
@@ -991,94 +995,90 @@ void MainWindow::deleteStaticTalkgroup()
 {
     QList<QTableWidgetItem*> items = ui->tableWidgetStaticTGs->selectedItems();
     QSet<int> rows;
-    for(QTableWidgetItem* item : items)
-    {
+
+    for (QTableWidgetItem* item : items) {
         int row = item->row();
         rows.insert(row);
     }
-    for(int row : rows)
-    {
+
+    for (int row : rows) {
         ui->tableWidgetStaticTGs->removeRow(row);
     }
 }
 
-void MainWindow::setLogicalChannels(QVector<LogicalChannel *> *logical_channels)
+void MainWindow::setLogicalChannels(QVector<LogicalChannel*>* logical_channels)
 {
 
-    for(int i = 0, j =0;i < _settings->channel_number; i++,j+=2)
-    {
-        if(logical_channels->count() > 1)
-        {
-            QModelIndex index1 = _logical_channel_model->index(i, 0);
-            QModelIndex index2 = _logical_channel_model->index(i, 1);
+    for (int i = 0, j = 0; i < m_settings->channel_number; i++, j += 2) {
+        if (logical_channels->count() > 1) {
+            QModelIndex index1 = m_logical_channel_model->index(i, 0);
+            QModelIndex index2 = m_logical_channel_model->index(i, 1);
             QString usage1 = logical_channels->at(j)->getBusy() ? (logical_channels->at(j)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage1 = logical_channels->at(j)->getDisabled() ? "Disabled " : usage1;
-            if(logical_channels->at(j)->isControlChannel())
-            {
-                _logical_channel_model->setData(index1, QString(logical_channels->at(j)->getText()));
+
+            if (logical_channels->at(j)->isControlChannel()) {
+                m_logical_channel_model->setData(index1, QString(logical_channels->at(j)->getText()));
+            } else {
+                m_logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
+                                                 .arg(m_id_lookup->lookup(logical_channels->at(j)->getSource())).
+                                                 arg(logical_channels->at(j)->getDestination())
+                                                 .arg(usage1)
+                                                 .arg(logical_channels->at(j)->getText())
+                                                 .arg(logical_channels->at(j)->getGPSInfo())
+                                                 .arg(logical_channels->at(j)->getMaxBER(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j)->getBER(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j)->getRSSI(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j)->getCallTime()));
             }
-            else
-            {
-                _logical_channel_model->setData(index1, QString("%3  %1  -->  %2 \n %4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
-                                            .arg(_id_lookup->lookup(logical_channels->at(j)->getSource())).
-                                            arg(logical_channels->at(j)->getDestination())
-                                            .arg(usage1)
-                                            .arg(logical_channels->at(j)->getText())
-                                            .arg(logical_channels->at(j)->getGPSInfo())
-                                            .arg(logical_channels->at(j)->getMaxBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j)->getBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j)->getRSSI(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j)->getCallTime()));
-            }
+
             QString color1 = (logical_channels->at(j)->getBusy() ?
-                                  (logical_channels->at(j)->getTimeout() ?
-                                       "#029500":
-                                  (logical_channels->at(j)->getLocalCall() ?
-                                       "#004dFF" :
-                                       "#004d99")) :
-                                  "#9cffab");
+                              (logical_channels->at(j)->getTimeout() ?
+                               "#029500" :
+                               (logical_channels->at(j)->getLocalCall() ?
+                                "#004dFF" :
+                                "#004d99")) :
+                              "#9cffab");
             color1 = (logical_channels->at(j)->getDisabled() ? "#FF7777" : color1);
             color1 = (logical_channels->at(j)->isControlChannel() ? "#BBBBBB" : color1);
-            _logical_channel_model->setColor(index1, color1);
+            m_logical_channel_model->setColor(index1, color1);
             int state1 = logical_channels->at(j)->getBusy() ?
-                        ChannelState::ChannelBusy : ChannelState::ChannelFree;
+                         ChannelState::ChannelBusy : ChannelState::ChannelFree;
             state1 = logical_channels->at(j)->isControlChannel() ? ChannelState::ChannelControl : state1;
-            _logical_channel_model->setState(index1, state1, 0);
-            _logical_channel_model->setChecked(index1, logical_channels->at(j)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
+            m_logical_channel_model->setState(index1, state1, 0);
+            m_logical_channel_model->setChecked(index1, logical_channels->at(j)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
 
             QString usage2 = logical_channels->at(j + 1)->getBusy() ? (logical_channels->at(j + 1)->getLocalCall() ? "Local call" : "Network call") : "Free ";
             usage2 = logical_channels->at(j + 1)->getDisabled() ? "Disabled " : usage2;
-            if(logical_channels->at(j + 1)->isControlChannel())
-            {
-                _logical_channel_model->setData(index2, QString(logical_channels->at(j)->getText()));
+
+            if (logical_channels->at(j + 1)->isControlChannel()) {
+                m_logical_channel_model->setData(index2, QString(logical_channels->at(j)->getText()));
+            } else {
+                m_logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
+                                                 .arg(m_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
+                                                 .arg(logical_channels->at(j + 1)->getDestination())
+                                                 .arg(usage2)
+                                                 .arg(logical_channels->at(j + 1)->getText())
+                                                 .arg(logical_channels->at(j + 1)->getGPSInfo())
+                                                 .arg(logical_channels->at(j + 1)->getMaxBER(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j + 1)->getBER(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j + 1)->getRSSI(), 0, 'f', 1)
+                                                 .arg(logical_channels->at(j + 1)->getCallTime()));
             }
-            else
-            {
-                _logical_channel_model->setData(index2, QString("%3  %1  -->  %2 \n%4 \n %5 \n Max. BER: %6, Avg. BER: %7, RSSI: %8, Call duration: %9")
-                                            .arg(_id_lookup->lookup(logical_channels->at(j + 1)->getSource()))
-                                            .arg(logical_channels->at(j + 1)->getDestination())
-                                            .arg(usage2)
-                                            .arg(logical_channels->at(j + 1)->getText())
-                                            .arg(logical_channels->at(j + 1)->getGPSInfo())
-                                            .arg(logical_channels->at(j + 1)->getMaxBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j + 1)->getBER(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j + 1)->getRSSI(), 0, 'f', 1)
-                                            .arg(logical_channels->at(j + 1)->getCallTime()));
-            }
+
             QString color2 = (logical_channels->at(j + 1)->getBusy() ?
-                                  (logical_channels->at(j + 1)->getTimeout() ?
-                                       "#029500":
-                                  (logical_channels->at(j + 1)->getLocalCall() ?
-                                       "#004dFF" :
-                                       "#004d99")) :
-                                  "#9cffab");
+                              (logical_channels->at(j + 1)->getTimeout() ?
+                               "#029500" :
+                               (logical_channels->at(j + 1)->getLocalCall() ?
+                                "#004dFF" :
+                                "#004d99")) :
+                              "#9cffab");
             color2 = (logical_channels->at(j + 1)->getDisabled() ? "#FF7777" : color2);
-            _logical_channel_model->setColor(index2, color2);
+            m_logical_channel_model->setColor(index2, color2);
             int state2 = logical_channels->at(j + 1)->getBusy() ?
-                        ChannelState::ChannelBusy : ChannelState::ChannelFree;
+                         ChannelState::ChannelBusy : ChannelState::ChannelFree;
             state2 = logical_channels->at(j + 1)->isControlChannel() ? ChannelState::ChannelControl : state2;
-            _logical_channel_model->setState(index2, state2, 0);
-            _logical_channel_model->setChecked(index2, logical_channels->at(j+1)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
+            m_logical_channel_model->setState(index2, state2, 0);
+            m_logical_channel_model->setChecked(index2, logical_channels->at(j + 1)->getDisabled() ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
         }
     }
 }
@@ -1092,33 +1092,35 @@ void MainWindow::channelStateChange(int row, int col, bool state)
 void MainWindow::updateRegisteredMSList(QList<unsigned int>* registered_ms)
 {
     deleteRegisteredMSList();
-    for(int i=0;i<registered_ms->size();i++)
-    {
+
+    for (int i = 0; i < registered_ms->size(); i++) {
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
-        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(_id_lookup->lookup(registered_ms->at(i))));
+        QListWidgetItem* item = new QListWidgetItem(icon, QString("%1").arg(m_id_lookup->lookup(registered_ms->at(i))));
         ui->registeredMSListWidget->addItem(item);
     }
-    for(int i=0;i<registered_ms->size();i++)
-    {
+
+    for (int i = 0; i < registered_ms->size(); i++) {
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
         ui->comboBoxRegisteredMS->addItem(icon, QString::number(registered_ms->at(i)));
     }
+
     registered_ms->clear();
     delete registered_ms;
 }
 
-void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int> *subscribed_talkgroups)
+void MainWindow::updateTalkgroupSubscriptionList(QSet<unsigned int>* subscribed_talkgroups)
 {
     deleteSubscribedTalkgroupList();
     QSetIterator<unsigned int> it(*subscribed_talkgroups);
-    while(it.hasNext())
-    {
+
+    while (it.hasNext()) {
         QIcon icon = QIcon(":/res/system-users.png");
         unsigned int id = it.next();
-        QListWidgetItem *item = new QListWidgetItem(icon, QString("%1").arg(id));
+        QListWidgetItem* item = new QListWidgetItem(icon, QString("%1").arg(id));
         ui->listWidgetSubscribedTalkgroups->addItem(item);
         ui->comboBoxRegisteredGroups->addItem(icon, QString::number(id));
     }
+
     subscribed_talkgroups->clear();
     delete subscribed_talkgroups;
 }
@@ -1127,32 +1129,32 @@ void MainWindow::updateRejectedCallsList(unsigned int srcId, unsigned int dstId,
 {
     QIcon icon = QIcon(":/res/preferences-desktop-user.png");
     QDateTime datetime = QDateTime::currentDateTime();
-    QListWidgetItem *item = new QListWidgetItem(icon, QString("%1: %2 --> %3 (%4)")
-                                                .arg(datetime.toString(Qt::TextDate))
-                                                .arg(_id_lookup->lookup(srcId))
-                                                .arg(_id_lookup->lookup(dstId))
-                                                .arg(local_call ? "local" : "remote"));
+    QListWidgetItem* item = new QListWidgetItem(icon, QString("%1: %2 --> %3 (%4)")
+            .arg(datetime.toString(Qt::TextDate))
+            .arg(m_id_lookup->lookup(srcId))
+            .arg(m_id_lookup->lookup(dstId))
+            .arg(local_call ? "local" : "remote"));
     ui->listWidgetRejectedCalls->addItem(item);
 }
 
 void MainWindow::deleteRegisteredMSList()
 {
-    for(int i=0;i < ui->registeredMSListWidget->count();i++)
-    {
-        QListWidgetItem *item = ui->registeredMSListWidget->item(i);
+    for (int i = 0; i < ui->registeredMSListWidget->count(); i++) {
+        QListWidgetItem* item = ui->registeredMSListWidget->item(i);
         delete item;
     }
+
     ui->registeredMSListWidget->clear();
     ui->comboBoxRegisteredMS->clear();
 }
 
 void MainWindow::deleteSubscribedTalkgroupList()
 {
-    for(int i=0;i < ui->listWidgetSubscribedTalkgroups->count();i++)
-    {
-        QListWidgetItem *item = ui->listWidgetSubscribedTalkgroups->item(i);
+    for (int i = 0; i < ui->listWidgetSubscribedTalkgroups->count(); i++) {
+        QListWidgetItem* item = ui->listWidgetSubscribedTalkgroups->item(i);
         delete item;
     }
+
     ui->listWidgetSubscribedTalkgroups->clear();
     ui->comboBoxRegisteredGroups->clear();
 }
@@ -1161,20 +1163,20 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId,
                                float rssi, float ber, float max_ber, unsigned int call_time, bool private_call)
 {
     QDateTime datetime = QDateTime::currentDateTime();
-    if(private_call)
-    {
+
+    if (private_call) {
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
-        QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
-        QTableWidgetItem *srcitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup->lookup(srcId)));
-        QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup->lookup(dstId)));
-        QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
-                                                    .arg(rssi, 0, 'f', 1));
-        QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
-                                                    .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
-        QTableWidgetItem *timeitem = new QTableWidgetItem(QString("%1 seconds")
-                                                    .arg(call_time));
+        QTableWidgetItem* dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
+        QTableWidgetItem* srcitem = new QTableWidgetItem(icon, QString("%1")
+                .arg(m_id_lookup->lookup(srcId)));
+        QTableWidgetItem* dstitem = new QTableWidgetItem(icon, QString("%1")
+                .arg(m_id_lookup->lookup(dstId)));
+        QTableWidgetItem* rssiitem = new QTableWidgetItem(QString("%1")
+                .arg(rssi, 0, 'f', 1));
+        QTableWidgetItem* beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
+                .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
+        QTableWidgetItem* timeitem = new QTableWidgetItem(QString("%1 seconds")
+                .arg(call_time));
         uint32_t rows = ui->privateCallsTableWidget->rowCount();
         ui->privateCallsTableWidget->setRowCount(rows + 1);
         ui->privateCallsTableWidget->setItem(rows, 0, dateitem);
@@ -1183,22 +1185,20 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId,
         ui->privateCallsTableWidget->setItem(rows, 3, rssiitem);
         ui->privateCallsTableWidget->setItem(rows, 4, beritem);
         ui->privateCallsTableWidget->setItem(rows, 5, timeitem);
-    }
-    else
-    {
+    } else {
         QIcon icon_group = QIcon(":/res/system-users.png");
         QIcon icon_user = QIcon(":/res/preferences-desktop-user.png");
-        QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
-        QTableWidgetItem *srcitem = new QTableWidgetItem(icon_user, QString("%1")
-                                                    .arg(_id_lookup->lookup(srcId)));
-        QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
-                                                    .arg(dstId));
-        QTableWidgetItem *rssiitem = new QTableWidgetItem(QString("%1")
-                                                    .arg(rssi, 0, 'f', 1));
-        QTableWidgetItem *beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
-                                                    .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
-        QTableWidgetItem *timeitem = new QTableWidgetItem(QString("%1 seconds")
-                                                    .arg(call_time));
+        QTableWidgetItem* dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
+        QTableWidgetItem* srcitem = new QTableWidgetItem(icon_user, QString("%1")
+                .arg(m_id_lookup->lookup(srcId)));
+        QTableWidgetItem* dstitem = new QTableWidgetItem(icon_group, QString("%1")
+                .arg(dstId));
+        QTableWidgetItem* rssiitem = new QTableWidgetItem(QString("%1")
+                .arg(rssi, 0, 'f', 1));
+        QTableWidgetItem* beritem = new QTableWidgetItem(QString("Avg. %1, Max. %2")
+                .arg(ber, 0, 'f', 1).arg(max_ber, 0, 'f', 1));
+        QTableWidgetItem* timeitem = new QTableWidgetItem(QString("%1 seconds")
+                .arg(call_time));
         uint32_t rows = ui->groupCallsTableWidget->rowCount();
         ui->groupCallsTableWidget->setRowCount(rows + 1);
         ui->groupCallsTableWidget->setItem(rows, 0, dateitem);
@@ -1213,16 +1213,16 @@ void MainWindow::updateCallLog(unsigned int srcId, unsigned int dstId,
 void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QString message, bool tg)
 {
     QDateTime datetime = QDateTime::currentDateTime();
-    if(!tg)
-    {
+
+    if (!tg) {
         QIcon icon = QIcon(":/res/preferences-desktop-user.png");
-        QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
-        QTableWidgetItem *srcitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup->lookup(srcId)));
-        QTableWidgetItem *dstitem = new QTableWidgetItem(icon, QString("%1")
-                                                    .arg(_id_lookup->lookup(dstId)));
-        QTableWidgetItem *msg = new QTableWidgetItem(QString("%1")
-                                                    .arg(message));
+        QTableWidgetItem* dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
+        QTableWidgetItem* srcitem = new QTableWidgetItem(icon, QString("%1")
+                .arg(m_id_lookup->lookup(srcId)));
+        QTableWidgetItem* dstitem = new QTableWidgetItem(icon, QString("%1")
+                .arg(m_id_lookup->lookup(dstId)));
+        QTableWidgetItem* msg = new QTableWidgetItem(QString("%1")
+                .arg(message));
         uint32_t rows = ui->tableWidgetMessages->rowCount();
         ui->tableWidgetMessages->setRowCount(rows + 1);
         ui->tableWidgetMessages->setItem(rows, 0, dateitem);
@@ -1230,18 +1230,16 @@ void MainWindow::updateMessageLog(unsigned int srcId, unsigned int dstId, QStrin
         ui->tableWidgetMessages->setItem(rows, 2, dstitem);
         ui->tableWidgetMessages->setItem(rows, 3, msg);
         ui->tableWidgetMessages->resizeRowsToContents();
-    }
-    else
-    {
+    } else {
         QIcon icon_group = QIcon(":/res/system-users.png");
         QIcon icon_user = QIcon(":/res/preferences-desktop-user.png");
-        QTableWidgetItem *dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
-        QTableWidgetItem *srcitem = new QTableWidgetItem(icon_user, QString("%1")
-                                                    .arg(_id_lookup->lookup(srcId)));
-        QTableWidgetItem *dstitem = new QTableWidgetItem(icon_group, QString("%1")
-                                                    .arg(dstId));
-        QTableWidgetItem *msg = new QTableWidgetItem(QString("%1")
-                                                    .arg(message));
+        QTableWidgetItem* dateitem = new QTableWidgetItem(datetime.toString(Qt::TextDate));
+        QTableWidgetItem* srcitem = new QTableWidgetItem(icon_user, QString("%1")
+                .arg(m_id_lookup->lookup(srcId)));
+        QTableWidgetItem* dstitem = new QTableWidgetItem(icon_group, QString("%1")
+                .arg(dstId));
+        QTableWidgetItem* msg = new QTableWidgetItem(QString("%1")
+                .arg(message));
         uint32_t rows = ui->tableWidgetMessages->rowCount();
         ui->tableWidgetMessages->setRowCount(rows + 1);
         ui->tableWidgetMessages->setItem(rows, 0, dateitem);
@@ -1297,12 +1295,10 @@ void MainWindow::displayPositionResponse(unsigned int srcId, QString message)
 {
     Q_UNUSED(srcId)
     ui->labelPositionResponse->setText(message);
-    if(message.contains("Fix: no fix"))
-    {
+
+    if (message.contains("Fix: no fix")) {
         ui->labelPositionResponse->setStyleSheet("background-color:#CC0000;color:#FFFFFF");
-    }
-    else
-    {
+    } else {
         ui->labelPositionResponse->setStyleSheet("background-color:#007700;color:#FFFFFF");
     }
 }
@@ -1342,13 +1338,10 @@ void MainWindow::authCheck()
 
 void MainWindow::authSuccess(bool successful)
 {
-    if(successful)
-    {
+    if (successful) {
         ui->labelAuthSuccess->setStyleSheet("background-color:#009900;color:#FFFFFF");
         ui->labelAuthSuccess->setText("SUCCESS");
-    }
-    else
-    {
+    } else {
         ui->labelAuthSuccess->setStyleSheet("background-color:#990000;color:#FFFFFF");
         ui->labelAuthSuccess->setText("FAILED");
     }

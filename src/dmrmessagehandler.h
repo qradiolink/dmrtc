@@ -1,18 +1,20 @@
-// Written by Adrian Musceac YO8RZZ , started September 2024.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #ifndef DMRMESSAGEHANDLER_H
 #define DMRMESSAGEHANDLER_H
@@ -39,29 +41,30 @@ class DMRMessageHandler : public QObject
 {
     Q_OBJECT
 public:
-    struct data_message
-    {
+    struct data_message {
         data_message() : size(0), type(0), pad_nibble(0), block(0), udt_format(0), sap(0),
             payload_len(0), real_src(0), real_dst(0), seq_no(0), group(false), udt(false), crc_valid(false), retry(false),
-            rssi_accumulator(0.0f), ber_accumulator(0.0f), rssi(0.0f), ber(0.0f) {
+            rssi_accumulator(0.0f), ber_accumulator(0.0f), rssi(0.0f), ber(0.0f)
+        {
             memset(message, 0, MAX_MESSAGE_SIZE);
             memset(payload, 0, MAX_MESSAGE_SIZE);
-            memset(missed_blocks, 0, 2*sizeof(uint64_t));
-            for(int i=0;i<128;i++)
-            {
+            memset(missed_blocks, 0, 2 * sizeof(uint64_t));
+
+            for (int i = 0; i < 128; i++) {
                 memset(data[i], 0, 24 * sizeof(unsigned char));
             }
         }
-        data_message(data_message *msg) : size(msg->size), type(msg->type), pad_nibble(msg->pad_nibble), block(msg->block),
+        data_message(data_message* msg) : size(msg->size), type(msg->type), pad_nibble(msg->pad_nibble), block(msg->block),
             udt_format(msg->udt_format), sap(msg->sap), payload_len(msg->payload_len),
             real_src(msg->real_src), real_dst(msg->real_dst), seq_no(msg->seq_no), group(msg->group), udt(msg->udt),
             crc_valid(msg->crc_valid), retry(msg->retry), rssi_accumulator(msg->rssi_accumulator), ber_accumulator(msg->ber_accumulator),
-            rssi(msg->rssi), ber(msg->ber) {
+            rssi(msg->rssi), ber(msg->ber)
+        {
             memcpy(message, msg->message, MAX_MESSAGE_SIZE);
             memcpy(payload, msg->payload, MAX_MESSAGE_SIZE);
-            memcpy(missed_blocks, msg->missed_blocks, 2*sizeof(uint64_t));
-            for(int i=0;i<128;i++)
-            {
+            memcpy(missed_blocks, msg->missed_blocks, 2 * sizeof(uint64_t));
+
+            for (int i = 0; i < 128; i++) {
                 memcpy(data[i], msg->data[i], 24 * sizeof(unsigned char));
             }
         }
@@ -88,11 +91,11 @@ public:
         unsigned char payload[MAX_MESSAGE_SIZE];
         unsigned char data[128][24];
     };
-    explicit DMRMessageHandler(const Settings *settings, Logger *logger, QObject *parent = nullptr);
+    explicit DMRMessageHandler(const Settings* settings, Logger* logger, QObject* parent = nullptr);
     ~DMRMessageHandler();
-    data_message *processData(CDMRData &dmr_data, bool from_gateway=false);
-    void addDataToBuffer(unsigned int srcId, CDMRData &dmr_data);
-    QVector<CDMRData> *getDataFromBuffer(unsigned int srcId);
+    data_message* processData(CDMRData& dmr_data, bool from_gateway = false);
+    void addDataToBuffer(unsigned int srcId, CDMRData& dmr_data);
+    QVector<CDMRData>* getDataFromBuffer(unsigned int srcId);
     void clearDataBuffer(unsigned int srcId);
 
 
@@ -103,20 +106,20 @@ private slots:
     void removeMessages();
 
 private:
-    const Settings *_settings;
-    Logger *_logger;
-    bool block_crc(unsigned char *block, unsigned int block_size, uint8_t &dbsn);
-    bool message_crc32(data_message *msg, unsigned int type, unsigned int block_size);
-    bool processConfirmedMessage(data_message *msg, unsigned int block_size);
-    bool processUnconfirmedMessage(data_message *msg, unsigned int block_size);
-    bool processDefinedDataMessage(data_message *msg, unsigned int block_size);
+    const Settings* m_settings;
+    Logger* m_logger;
+    bool block_crc(unsigned char* block, unsigned int block_size, uint8_t& dbsn);
+    bool message_crc32(data_message* msg, unsigned int type, unsigned int block_size);
+    bool processConfirmedMessage(data_message* msg, unsigned int block_size);
+    bool processUnconfirmedMessage(data_message* msg, unsigned int block_size);
+    bool processDefinedDataMessage(data_message* msg, unsigned int block_size);
     void clearMessage(unsigned int srcId);
     void clearRetryMessage(unsigned int srcId);
 
-    QMap<unsigned int, data_message*> _messages;
-    QMap<unsigned int, QVector<CDMRData>*> _dmr_data_buffer;
-    QMap<unsigned int, data_message*> _retry_messages;
-    QTimer _message_timeout_timer;
+    QMap<unsigned int, data_message*> m_messages;
+    QMap<unsigned int, QVector<CDMRData>*> m_dmr_data_buffer;
+    QMap<unsigned int, data_message*> m_retry_messages;
+    QTimer m_message_timeout_timer;
 
 };
 

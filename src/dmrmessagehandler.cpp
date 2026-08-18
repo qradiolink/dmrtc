@@ -1,18 +1,20 @@
-// Written by Adrian Musceac YO8RZZ , started September 2024.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+/*
+ *   Copyright (C) 2023-2026 by Adrian Musceac YO8RZZ
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include <netinet/ip.h>
 #include <netinet/udp.h>
@@ -21,21 +23,21 @@
 #include "dmrmessagehandler.h"
 
 
-DMRMessageHandler::DMRMessageHandler(const Settings *settings, Logger *logger, QObject *parent) : QObject(parent)
+DMRMessageHandler::DMRMessageHandler(const Settings* settings, Logger* logger, QObject* parent) : QObject(parent)
 {
-    _settings = settings;
-    _logger = logger;
-    _message_timeout_timer.setInterval(1000);
-    _message_timeout_timer.setSingleShot(true);
-    QObject::connect(&_message_timeout_timer, SIGNAL(timeout()), this, SLOT(removeMessages()), Qt::DirectConnection);
-    QObject::connect(this, SIGNAL(internalStartTimer()), &_message_timeout_timer, SLOT(start()));
+    m_settings = settings;
+    m_logger = logger;
+    m_message_timeout_timer.setInterval(1000);
+    m_message_timeout_timer.setSingleShot(true);
+    QObject::connect(&m_message_timeout_timer, SIGNAL(timeout()), this, SLOT(removeMessages()), Qt::DirectConnection);
+    QObject::connect(this, SIGNAL(internalStartTimer()), &m_message_timeout_timer, SLOT(start()));
 }
 
 DMRMessageHandler::~DMRMessageHandler()
 {
-    QList<unsigned int> keys = _messages.keys();
-    for(int i=0;i<keys.size();i++)
-    {
+    QList<unsigned int> keys = m_messages.keys();
+
+    for (int i = 0; i < keys.size(); i++) {
         clearMessage(keys[i]);
         clearDataBuffer(keys[i]);
     }
@@ -43,9 +45,9 @@ DMRMessageHandler::~DMRMessageHandler()
 
 void DMRMessageHandler::removeMessages()
 {
-    QVector<unsigned int> ids = _messages.keys().toVector();
-    for(int i=0;i<ids.size();i++)
-    {
+    QVector<unsigned int> ids = m_messages.keys().toVector();
+
+    for (int i = 0; i < ids.size(); i++) {
         clearMessage(i);
         clearRetryMessage(i);
         clearDataBuffer(i);
@@ -54,76 +56,70 @@ void DMRMessageHandler::removeMessages()
 
 void DMRMessageHandler::clearMessage(unsigned int srcId)
 {
-    if(_messages.contains(srcId))
-    {
-        data_message *msg = _messages[srcId];
-        if(msg != nullptr)
+    if (m_messages.contains(srcId)) {
+        data_message* msg = m_messages[srcId];
+
+        if (msg != nullptr)
             delete msg;
-        _messages.remove(srcId);
+
+        m_messages.remove(srcId);
     }
 }
 
 void DMRMessageHandler::clearRetryMessage(unsigned int srcId)
 {
-    if(_retry_messages.contains(srcId))
-    {
-        data_message *msg = _retry_messages[srcId];
-        if(msg != nullptr)
+    if (m_retry_messages.contains(srcId)) {
+        data_message* msg = m_retry_messages[srcId];
+
+        if (msg != nullptr)
             delete msg;
-        _retry_messages.remove(srcId);
+
+        m_retry_messages.remove(srcId);
     }
 }
 
-void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData &dmr_data)
+void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData& dmr_data)
 {
-    if(_dmr_data_buffer.contains(srcId))
-    {
-        QVector<CDMRData>* data_frames = _dmr_data_buffer[srcId];
+    if (m_dmr_data_buffer.contains(srcId)) {
+        QVector<CDMRData>* data_frames = m_dmr_data_buffer[srcId];
         data_frames->push_back(dmr_data);
-    }
-    else
-    {
-        QVector<CDMRData> *data_frames = new QVector<CDMRData>();
+    } else {
+        QVector<CDMRData>* data_frames = new QVector<CDMRData>();
         data_frames->push_back(dmr_data);
-        _dmr_data_buffer.insert(dmr_data.getSrcId(), data_frames);
+        m_dmr_data_buffer.insert(dmr_data.getSrcId(), data_frames);
     }
 }
 
 QVector<CDMRData>* DMRMessageHandler::getDataFromBuffer(unsigned int srcId)
 {
-    if(_dmr_data_buffer.contains(srcId))
-    {
-        QVector<CDMRData> *data_frames = _dmr_data_buffer[srcId];
+    if (m_dmr_data_buffer.contains(srcId)) {
+        QVector<CDMRData>* data_frames = m_dmr_data_buffer[srcId];
         return data_frames;
-    }
-    else
-    {
+    } else {
         return nullptr;
     }
 }
 
 void DMRMessageHandler::clearDataBuffer(unsigned int srcId)
 {
-    if(_dmr_data_buffer.contains(srcId))
-    {
-        QVector<CDMRData> *data_frames = _dmr_data_buffer[srcId];
+    if (m_dmr_data_buffer.contains(srcId)) {
+        QVector<CDMRData>* data_frames = m_dmr_data_buffer[srcId];
         data_frames->clear();
         delete data_frames;
-        _dmr_data_buffer.remove(srcId);
+        m_dmr_data_buffer.remove(srcId);
     }
 }
 
-DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_data, bool from_gateway)
+DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_data, bool from_gateway)
 {
     emit internalStartTimer();
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
-    data_message *msg = nullptr;
-    _logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received data packet from %2 to %3")
-                 .arg(dmr_data.getSlotNo()).arg(srcId).arg(dstId));
+    data_message* msg = nullptr;
+    m_logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received data packet from %2 to %3")
+                  .arg(dmr_data.getSlotNo()).arg(srcId).arg(dstId));
 
-    if(dmr_data.getDataType() == DT_DATA_HEADER)
-    {
+    if (dmr_data.getDataType() == DT_DATA_HEADER) {
         unsigned char data[DMR_FRAME_LENGTH_BYTES];
         dmr_data.getData(data);
         CDMRDataHeader header;
@@ -133,17 +129,15 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
         clearDataBuffer(srcId);
         addDataToBuffer(srcId, dmr_data);
         clearMessage(srcId);
-        if(_retry_messages.contains(srcId) && (header.getDPF() == DPF_CONFIRMED_DATA))
-        {
+
+        if (m_retry_messages.contains(srcId) && (header.getDPF() == DPF_CONFIRMED_DATA)) {
             // TODO: update retried blocks
-            _logger->log(Logger::LogLevelWarning, QString("Retry confirmed message header from %1 received!")
-                         .arg(srcId));
-            msg = _retry_messages[srcId];
-        }
-        else
-        {
+            m_logger->log(Logger::LogLevelWarning, QString("Retry confirmed message header from %1 received!")
+                          .arg(srcId));
+            msg = m_retry_messages[srcId];
+        } else {
             msg = new data_message;
-            _messages.insert(srcId, msg);
+            m_messages.insert(srcId, msg);
         }
 
         // FIXME: this value should be per channel instead of global
@@ -157,271 +151,248 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
         msg->pad_nibble = header.getPadNibble();
         msg->rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
         msg->ber_accumulator += float(dmr_data.getBER()) / 1.41f;
-        if(header.getUDT())
-        {
-            if(msg->size > 4)
-            {
+
+        if (header.getUDT()) {
+            if (msg->size > 4) {
                 clearMessage(srcId);
                 return nullptr;
             }
+
             msg->udt_format = header.getUDTFormat();
             msg->udt = true;
-            _logger->log(Logger::LogLevelDebug, QString("Received UDT packet data header from %1 to %2 --- A: %3, GI:%4, "
-                    "Format: %5, UDT Format: %6, Opcode: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                    " Data packet format: %13")
-                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
-                         .arg(header.getUDTFormat()).arg(header.getOpcode()).arg(header.getRSVD()).arg(header.getPF())
-                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
-        }
-        else if(msg->type == DPF_CONFIRMED_DATA)
-        {
-            if(msg->size > 128)
-            {
+            m_logger->log(Logger::LogLevelDebug, QString("Received UDT packet data header from %1 to %2 --- A: %3, GI:%4, "
+                          "Format: %5, UDT Format: %6, Opcode: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                          " Data packet format: %13")
+                          .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                          .arg(header.getUDTFormat()).arg(header.getOpcode()).arg(header.getRSVD()).arg(header.getPF())
+                          .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+        } else if (msg->type == DPF_CONFIRMED_DATA) {
+            if (msg->size > 128) {
                 clearMessage(srcId);
                 return nullptr;
             }
+
             msg->crc_valid = true;
             msg->udt = false;
             msg->seq_no = header.getSequenceNumber();
-            _logger->log(Logger::LogLevelDebug, QString("Received confirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
-                    "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                    " Data packet format: %13")
-                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
-                         .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
-                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
-        }
-        else if(msg->type == DPF_UNCONFIRMED_DATA)
-        {
-            if(msg->size > 64)
-            {
+            m_logger->log(Logger::LogLevelDebug, QString("Received confirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
+                          "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                          " Data packet format: %13")
+                          .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                          .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
+                          .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+        } else if (msg->type == DPF_UNCONFIRMED_DATA) {
+            if (msg->size > 64) {
                 clearMessage(srcId);
                 return nullptr;
             }
+
             msg->crc_valid = true;
             msg->udt = false;
             msg->seq_no = header.getSequenceNumber();
-            _logger->log(Logger::LogLevelDebug, QString("Received unconfirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
-                    "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                    " Data packet format: %13")
-                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
-                         .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
-                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
-        }
-        else if(msg->type == DPF_DEFINED_SHORT)
-        {
-            if(msg->size > 64)
-            {
+            m_logger->log(Logger::LogLevelDebug, QString("Received unconfirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
+                          "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                          " Data packet format: %13")
+                          .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                          .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
+                          .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+        } else if (msg->type == DPF_DEFINED_SHORT) {
+            if (msg->size > 64) {
                 clearMessage(srcId);
                 return nullptr;
             }
+
             msg->crc_valid = true;
             msg->udt = false;
             msg->udt_format = header.getUDTFormat();
-            _logger->log(Logger::LogLevelDebug, QString("Received defined short data header from %1 to %2 --- A: %3, GI:%4, "
-                    "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                    " Data packet format: %13")
-                         .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
-                         .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getUDTFormat()).arg(header.getPF())
-                         .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
+            m_logger->log(Logger::LogLevelDebug, QString("Received defined short data header from %1 to %2 --- A: %3, GI:%4, "
+                          "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                          " Data packet format: %13")
+                          .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
+                          .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getUDTFormat()).arg(header.getPF())
+                          .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
         }
-    }
-    else if((dmr_data.getDataType() == DT_RATE_12_DATA) ||
-            (dmr_data.getDataType() == DT_RATE_1_DATA) ||
-            (dmr_data.getDataType() == DT_RATE_34_DATA))
-    {
-        if(_messages.contains(srcId))
-        {
-            msg = _messages.value(srcId);
+    } else if ((dmr_data.getDataType() == DT_RATE_12_DATA) ||
+               (dmr_data.getDataType() == DT_RATE_1_DATA) ||
+               (dmr_data.getDataType() == DT_RATE_34_DATA)) {
+        if (m_messages.contains(srcId)) {
+            msg = m_messages.value(srcId);
 
-            if(msg->size > 0)
-            {
+            if (msg->size > 0) {
                 msg->rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
                 msg->ber_accumulator += float(dmr_data.getBER()) / 1.41f;
                 addDataToBuffer(srcId, dmr_data);
                 unsigned int block_size = 12U;
-                if((dmr_data.getDataType() == DT_RATE_1_DATA))
+
+                if ((dmr_data.getDataType() == DT_RATE_1_DATA))
                     block_size = 24U;
-                else if((dmr_data.getDataType() == DT_RATE_34_DATA))
+                else if ((dmr_data.getDataType() == DT_RATE_34_DATA))
                     block_size = 18U;
+
                 unsigned char block[24U];
                 memset(block, 0, block_size);
                 unsigned char data[DMR_FRAME_LENGTH_BYTES];
                 dmr_data.getData(data);
-                if(dmr_data.getDataType() == DT_RATE_12_DATA)
-                {
+
+                if (dmr_data.getDataType() == DT_RATE_12_DATA) {
                     CBPTC19696 bptc;
                     bptc.decode(data, block);
-                }
-                else if (dmr_data.getDataType() == DT_RATE_34_DATA)
-                {
+                } else if (dmr_data.getDataType() == DT_RATE_34_DATA) {
                     CDMRTrellis trellis;
                     bool ret = trellis.decode(data, block);
-                    if(!ret)
-                    {
-                        _logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 could not be decoded!")
-                                     .arg(msg->block));
+
+                    if (!ret) {
+                        m_logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 could not be decoded!")
+                                      .arg(msg->block));
                     }
-                }
-                else if (dmr_data.getDataType() == DT_RATE_1_DATA)
-                {
+                } else if (dmr_data.getDataType() == DT_RATE_1_DATA) {
                     memcpy(block, data, block_size);
                 }
+
                 // build message
-                if((msg->type == DPF_UDT) && (dmr_data.getDataType() == DT_RATE_12_DATA))
-                {
-                    memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                if ((msg->type == DPF_UDT) && (dmr_data.getDataType() == DT_RATE_12_DATA)) {
+                    memcpy(msg->message + ((msg->size - msg->block) * block_size), block, block_size);
                     memcpy(msg->data[msg->size - msg->block], block, block_size);
-                }
-                else if(msg->type == DPF_CONFIRMED_DATA)
-                {
-                    if(msg->retry)
-                    {
+                } else if (msg->type == DPF_CONFIRMED_DATA) {
+                    if (msg->retry) {
 
                     }
-                    memcpy(msg->message + ((msg->size - msg->block) * (block_size - 2U)) , block + 2U, block_size - 2U);
+
+                    memcpy(msg->message + ((msg->size - msg->block) * (block_size - 2U)), block + 2U, block_size - 2U);
                     uint8_t dbsn = 0;
                     bool crc_valid = block_crc(block, block_size, dbsn);
                     memcpy(msg->data[dbsn], block + 2U, block_size - 2U);
-                    if(!crc_valid)
-                    {
-                        if(msg->sap == 9) // proprietary data
-                        {
+
+                    if (!crc_valid) {
+                        if (msg->sap == 9) { // proprietary data
                             // Last data block seems to contain gibberish, CRC9 check will fail, DBSN also invalid
-                            if((msg->block > 1) && (msg->size > 1))
-                            {
+                            if ((msg->block > 1) && (msg->size > 1)) {
                                 msg->crc_valid = false;
-                                if(dbsn < 64)
+
+                                if (dbsn < 64)
                                     msg->missed_blocks[0] |= 1 << dbsn;
                                 else
                                     msg->missed_blocks[1] |= 1 << (dbsn - 64);
-                                _logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
-                                             .arg(dbsn));
+
+                                m_logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
+                                              .arg(dbsn));
                             }
-                        }
-                        else
-                        {
+                        } else {
                             msg->crc_valid = false;
-                            if(dbsn < 64)
+
+                            if (dbsn < 64)
                                 msg->missed_blocks[0] |= 1 << dbsn;
                             else
                                 msg->missed_blocks[1] |= 1 << (dbsn - 64);
-                            _logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
-                                         .arg(dbsn));
+
+                            m_logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
+                                          .arg(dbsn));
                         }
                     }
 
-                }
-                else if(msg->type == DPF_UNCONFIRMED_DATA)
-                {
-                    memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                } else if (msg->type == DPF_UNCONFIRMED_DATA) {
+                    memcpy(msg->message + ((msg->size - msg->block) * block_size), block, block_size);
                     memcpy(msg->data[msg->size - msg->block], block, block_size);
-                }
-                else if(msg->type == DPF_DEFINED_SHORT)
-                {
-                    memcpy(msg->message + ((msg->size - msg->block) * block_size) , block, block_size);
+                } else if (msg->type == DPF_DEFINED_SHORT) {
+                    memcpy(msg->message + ((msg->size - msg->block) * block_size), block, block_size);
                     memcpy(msg->data[msg->size - msg->block], block, block_size);
                 }
 
                 /// If last block has been received, build the message
-                if((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT))
-                {
+                if ((dmr_data.getDataType() == DT_RATE_12_DATA) && (msg->block == 1) && (msg->type == DPF_UDT)) {
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
-                    msg->crc_valid = CCRC::checkCCITT162(msg->message, msg->size*block_size);
-                    data_message *finished_message = new data_message(msg);
+                    msg->crc_valid = CCRC::checkCCITT162(msg->message, msg->size * block_size);
+                    data_message* finished_message = new data_message(msg);
                     clearMessage(srcId);
                     return finished_message;
-                }
-                else if(msg->block == 1 && msg->type == DPF_CONFIRMED_DATA)
-                {
-                    if(!msg->crc_valid && (msg->size > 1))
-                    {
+                } else if (msg->block == 1 && msg->type == DPF_CONFIRMED_DATA) {
+                    if (!msg->crc_valid && (msg->size > 1)) {
                         bool retry = false;
-                        for(uint8_t i=0;i<2;i++)
-                            if(msg->missed_blocks[i])
+
+                        for (uint8_t i = 0; i < 2; i++)
+                            if (msg->missed_blocks[i])
                                 retry = true;
-                        if(retry && !msg->retry)
-                        {
+
+                        if (retry && !msg->retry) {
                             msg->retry = true;
-                            data_message *finished_message = new data_message(msg);
-                            _retry_messages.insert(srcId, finished_message);
+                            data_message* finished_message = new data_message(msg);
+                            m_retry_messages.insert(srcId, finished_message);
                             clearMessage(srcId);
                             return finished_message; // for notifying retry blocks
-                        }
-                        else if(retry && msg->retry)
-                        {
+                        } else if (retry && msg->retry) {
                             clearRetryMessage(srcId);
                             clearMessage(srcId);
                             return nullptr;
-                        }
-                        else
-                        {
+                        } else {
                             clearMessage(srcId);
                             return nullptr;
                         }
-                    }
-                    else if(!msg->crc_valid && (msg->size == 1))
-                    {
+                    } else if (!msg->crc_valid && (msg->size == 1)) {
                         msg->crc_valid = true; // in case last block contains unparseable data
                     }
+
                     bool valid = processConfirmedMessage(msg, block_size);
-                    if(!valid)
-                    {
+
+                    if (!valid) {
                         clearMessage(srcId);
                         return nullptr;
                     }
+
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
-                    if(msg->group && !from_gateway)
-                    {
+
+                    if (msg->group && !from_gateway) {
                         dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
-                    _logger->log(Logger::LogLevelInfo, QString("Received confirmed data message from %1 to %2 of length %3.")
-                                     .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
-                    data_message *finished_message = new data_message(msg);
+
+                    m_logger->log(Logger::LogLevelInfo, QString("Received confirmed data message from %1 to %2 of length %3.")
+                                  .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
+                    data_message* finished_message = new data_message(msg);
                     clearMessage(srcId);
                     return finished_message;
-                }
-                else if(msg->block == 1 && msg->type == DPF_UNCONFIRMED_DATA)
-                {
+                } else if (msg->block == 1 && msg->type == DPF_UNCONFIRMED_DATA) {
                     bool valid = processUnconfirmedMessage(msg, block_size);
-                    if(!valid)
-                    {
+
+                    if (!valid) {
                         clearMessage(srcId);
                         return nullptr;
                     }
+
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
-                    if(msg->group && !from_gateway)
-                    {
+
+                    if (msg->group && !from_gateway) {
                         dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
-                    _logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
-                                     .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
-                    data_message *finished_message = new data_message(msg);
+
+                    m_logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
+                                  .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
+                    data_message* finished_message = new data_message(msg);
                     clearMessage(srcId);
                     return finished_message;
-                }
-                else if(msg->block == 1 && msg->type == DPF_DEFINED_SHORT)
-                {
+                } else if (msg->block == 1 && msg->type == DPF_DEFINED_SHORT) {
                     bool valid = processDefinedDataMessage(msg, block_size);
-                    if(!valid)
-                    {
+
+                    if (!valid) {
                         clearMessage(srcId);
                         return nullptr;
                     }
+
                     msg->rssi = msg->rssi_accumulator / float(msg->size + 1);
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
-                    if(msg->group && !from_gateway)
-                    {
+
+                    if (msg->group && !from_gateway) {
                         dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
-                    _logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
-                                     .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
-                    data_message *finished_message = new data_message(msg);
+
+                    m_logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
+                                  .arg(msg->real_src).arg(msg->real_dst).arg(msg->payload_len));
+                    data_message* finished_message = new data_message(msg);
                     clearMessage(srcId);
                     return finished_message;
                 }
+
                 msg->block -= 1;
             }
         }
@@ -430,7 +401,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData &dmr_da
     return nullptr;
 }
 
-bool DMRMessageHandler::block_crc(unsigned char *block, unsigned int block_size, uint8_t &dbsn)
+bool DMRMessageHandler::block_crc(unsigned char* block, unsigned int block_size, uint8_t& dbsn)
 {
     dbsn = (block[0] >> 1) & 0x7F;
     uint16_t crc_sent = (((block[0] & 1) << 8) | block[1]) ^ 0x0F0;
@@ -443,18 +414,16 @@ bool DMRMessageHandler::block_crc(unsigned char *block, unsigned int block_size,
     uint8_t rem = 0;
     unsigned char data_b[11];
     memset(data_b, 0, block_size - 1);
-    for(int i=block_size - 2;i>=0;i--)
-    {
-        if(i > 0)
-        {
-            rem = data[i-1] & 0x01;
+
+    for (int i = block_size - 2; i >= 0; i--) {
+        if (i > 0) {
+            rem = data[i - 1] & 0x01;
             data_b[i] = data[i] >> 1 | (rem << 7);
-        }
-        else
-        {
+        } else {
             data_b[i] = data[i] >> 1;
         }
     }
+
     crc_t crc_calc;
     crc_calc = crc9_init();
     crc_calc = crc9_update(crc_calc, data_b, block_size - 1);
@@ -462,51 +431,52 @@ bool DMRMessageHandler::block_crc(unsigned char *block, unsigned int block_size,
     return crc_calc == crc_sent;
 }
 
-bool DMRMessageHandler::message_crc32(data_message *msg, unsigned int type, unsigned int block_size)
+bool DMRMessageHandler::message_crc32(data_message* msg, unsigned int type, unsigned int block_size)
 {
     unsigned int crc_msg_size;
     unsigned int crc_sent = 0;
     uint index = 0;
-    if((msg->sap == 9) && ((type == 0x0201) || (type == 0x0101)))
-    {
+
+    if ((msg->sap == 9) && ((type == 0x0201) || (type == 0x0101))) {
         // Last block does not contain CRC32 and is not decodable
-        crc_msg_size = msg->size*(block_size - 2) - 14 - index;
-    }
-    else if((type == 0) && (msg->sap == 4)) // Unconfirmed standard ETSI
-    {
+        crc_msg_size = msg->size * (block_size - 2) - 14 - index;
+    } else if ((type == 0) && (msg->sap == 4)) { // Unconfirmed standard ETSI
         crc_msg_size = msg->size * block_size - 4;
+    } else {
+        crc_msg_size = msg->size * (block_size - 2) - 4;
     }
-    else
-    {
-        crc_msg_size = msg->size*(block_size - 2) - 4;
-    }
+
     crc_sent |= msg->message[index + crc_msg_size + 3];
     crc_sent |= msg->message[index + crc_msg_size + 2] << 8;
     crc_sent |= msg->message[index + crc_msg_size + 1] << 16;
     crc_sent |= msg->message[index + crc_msg_size] << 24;
     unsigned char crc_data[MAX_MESSAGE_SIZE];
-    for(;index <crc_msg_size;index=index+2)
-    {
-        crc_data[index] = msg->message[index+1];
-        crc_data[index+1] = msg->message[index];
+
+    for (; index < crc_msg_size; index = index + 2) {
+        crc_data[index] = msg->message[index + 1];
+        crc_data[index + 1] = msg->message[index];
     }
+
     crc_t crc_calculated = crc32_init();
     crc_calculated = crc32_update(crc_calculated, (const unsigned char*)crc_data, crc_msg_size);
     crc_calculated = crc32_finalize(crc_calculated);
 
     bool valid = crc_calculated == crc_sent;
-    if(!valid)
-        _logger->log(Logger::LogLevelWarning, QString("Confirmed packet data message failed CRC32 check"));
+
+    if (!valid)
+        m_logger->log(Logger::LogLevelWarning, QString("Confirmed packet data message failed CRC32 check"));
+
     return valid;
 }
 
-bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int block_size)
+bool DMRMessageHandler::processConfirmedMessage(data_message* msg, unsigned int block_size)
 {
-    if(!msg->crc_valid)
+    if (!msg->crc_valid)
         return false;
+
     uint16_t type = 0;
-    if(msg->sap == 9)
-    {
+
+    if (msg->sap == 9) {
         type = (msg->message[0] << 8) | msg->message[1];
         /*//print payload
         for(uint i=0;i<msg->size * (block_size - 2);i++)
@@ -516,17 +486,19 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
         */
 
 
-        if(type == 0x0201)
-        {
-            if((msg->size*(block_size - 2) - 4) < 40)
+        if (type == 0x0201) {
+            if ((msg->size * (block_size - 2) - 4) < 40)
                 return false;
 
             msg->payload_len |= msg->message[38];
             msg->payload_len = (msg->payload_len << 8) | msg->message[39];
-            if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+            if (msg->payload_len > MAX_MESSAGE_SIZE)
                 return false;
-            if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
+
+            if ((msg->size * (block_size - 2) - 4) < 41 + msg->payload_len)
                 return false;
+
             memcpy(msg->payload, msg->message + 40, msg->payload_len);
             msg->group = (msg->message[26] & 0x80) == 0x80;
             msg->real_dst = msg->message[27];
@@ -538,19 +510,20 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
             msg->real_src = (msg->real_src << 8) | msg->message[21];
 
             return message_crc32(msg, type, block_size);
-        }
-        else if(type == 0x0101)
-        {
+        } else if (type == 0x0101) {
 
-            if((msg->size*(block_size - 2) - 4) < 40)
+            if ((msg->size * (block_size - 2) - 4) < 40)
                 return false;
 
             msg->payload_len |= msg->message[36];
             msg->payload_len = (msg->payload_len << 8) | msg->message[37];
-            if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+            if (msg->payload_len > MAX_MESSAGE_SIZE)
                 return false;
-            if((msg->size*(block_size - 2) - 4) < 41 + msg->payload_len)
+
+            if ((msg->size * (block_size - 2) - 4) < 41 + msg->payload_len)
                 return false;
+
             memcpy(msg->payload, msg->message + 38, msg->payload_len);
             msg->group = (msg->message[24] & 0x80) == 0x80;
             msg->real_dst = msg->message[25];
@@ -563,112 +536,121 @@ bool DMRMessageHandler::processConfirmedMessage(data_message *msg, unsigned int 
 
             return message_crc32(msg, type, block_size);
         }
-    }
-    else
-    {
-        msg->payload_len = msg->size*(block_size - 2) - 4;
-        if(msg->payload_len > MAX_MESSAGE_SIZE)
+    } else {
+        msg->payload_len = msg->size * (block_size - 2) - 4;
+
+        if (msg->payload_len > MAX_MESSAGE_SIZE)
             return false;
+
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
     }
+
     return false;
 }
 
-bool DMRMessageHandler::processUnconfirmedMessage(data_message *msg, unsigned int block_size)
+bool DMRMessageHandler::processUnconfirmedMessage(data_message* msg, unsigned int block_size)
 {
     /// Anytone M-format and DMR-standard messages
     /// The implementation is based on protocol description from:
     /// https://github.com/carpaldolor/DMRText
     /// by KY4YI – John Finn
-    if(!msg->crc_valid)
+    if (!msg->crc_valid)
         return false;
+
     uint16_t type = 0;
-    if(msg->sap == 4)
-    {
+
+    if (msg->sap == 4) {
         msg->payload_len = msg->size * block_size - 4;
-        if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+        if (msg->payload_len > MAX_MESSAGE_SIZE)
             return false;
+
         memcpy(msg->payload, msg->message, msg->payload_len);
         unsigned int ip_hdr_size = sizeof(struct ip);
-        const struct ip *ip_hdr = (struct ip*) msg->payload;
-        _logger->log(Logger::LogLevelInfo, QString("IP frame from %1 to %2 with protocol %3.")
-                         .arg(QHostAddress(ntohl(ip_hdr->ip_src.s_addr)).toString())
-                     .arg(QHostAddress(ntohl(ip_hdr->ip_dst.s_addr)).toString()).arg(ip_hdr->ip_p));
+        const struct ip* ip_hdr = (struct ip*) msg->payload;
+        m_logger->log(Logger::LogLevelInfo, QString("IP frame from %1 to %2 with protocol %3.")
+                      .arg(QHostAddress(ntohl(ip_hdr->ip_src.s_addr)).toString())
+                      .arg(QHostAddress(ntohl(ip_hdr->ip_dst.s_addr)).toString()).arg(ip_hdr->ip_p));
 
-        if(ip_hdr->ip_p == 0x11) // UDP
-        {
+        if (ip_hdr->ip_p == 0x11) { // UDP
             unsigned int udp_hdr_size = sizeof(struct udphdr);
-            const struct udphdr *udp = (struct udphdr*) (msg->payload + ip_hdr_size);
-            _logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
-                                                       " with length %3.")
-                             .arg(ntohs(udp->source)).arg(ntohs(udp->dest)).arg(ntohs(udp->len)));
+            const struct udphdr* udp = (struct udphdr*)(msg->payload + ip_hdr_size);
+            m_logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
+                          " with length %3.")
+                          .arg(ntohs(udp->source)).arg(ntohs(udp->dest)).arg(ntohs(udp->len)));
             // strip IP and UDP headers
             msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
-            if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+            if (msg->payload_len > MAX_MESSAGE_SIZE)
                 return false;
+
             // test standard format option
-            if(msg->payload_len > 4)
-            {
+            if (msg->payload_len > 4) {
                 uint64_t msg_hdr = (msg->message[28] << 24) | (msg->message[29] << 16)
-                        | (msg->message[30] << 8) | (msg->message[31] << 0);
-                if(msg_hdr == 0x000D000A)
-                {
+                                   | (msg->message[30] << 8) | (msg->message[31] << 0);
+
+                if (msg_hdr == 0x000D000A) {
                     msg->payload_len = msg->payload_len - 4;
                     memcpy(msg->payload, msg->message + 32, msg->payload_len);
                     return message_crc32(msg, type, block_size);
                 }
             }
+
             // test M format option
-            if(msg->payload_len > 10)
-            {
+            if (msg->payload_len > 10) {
                 uint64_t msg_hdr = (msg->message[34] << 24) | (msg->message[35] << 16)
-                        | (msg->message[36] << 8) | (msg->message[37] << 0);
-                if(msg_hdr == 0x0D000A00)
-                {
+                                   | (msg->message[36] << 8) | (msg->message[37] << 0);
+
+                if (msg_hdr == 0x0D000A00) {
                     msg->payload_len = msg->payload_len - 10;
                     memcpy(msg->payload, msg->message + 38, msg->payload_len);
                     return message_crc32(msg, type, block_size);
                 }
             }
+
             // unknown
             memcpy(msg->payload, msg->message + ip_hdr_size + udp_hdr_size, msg->payload_len);
             return message_crc32(msg, type, block_size);
         }
 
-    }
-    else
-    {
+    } else {
         msg->payload_len = msg->size * block_size - 4;
-        if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+        if (msg->payload_len > MAX_MESSAGE_SIZE)
             return false;
+
         memcpy(msg->payload, msg->message, msg->payload_len);
         return message_crc32(msg, type, block_size);
     }
+
     return false;
 }
 
-bool DMRMessageHandler::processDefinedDataMessage(data_message *msg, unsigned int block_size)
+bool DMRMessageHandler::processDefinedDataMessage(data_message* msg, unsigned int block_size)
 {
-    if(!msg->crc_valid)
+    if (!msg->crc_valid)
         return false;
+
     /// Anytone H-format message
-    if(msg->sap == 10 && msg->type == 13)
-    {
+    if (msg->sap == 10 && msg->type == 13) {
         msg->payload_len = msg->size * block_size - 2 - (msg->pad_nibble / 8);
-        if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+        if (msg->payload_len > MAX_MESSAGE_SIZE)
             return false;
+
         memcpy(msg->payload, msg->message + 2, msg->payload_len);
         /// No CRC
         return true;
-    }
-    else
-    {
+    } else {
         msg->payload_len = msg->size * block_size - (msg->pad_nibble / 8);
-        if(msg->payload_len > MAX_MESSAGE_SIZE)
+
+        if (msg->payload_len > MAX_MESSAGE_SIZE)
             return false;
+
         memcpy(msg->payload, msg->message, msg->payload_len);
         return true;
     }
+
     return false;
 }
