@@ -34,7 +34,7 @@
 #include "src/udpclient.h"
 #include "src/logicalchannel.h"
 #include "src/standard_PDU.h"
-#include "src/utils.h"
+#include "src/trunking_utils.h"
 #include "src/dmrrewrite.h"
 #include "src/dmridlookup.h"
 #include "src/gatewayrouter.h"

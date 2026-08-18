@@ -332,7 +332,7 @@ void Signalling::createLateEntryAnnouncement(LogicalChannel* logical_channel, CD
 
     if ((logical_channel->getCallType() == CallType::CALL_TYPE_GROUP) ||
         (logical_channel->getCallType() == CallType::CALL_TYPE_GROUP_PACKET)) {
-        csbk.setDstId(Utils::convertBase10ToBase11GroupNumber(logical_channel->getDestination()));
+        csbk.setDstId(TrunkingUtils::convertBase10ToBase11GroupNumber(logical_channel->getDestination()));
     } else {
         csbk.setDstId(logical_channel->getDestination());
     }

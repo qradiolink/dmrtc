@@ -16,23 +16,23 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "utils.h"
+#include "trunking_utils.h"
 #include "math.h"
 
 
-Utils::Utils()
+TrunkingUtils::TrunkingUtils()
 {
 
 }
 
 
-unsigned int Utils::convertCAIToP3GroupNumber(unsigned int gid)
+unsigned int TrunkingUtils::convertCAIToP3GroupNumber(unsigned int gid)
 {
     (void)gid;
     return 0; // Not implemented
 }
 
-unsigned int Utils::convertP3GroupNumberToCAI(unsigned int group_number)
+unsigned int TrunkingUtils::convertP3GroupNumberToCAI(unsigned int group_number)
 {
     unsigned int NP = group_number / 100000;
     unsigned int FGN = (group_number - NP * 100000) / 10000;
@@ -41,12 +41,12 @@ unsigned int Utils::convertP3GroupNumberToCAI(unsigned int group_number)
     return CAI;
 }
 
-unsigned int Utils::convertBase11GroupNumberToBase10(unsigned int group_number)
+unsigned int TrunkingUtils::convertBase11GroupNumberToBase10(unsigned int group_number)
 {
     if (group_number < 1)
         return 0;
 
-    unsigned int base_11 = Utils::base11(group_number);
+    unsigned int base_11 = TrunkingUtils::base11(group_number);
 
     if (base_11 < 99999)
         return base_11;
@@ -64,7 +64,7 @@ unsigned int Utils::convertBase11GroupNumberToBase10(unsigned int group_number)
     return big_three + small_four;
 }
 
-unsigned int Utils::base11(unsigned int value)
+unsigned int TrunkingUtils::base11(unsigned int value)
 {
     if (value < 1)
         return 0;
@@ -72,7 +72,7 @@ unsigned int Utils::base11(unsigned int value)
     return (value % 11) + 10 * base11(value / 11);
 }
 
-unsigned int Utils::convertBase10ToBase11GroupNumber(unsigned int gid)
+unsigned int TrunkingUtils::convertBase10ToBase11GroupNumber(unsigned int gid)
 {
     if ((gid > 9999999) || (gid < 1))
         return 0;
@@ -88,7 +88,7 @@ unsigned int Utils::convertBase10ToBase11GroupNumber(unsigned int gid)
     return group_number;
 }
 
-void Utils::parseUTF16(QString& text_message, unsigned int size, unsigned char* msg)
+void TrunkingUtils::parseUTF16(QString& text_message, unsigned int size, unsigned char* msg)
 {
     if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
         text_message = QString::fromUtf16((char16_t*)msg, size / 2);
@@ -107,7 +107,7 @@ void Utils::parseUTF16(QString& text_message, unsigned int size, unsigned char* 
     }
 }
 
-void Utils::parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, unsigned int bit7_size, unsigned int size)
+void TrunkingUtils::parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, unsigned int bit7_size, unsigned int size)
 {
     memset(converted, 0, size);
     uint8_t remainder = 0;
@@ -134,7 +134,7 @@ void Utils::parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, 
     }
 }
 
-QList<QString> Utils::readNMEA(unsigned char* msg, unsigned int dsize)
+QList<QString> TrunkingUtils::readNMEA(unsigned char* msg, unsigned int dsize)
 {
     uint8_t C, NS, EW, Q, SPEED, NDEG, NMIN, EDEG, EMINmm, UTChh, UTCmm, UTCss;
     uint16_t NMINF, EMINF, COG;
@@ -184,7 +184,7 @@ QList<QString> Utils::readNMEA(unsigned char* msg, unsigned int dsize)
     return messages;
 }
 
-unsigned int Utils::parseBCDDigits(unsigned char* message_payload, unsigned int message_size, unsigned int pad_nibble)
+unsigned int TrunkingUtils::parseBCDDigits(unsigned char* message_payload, unsigned int message_size, unsigned int pad_nibble)
 {
     unsigned int size = message_size * 12 - 2; // size does not include CRC16
     unsigned char msg[48U];

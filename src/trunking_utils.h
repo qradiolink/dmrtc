@@ -17,18 +17,18 @@
  */
 
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef TRUNKING_UTILS_H
+#define TRUNKING_UTILS_H
 
 #include <QSysInfo>
 #include <QString>
 #include <QList>
 #include <string.h>
 
-class Utils
+class TrunkingUtils
 {
 public:
-    Utils();
+    TrunkingUtils();
     static void parseUTF16(QString& text_message, unsigned int size, unsigned char* msg);
     static void parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, unsigned int bit7_size, unsigned int size);
     static unsigned int convertP3GroupNumberToCAI(unsigned int group_number);
@@ -40,4 +40,4 @@ public:
     static unsigned int parseBCDDigits(unsigned char* message_payload, unsigned int message_size, unsigned int pad_nibble);
 };
 
-#endif // UTILS_H
+#endif // TRUNKING_UTILS_H

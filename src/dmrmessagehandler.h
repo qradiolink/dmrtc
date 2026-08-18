@@ -28,7 +28,7 @@
 #include "logger.h"
 #include "crc9.h"
 #include "crc32.h"
-#include "utils.h"
+#include "trunking_utils.h"
 #include "MMDVM/DMRData.h"
 #include "MMDVM/DMRDataHeader.h"
 #include "MMDVM/BPTC19696.h"

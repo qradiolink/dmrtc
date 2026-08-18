@@ -343,7 +343,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
 
                     if (msg->group && !from_gateway) {
-                        dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
+                        dstId = TrunkingUtils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
 
                     m_logger->log(Logger::LogLevelInfo, QString("Received confirmed data message from %1 to %2 of length %3.")
@@ -363,7 +363,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
 
                     if (msg->group && !from_gateway) {
-                        dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
+                        dstId = TrunkingUtils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
 
                     m_logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")
@@ -383,7 +383,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     msg->ber = msg->ber_accumulator / float(msg->size + 1);
 
                     if (msg->group && !from_gateway) {
-                        dstId = Utils::convertBase11GroupNumberToBase10(msg->real_dst);
+                        dstId = TrunkingUtils::convertBase11GroupNumberToBase10(msg->real_dst);
                     }
 
                     m_logger->log(Logger::LogLevelInfo, QString("Received unconfirmed data message from %1 to %2 of length %3.")

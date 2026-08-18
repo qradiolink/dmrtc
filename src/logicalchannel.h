@@ -38,7 +38,7 @@
 #include "MMDVM/Utils.h"
 #include "src/logger.h"
 #include "src/settings.h"
-#include "src/utils.h"
+#include "src/trunking_utils.h"
 #include "src/dmrrewrite.h"
 
 

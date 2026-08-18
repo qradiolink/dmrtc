@@ -137,7 +137,7 @@ $ ./dmrtc
 - To run it in console, without the GUI interface, start it with the "-h" flag:
 
 <pre>
-$ ./dmrtc -h
+$ ./dmrtc -d
 </pre>
 
 - The configuration file is located at $HOME/.config/dmrtc/dmrtc.cfg (see dmrtc.cfg.example)

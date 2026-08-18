@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     bool headless = false;
 
     Logger *logger = new Logger;
-    if((arguments.length() > 1) && (arguments.indexOf("-h") != -1))
+    if((arguments.length() > 1) && (arguments.indexOf("-d") != -1))
     {
         logger->set_console_log(true);
         headless = true;

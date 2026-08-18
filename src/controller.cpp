@@ -488,7 +488,7 @@ void Controller::announcePrivateCalls()
 void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message,
         bool group)
 {
-    dstId = group ? Utils::convertBase10ToBase11GroupNumber(dstId) : dstId;
+    dstId = group ? TrunkingUtils::convertBase10ToBase11GroupNumber(dstId) : dstId;
     unsigned int slot_no = m_control_channel->getSlot();
     QVector<CDMRData> dmr_data_frames;
     m_signalling_generator->buildUDTShortMessageSequence(dmr_data_frames, srcId, dstId, message, group, slot_no);
@@ -572,7 +572,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
             continue;
 
         dgna_tg.append(group);
-        unsigned int id = (Utils::convertBase10ToBase11GroupNumber(group));
+        unsigned int id = (TrunkingUtils::convertBase10ToBase11GroupNumber(group));
         data[k] = (id >> 16) & 0xFF;
         data[k + 1] = (id >> 8) & 0xFF;
         data[k + 2] = id & 0xFF;
@@ -1244,7 +1244,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
         if (tg == 0)
             continue;
 
-        unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(tg);
+        unsigned int converted_id = TrunkingUtils::convertBase11GroupNumberToBase10(tg);
         tg_list.append(converted_id);
         m_logger->log(Logger::LogLevelInfo, QString("Received talkgroup attachment data from %1: %2")
                       .arg(srcId).arg(converted_id));
@@ -1304,7 +1304,7 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRM
     unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2;
     unsigned char msg[48U];
     memcpy(msg, dmessage->message, size);
-    QList<QString> messages = Utils::readNMEA(msg, dmessage->size);
+    QList<QString> messages = TrunkingUtils::readNMEA(msg, dmessage->size);
     QStringList allmsg(messages);
     m_logger->log(Logger::LogLevelInfo, QString("Received NMEA UDT location message from %1 to %2: %3")
                   .arg(srcId)
@@ -1333,7 +1333,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
                                     DMRMessageHandler::data_message* dmessage, bool group, bool from_gateway)
 {
     if (group || dmessage->group)
-        dstId = Utils::convertBase11GroupNumberToBase10(dstId);
+        dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dstId);
 
     if ((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7)) {
         unsigned int size = dmessage->size * 12 - dmessage->pad_nibble / 2 - 2; // size does not include CRC16
@@ -1347,10 +1347,10 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
         else if (dmessage->udt_format == 3) {
             unsigned int bit7_size = 8 * size / 7;
             unsigned char converted[96U];
-            Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+            TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
             text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
         } else if (dmessage->udt_format == 7) {
-            Utils::parseUTF16(text_message, size - 1, msg);
+            TrunkingUtils::parseUTF16(text_message, size - 1, msg);
             text_message = text_message.trimmed();
         }
 
@@ -1395,10 +1395,10 @@ void Controller::processDigits(unsigned int dstId, unsigned int srcId,
                                DMRMessageHandler::data_message* dmessage, bool group)
 {
     if (group || dmessage->group)
-        dstId = Utils::convertBase11GroupNumberToBase10(dstId);
+        dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dstId);
 
     if (dmessage->udt_format == 2) {
-        unsigned int dialId = Utils::parseBCDDigits(dmessage->message, dmessage->size, dmessage->pad_nibble);
+        unsigned int dialId = TrunkingUtils::parseBCDDigits(dmessage->message, dmessage->size, dmessage->pad_nibble);
         QString text_message = QString("Received call digits via UDT from %1 to %2: %3")
                                .arg(srcId)
                                .arg(dstId)
@@ -1501,7 +1501,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
 {
     if (dmessage->udt == false) {
         srcId = dmessage->real_src;
-        dstId = dmessage->group ? Utils::convertBase11GroupNumberToBase10(dmessage->real_dst) : dmessage->real_dst;
+        dstId = dmessage->group ? TrunkingUtils::convertBase11GroupNumberToBase10(dmessage->real_dst) : dmessage->real_dst;
         QString text_message;
         text_message = QString::fromUtf8((const char*)dmessage->payload, dmessage->payload_len).trimmed();
         confirmPDPMessageReception(srcId, slotNo, dmessage, udp_channel_id);
@@ -1559,7 +1559,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
 void Controller::processUDPProtocolMessage(unsigned int dstId, unsigned int srcId,
         DMRMessageHandler::data_message* dmessage, bool from_gateway)
 {
-    dstId = (dmessage->group && !from_gateway) ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
+    dstId = (dmessage->group && !from_gateway) ? TrunkingUtils::convertBase11GroupNumberToBase10(dstId) : dstId;
     QString text_message;
 
     for (uint i = 0; i < dmessage->payload_len; i++) {
@@ -1657,10 +1657,10 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
             else if (dmessage->udt_format == 3) {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[96U];
-                Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+                TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             } else if (dmessage->udt_format == 7) {
-                Utils::parseUTF16(text_message, size - 1, msg);
+                TrunkingUtils::parseUTF16(text_message, size - 1, msg);
                 text_message = text_message.trimmed();
             }
 
@@ -1708,10 +1708,10 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
             else if (dmessage->udt_format == 3) {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[96U];
-                Utils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
+                TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             } else if (dmessage->udt_format == 7) {
-                Utils::parseUTF16(text_message, size - 1, msg);
+                TrunkingUtils::parseUTF16(text_message, size - 1, msg);
                 text_message = text_message.trimmed();
             }
 
@@ -1744,7 +1744,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     /// Rewriting destination to match DMR tier III flat numbering
     if (local_data) {
         if (dmr_data.getFLCO() == FLCO_GROUP)
-            dstIdRewritten = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+            dstIdRewritten = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
         else
             dstIdRewritten = dmr_data.getDstId();
     } else {
@@ -1806,7 +1806,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     }
 
                     m_logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
-                                  .arg(dmr_data.getSlotNo()).arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+                                  .arg(dmr_data.getSlotNo()).arg(srcId).arg(TrunkingUtils::convertBase11GroupNumberToBase10(dstId)));
 
                     if (!from_gateway) {
                         CDMRCSBK csbk;
@@ -1903,7 +1903,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 return;
             }
 
-            dstId = Utils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
+            dstId = TrunkingUtils::convertBase10ToBase11GroupNumber(dmr_data.getDstId());
             m_signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         } else {
             if (m_settings->call_diverts.contains(dstId)) {
@@ -1917,7 +1917,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
         m_control_channel->putRFQueue(dmr_data);
     } else if (!from_gateway && forward_to_gw) {
         if (dmr_data.getFLCO() == FLCO_GROUP) {
-            dstId = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+            dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
             m_signalling_generator->rewriteUDTHeader(dmr_data, dstId);
         } else {
             if (m_settings->call_diverts.contains(dstId)) {
@@ -1945,7 +1945,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     /// Rewriting destination to match DMR tier III flat numbering
     if (local_data) {
         if (dmr_data.getFLCO() == FLCO_GROUP)
-            dstId = Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
+            dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
         else
             dstId = dmr_data.getDstId();
 
@@ -1963,7 +1963,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
                 return;
             }
 
-            dmr_data.setDstId(Utils::convertBase10ToBase11GroupNumber(dstId));
+            dmr_data.setDstId(TrunkingUtils::convertBase10ToBase11GroupNumber(dstId));
         }
 
         // rewrite RF header to use the converted destination id
@@ -2008,7 +2008,7 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
             return;
         } else {
             if (dmr_data.getFLCO() == FLCO_GROUP)
-                dmr_data.setDstId(Utils::convertBase10ToBase11GroupNumber(dstId));
+                dmr_data.setDstId(TrunkingUtils::convertBase10ToBase11GroupNumber(dstId));
 
             logical_channel->putRFQueue(dmr_data);
             return;
@@ -2096,7 +2096,7 @@ bool Controller::handleRegistration(CDMRCSBK& csbk, unsigned int slotNo,
         uab = (csbk.getCBF() << 4) & 0x03;
 
         if (target_addr_cnts == 1) {
-            unsigned int converted_id = Utils::convertBase11GroupNumberToBase10(dstId);
+            unsigned int converted_id = TrunkingUtils::convertBase11GroupNumberToBase10(dstId);
             m_logger->log(Logger::LogLevelInfo, QString("DMR Slot %1, received registration request from %2 with attachement to TG %3")
                           .arg(slotNo).arg(srcId).arg(converted_id));
             m_signalling_generator->createReplyRegistrationAccepted(csbk, srcId);
@@ -2224,7 +2224,7 @@ void Controller::handlePrivateCallRequest(CDMRCSBK& csbk, LogicalChannel*& logic
 void Controller::handleGroupCallRequest(CDMRCSBK& csbk, LogicalChannel*& logical_channel, unsigned int slotNo,
                                         unsigned int srcId, unsigned int dstId, bool& channel_grant, bool local)
 {
-    unsigned int dmrDstId = (local) ? Utils::convertBase11GroupNumberToBase10(dstId) : dstId;
+    unsigned int dmrDstId = (local) ? TrunkingUtils::convertBase11GroupNumberToBase10(dstId) : dstId;
     m_logger->log(Logger::LogLevelInfo, QString("TSCC: DMR Slot %1, received group call request from %2 to TG %3")
                   .arg(slotNo).arg(srcId).arg(dmrDstId));
 
@@ -2920,9 +2920,9 @@ void Controller::processSignalling(CDMRData& dmr_data, int udp_channel_id)
             m_signalling_generator->createStatusTransportAhoy(csbk, srcId, dstId, true);
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             m_logger->log(Logger::LogLevelInfo, QString("Received status transport request to TG from %1, slot %2 to destination %3")
-                          .arg(srcId).arg(slotNo).arg(Utils::convertBase11GroupNumberToBase10(dstId)));
+                          .arg(srcId).arg(slotNo).arg(TrunkingUtils::convertBase11GroupNumberToBase10(dstId)));
             m_logger->log(Logger::LogLevelInfo, QString("Status of radio %1, for talkgroup %2 is %3")
-                          .arg(srcId).arg(Utils::convertBase11GroupNumberToBase10(dstId)).arg(status));
+                          .arg(srcId).arg(TrunkingUtils::convertBase11GroupNumberToBase10(dstId)).arg(status));
             m_control_channel->setText(QString("Status transfer to talkgroup: %1").arg(srcId));
 
             if (!m_settings->headless_mode) {

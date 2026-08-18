@@ -283,7 +283,7 @@ void LogicalChannel::putRFQueue(CDMRData& dmr_data, bool first)
     m_data_mutex.unlock();
 
     if (dmr_data.getFLCO() != FLCO_USER_USER) {
-        dmr_data.setDstId(Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
+        dmr_data.setDstId(TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
     }
 
     updateStats(dmr_data);
@@ -321,7 +321,7 @@ void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData>& dmr_data_items, bool
         CDMRData dmr_data = dmr_data_items[i];
 
         if (dmr_data.getFLCO() != FLCO_USER_USER) {
-            dmr_data.setDstId(Utils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
+            dmr_data.setDstId(TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId()));
         }
 
         updateStats(dmr_data);
@@ -770,7 +770,7 @@ void LogicalChannel::processTalkerAlias()
             setText(txt, false);
         } else if (m_ta_df == 0) {
             unsigned char converted[32U];
-            Utils::parseISO7bitToISO8bit((unsigned char*)m_ta_data.constData(), converted, bit7_size, size);
+            TrunkingUtils::parseISO7bitToISO8bit((unsigned char*)m_ta_data.constData(), converted, bit7_size, size);
             QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
             setText(txt, false);
         } else if (m_ta_df == 3) {
@@ -779,7 +779,7 @@ void LogicalChannel::processTalkerAlias()
                 setText(txt, false);
             } else {
                 QString txt;
-                Utils::parseUTF16(txt, size, (unsigned char*)m_ta_data.data());
+                TrunkingUtils::parseUTF16(txt, size, (unsigned char*)m_ta_data.data());
                 setText(txt, false);
             }
         }

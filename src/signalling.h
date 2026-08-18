@@ -24,7 +24,7 @@
 #include <QList>
 #include <QDateTime>
 #include "src/logicalchannel.h"
-#include "src/utils.h"
+#include "src/trunking_utils.h"
 #include "src/standard_PDU.h"
 #include "src/settings.h"
 #include "src/crc32.h"
