@@ -47,7 +47,7 @@ public:
 private:
     const Settings* m_settings;
     const QList<unsigned int>* m_registered_ms;
-    QVector<int> m_private_call_stream_ids;
+    QVector<unsigned int> m_private_call_stream_ids;
 };
 
 #endif // DMRREWRITE_H

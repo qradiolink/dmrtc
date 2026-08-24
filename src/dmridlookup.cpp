@@ -29,7 +29,7 @@ DMRIdLookup::DMRIdLookup(const Settings* settings, Logger* logger, QObject* pare
         QDir().mkdir(files.absolutePath() + "/.config/dmrtc");
     }
 
-    QFileInfo dmr_id_file = files.filePath(".config/dmrtc/DMRIds.dat");
+    QFileInfo dmr_id_file(files.filePath(".config/dmrtc/DMRIds.dat"));
 
     if (!dmr_id_file.exists()) {
         QString config = " ";

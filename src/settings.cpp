@@ -80,13 +80,13 @@ QFileInfo* Settings::setupConfig()
         QDir().mkdir(files.absolutePath() + "/.config/dmrtc");
     }
 
-    QFileInfo old_file = files.filePath(".config/dmrtc.cfg");
+    QFileInfo old_file(files.filePath(".config/dmrtc.cfg"));
 
     if (old_file.exists()) {
         QDir().rename(old_file.filePath(), files.filePath(".config/dmrtc/dmrtc.cfg"));
     }
 
-    QFileInfo new_file = files.filePath(".config/dmrtc/dmrtc.cfg");
+    QFileInfo new_file(files.filePath(".config/dmrtc/dmrtc.cfg"));
 
     if (!new_file.exists()) {
         QString config = "// Automatically generated\n";

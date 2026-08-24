@@ -212,16 +212,16 @@ void Controller::run()
             requestMassRegistration();
         }
 
-        QtConcurrent::run(this, &Controller::announceLateEntry);
-        QtConcurrent::run(this, &Controller::announcePrivateCalls);
+        (void)QtConcurrent::run(&Controller::announceLateEntry, this);
+        (void)QtConcurrent::run(&Controller::announcePrivateCalls, this);
 
         if (!announce_system_freqs_timer.isActive()) {
-            QtConcurrent::run(this, &Controller::announceSystemFreqs);
+            (void)QtConcurrent::run(&Controller::announceSystemFreqs, this);
             announce_system_freqs_timer.start();
         }
 
         if (!announce_adjacent_sites_timer.isActive()) {
-            QtConcurrent::run(this, &Controller::announceAdjacentSites);
+            (void)QtConcurrent::run(&Controller::announceAdjacentSites, this);
             announce_adjacent_sites_timer.start();
         }
 
@@ -229,10 +229,10 @@ void Controller::run()
 
         if (((min == 0) || (min == 30) || (min == 15) || (min == 45)) && (min != m_minute)) {
             m_minute = min;
-            QtConcurrent::run(this, &Controller::announceLocalTime);
+            (void)QtConcurrent::run(&Controller::announceLocalTime, this);
 
             if (m_settings->announce_system_message && ((min == 0) || (min == 30))) {
-                QtConcurrent::run(this, &Controller::announceSystemMessage);
+                (void)QtConcurrent::run(&Controller::announceSystemMessage, this);
             }
         }
 
@@ -447,7 +447,7 @@ void Controller::announceSystemMessage()
     messages.append(QString("Send SMS to %1 for command help")
                     .arg(m_settings->service_ids.value("help", 0)));
     unsigned int dstId = StandardAddreses::ALLMSID;
-    QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, dstId, StandardAddreses::DISPATI, false, 0);
+    (void)QtConcurrent::run(&Controller::sendUDTMultipartMessage, this, messages, dstId, StandardAddreses::DISPATI, false, 0);
 }
 
 void Controller::announcePrivateCalls()
@@ -1230,7 +1230,7 @@ void Controller::processTalkgroupSubscriptionsMessage(unsigned int srcId, unsign
                         .arg(active_calls.size()));
         messages.append(QString("Send SMS to %1 for command help")
                         .arg(m_settings->service_ids.value("help", 0)));
-        QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false, 2);
+        (void)QtConcurrent::run(&Controller::sendUDTMultipartMessage, this, messages, srcId, StandardAddreses::DISPATI, false, 2);
     }
 
     QList<unsigned int> tg_list;
@@ -1629,7 +1629,7 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
             messages.append(QString("The site does not offer any user services"));
         }
 
-        QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, m_settings->service_ids.value("help", StandardAddreses::SDMI), false, 5);
+        (void)QtConcurrent::run(&Controller::sendUDTMultipartMessage, this, messages, srcId, m_settings->service_ids.value("help", StandardAddreses::SDMI), false, 5);
         m_control_channel->setText(QString("Help message: %1").arg(srcId));
 
         if (!m_settings->headless_mode) {
@@ -1687,7 +1687,7 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
         CDMRCSBK csbk;
         m_signalling_generator->createReplyMessageAccepted(csbk, srcId, dstId, false);
         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, false);
-        QtConcurrent::run(this, &Controller::sendRSSIInfo, dmessage->rssi, dmessage->ber, srcId);
+        (void)QtConcurrent::run(&Controller::sendRSSIInfo, this, dmessage->rssi, dmessage->ber, srcId);
         return true;
     }
     /// DGNA
@@ -2453,7 +2453,7 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
                             .arg(active_calls.size()));
             messages.append(QString("Send SMS to %1 for command help")
                             .arg(m_settings->service_ids.value("help", 0)));
-            QtConcurrent::run(this, &Controller::sendUDTMultipartMessage, messages, srcId, StandardAddreses::DISPATI, false, 1);
+            (void)QtConcurrent::run(&Controller::sendUDTMultipartMessage, this,  messages, srcId, StandardAddreses::DISPATI, false, 1);
         }
     }
 }
@@ -3396,7 +3396,7 @@ void Controller::setCallStats(unsigned int srcId, unsigned int dstId,
     }
 
     if (dstId == (unsigned int)m_settings->service_ids.value("signal_report", 0)) {
-        QtConcurrent::run(this, &Controller::sendRSSIInfo, rssi, ber, srcId);
+        (void)QtConcurrent::run(&Controller::sendRSSIInfo, this, rssi, ber, srcId);
     }
 }
 
