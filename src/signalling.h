@@ -28,11 +28,11 @@
 #include "src/standard_PDU.h"
 #include "src/settings.h"
 #include "src/crc32.h"
-#include "MMDVM/DMRCSBK.h"
-#include "MMDVM/DMRData.h"
-#include "MMDVM/DMRDataHeader.h"
-#include "MMDVM/CRC.h"
-#include "MMDVM/DMRDefines.h"
+#include "src/MMDVM/DMRCSBK.h"
+#include "src/MMDVM/DMRData.h"
+#include "src/MMDVM/DMRDataHeader.h"
+#include "src/MMDVM/CRC.h"
+#include "src/MMDVM/DMRDefines.h"
 
 class Signalling
 {

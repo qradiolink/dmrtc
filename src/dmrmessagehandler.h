@@ -29,11 +29,11 @@
 #include "crc9.h"
 #include "crc32.h"
 #include "trunking_utils.h"
-#include "MMDVM/DMRData.h"
-#include "MMDVM/DMRDataHeader.h"
-#include "MMDVM/BPTC19696.h"
-#include "MMDVM/DMRTrellis.h"
-#include "MMDVM/CRC.h"
+#include "src/MMDVM/DMRData.h"
+#include "src/MMDVM/DMRDataHeader.h"
+#include "src/MMDVM/BPTC19696.h"
+#include "src/MMDVM/DMRTrellis.h"
+#include "src/MMDVM/CRC.h"
 
 const unsigned int MAX_MESSAGE_SIZE = 4096U;
 

@@ -24,7 +24,7 @@
 #include <QList>
 #include "src/settings.h"
 #include "src/logger.h"
-#include "MMDVM/DMRData.h"
+#include "src/MMDVM/DMRData.h"
 
 class GatewayRouter : public QObject
 {

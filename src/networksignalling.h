@@ -25,7 +25,7 @@
 #include <QtEndian>
 #include <QDateTime>
 #include <uuid/uuid.h>
-#include "MMDVM/DMRData.h"
+#include "src/MMDVM/DMRData.h"
 #include "settings.h"
 #include "logger.h"
 

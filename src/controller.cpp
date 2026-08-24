@@ -243,7 +243,7 @@ void Controller::run()
             /// data going towards RF
             CDMRData dmr_data;
 
-            if (m_logical_channels.at(i)->getRFQueue(dmr_data)) {
+            while (m_logical_channels.at(i)->getRFQueue(dmr_data)) {
                 if (dmr_data.getControl()) {
                     m_udp_channels.at(m_logical_channels.at(i)->getPhysicalChannel())->writeDMRTrunkingParams(dmr_data);
                 } else {
@@ -254,7 +254,7 @@ void Controller::run()
             /// Data going towards net
             CDMRData dmr_data_net;
 
-            if (m_logical_channels.at(i)->getNetQueue(dmr_data_net)) {
+            while (m_logical_channels.at(i)->getNetQueue(dmr_data_net)) {
                 if (!((dmr_data_net.getFLCO() == FLCO_USER_USER) && m_registered_ms->contains(dmr_data_net.getDstId()))) {
                     unsigned int gateway_id = 0;
                     bool route_found = m_gateway_router->findRoute(dmr_data_net, gateway_id);
@@ -269,7 +269,7 @@ void Controller::run()
 
         }
 
-        QThread::usleep(1000);
+        QThread::usleep(5000);
     }
 
     /// Thread stopping

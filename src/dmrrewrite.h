@@ -23,11 +23,11 @@
 #include <QList>
 #include <QVector>
 #include <QDebug>
-#include "MMDVM/DMRData.h"
-#include "MMDVM/DMRFullLC.h"
-#include "MMDVM/DMRLC.h"
-#include "MMDVM/DMRSlotType.h"
-#include "MMDVM/Sync.h"
+#include "src/MMDVM/DMRData.h"
+#include "src/MMDVM/DMRFullLC.h"
+#include "src/MMDVM/DMRLC.h"
+#include "src/MMDVM/DMRSlotType.h"
+#include "src/MMDVM/Sync.h"
 #include "settings.h"
 #include "standard_PDU.h"
 

@@ -26,8 +26,6 @@ SOURCES += $$files(src/MMDVM/*.cpp)
 HEADERS += $$files(src/*.h)
 HEADERS += $$files(src/MMDVM/*.h)
 
-INCLUDEPATH += $$_PRO_FILE_PWD_/src/MMDVM/
-
 !isEmpty(LIBDIR) {
     LIBS += -L$$LIBDIR
 }
@@ -39,7 +37,7 @@ FORMS    += src/mainwindow.ui
 
 
 LIBS += -lrt -lpthread # need to include on some distros
-LIBS += -lconfig++ -llog4cpp -luuid
+LIBS += -lconfig++ -luuid
 
 
 RESOURCES += src/resources.qrc

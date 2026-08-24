@@ -28,12 +28,12 @@
 #include "src/settings.h"
 #include "src/dmr_commands.h"
 #include "src/logger.h"
-#include "MMDVM/DMRDefines.h"
-#include "MMDVM/DMRData.h"
-#include "MMDVM/DMRCSBK.h"
-#include "MMDVM/DMRSlotType.h"
-#include "MMDVM/Sync.h"
-#include "MMDVM/Utils.h"
+#include "src/MMDVM/DMRDefines.h"
+#include "src/MMDVM/DMRData.h"
+#include "src/MMDVM/DMRCSBK.h"
+#include "src/MMDVM/DMRSlotType.h"
+#include "src/MMDVM/Sync.h"
+#include "src/MMDVM/Utils.h"
 
 #define EXTERNAL_NETWORK_CHANNEL 1000
 

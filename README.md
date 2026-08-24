@@ -97,12 +97,11 @@ Requirements
 
 - Qt >= 6 with GUI, network and widgets support
 - libconfig
-- liblog4cpp
 - libuuid
 - Installing build dependencies on Debian Trixie: 
 
 <pre>
-$ sudo apt-get install liblog4cpp5v5 libconfig++11 libconfig++-dev uuid-dev libuuid1 qmake6 qt6-base-dev libqt6widgets6 libqt6core6t64 libqt6gui6 libqt6network6
+$ sudo apt-get install libconfig++11 libconfig++-dev uuid-dev libuuid1 qmake6 qt6-base-dev libqt6widgets6 libqt6core6t64 libqt6gui6 libqt6network6
 </pre>
 
 
@@ -120,7 +119,7 @@ $ cd dmrtc/
 $ git checkout master
 $ mkdir -p build
 $ cd build/
-$ qmake ..
+$ qmake6 ..
 $ make
 </pre>
 
