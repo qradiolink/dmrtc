@@ -54,7 +54,6 @@
 #include "src/MMDVM/DMRSlotType.h"
 #include "src/MMDVM/CRC.h"
 #include "src/MMDVM/Sync.h"
-#include "src/MMDVM/Network.h"
 
 
 namespace ServiceAction
