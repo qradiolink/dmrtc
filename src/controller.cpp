@@ -440,6 +440,14 @@ void Controller::announceSystemMessage()
     QList<QString> messages;
     messages.append(QString("%1").arg(m_settings->system_announcement_message));
     messages.append(QString("IP connection - %1").arg(m_settings->gateway_enabled ? "yes" : "no"));
+    QString freqs;
+    for (int i = 0; i < m_settings->logical_physical_channels.size(); i++) {
+        if (m_settings->logical_physical_channels[i].size() < 4)
+            continue;
+        freqs.append(QString::number(m_settings->logical_physical_channels[i].value("rx_freq")) + ", ");
+    }
+    messages.append(QString("Frequencies - %1").arg(freqs));
+    messages.append(QString("Repeater shift - %1").arg(QString::number(m_settings->freq_duplexsplit)));
     messages.append(QString("Users - %1, channels - %2, active calls - %3")
                     .arg(m_registered_ms->size())
                     .arg(m_settings->logical_physical_channels.size())
