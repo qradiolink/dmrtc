@@ -23,6 +23,7 @@
 #include <QSysInfo>
 #include <QString>
 #include <QList>
+#include <QByteArray>
 #include <string.h>
 
 class TrunkingUtils
@@ -38,6 +39,7 @@ public:
     static unsigned int base11(unsigned int value);
     static QList<QString> readNMEA(unsigned char* msg, unsigned int dsize);
     static unsigned int parseBCDDigits(unsigned char* message_payload, unsigned int message_size, unsigned int pad_nibble);
+    static void removeEmptyChars(QByteArray& data);
 };
 
 #endif // TRUNKING_UTILS_H

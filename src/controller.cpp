@@ -269,7 +269,7 @@ void Controller::run()
 
         }
 
-        QThread::usleep(5000);
+        QThread::usleep(2000);
     }
 
     /// Thread stopping
@@ -1355,6 +1355,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
         else if (dmessage->udt_format == 3) {
             unsigned int bit7_size = 8 * size / 7;
             unsigned char converted[96U];
+            ::memset(converted, 0U, 96U);
             TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
             text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
         } else if (dmessage->udt_format == 7) {
@@ -1665,6 +1666,7 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
             else if (dmessage->udt_format == 3) {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[96U];
+                ::memset(converted, 0U, 96U);
                 TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             } else if (dmessage->udt_format == 7) {
@@ -1716,6 +1718,7 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
             else if (dmessage->udt_format == 3) {
                 unsigned int bit7_size = 8 * size / 7;
                 unsigned char converted[96U];
+                ::memset(converted, 0U, 96U);
                 TrunkingUtils::parseISO7bitToISO8bit(msg, converted, bit7_size, size);
                 text_message = QString::fromUtf8((const char*)converted, bit7_size - 1).trimmed();
             } else if (dmessage->udt_format == 7) {

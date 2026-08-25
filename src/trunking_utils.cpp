@@ -109,7 +109,6 @@ void TrunkingUtils::parseUTF16(QString& text_message, unsigned int size, unsigne
 
 void TrunkingUtils::parseISO7bitToISO8bit(unsigned char* msg, unsigned char* converted, unsigned int bit7_size, unsigned int size)
 {
-    memset(converted, 0, size);
     uint8_t remainder = 0;
 
     for (unsigned int i = 0, j = 1, k = 0; i < size, k < bit7_size; i++, j = j + 1, k++) {
@@ -210,6 +209,13 @@ unsigned int TrunkingUtils::parseBCDDigits(unsigned char* message_payload, unsig
     }
 
     return digits;
+}
+
+void TrunkingUtils::removeEmptyChars(QByteArray& data)
+{
+    while (data.at(data.size() - 1U) == 0x00) {
+        data.remove(data.size() - 1U, 1U);
+    }
 }
 
 
