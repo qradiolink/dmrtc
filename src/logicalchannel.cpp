@@ -200,6 +200,11 @@ void LogicalChannel::updateChannel(unsigned int srcId, unsigned int dstId, unsig
 
 void LogicalChannel::updateStats(CDMRData& dmr_data, bool end_call)
 {
+    unsigned char dataType = dmr_data.getDataType();
+
+    if ((dataType == DT_CSBK) || (dataType == DT_MBC_HEADER) || (dataType == DT_MBC_CONTINUATION))
+        return;
+
     m_data_mutex.lock();
 
     if (end_call) {

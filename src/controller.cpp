@@ -1750,7 +1750,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     bool forward_to_gw = false;
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
-    unsigned int dstIdRewritten;
+    unsigned int dstIdRewritten = 0U;
 
     /// Rewriting destination to match DMR tier III flat numbering
     if (local_data) {
