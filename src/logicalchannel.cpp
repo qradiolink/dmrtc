@@ -97,7 +97,7 @@ LogicalChannel::LogicalChannel(const Settings* settings, Logger* logger, unsigne
         }
     } else {
         m_logger->log(Logger::LogLevelWarning, QString("Could not find settings for logical channel %1 in"
-                      " the config file (section logical_physical_channels)").arg(m_lcn));
+                                                       " the config file (section logical_physical_channels)").arg(m_lcn));
     }
 
 }
@@ -246,6 +246,7 @@ void LogicalChannel::updateStats(CDMRData& dmr_data, bool end_call)
         m_call_timer.start();
         m_stats_dst_id = dmr_data.getDstId();
         m_stats_src_id = dmr_data.getSrcId();
+        emit update();
     } else {
         float frame_ber = float(dmr_data.getBER()) / 1.41f;
         m_rssi_accumulator += float(dmr_data.getRSSI()) * -1.0f;
@@ -761,29 +762,28 @@ void LogicalChannel::processTalkerAlias()
         return;
 
     unsigned int bit7_size = 8 * size / 7;
+    QString txt;
 
     if (((m_ta_df == 1 || m_ta_df == 2) && (size >= m_ta_dl)) ||
         ((m_ta_df == 3) && (size >= m_ta_dl * 2)) ||
         ((m_ta_df == 0) && (bit7_size >= m_ta_dl))) {
+
         if (m_ta_df == 1 || m_ta_df == 2) {
-            QString txt = QString::fromUtf8(m_ta_data);
-            setText(txt, false);
+            txt = QString::fromUtf8(m_ta_data);
         } else if (m_ta_df == 0) {
             unsigned char converted[32U];
+            ::memset(converted, 0U, 32U);
             TrunkingUtils::parseISO7bitToISO8bit((unsigned char*)m_ta_data.constData(), converted, bit7_size, size);
-            QString txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
-            setText(txt, false);
+            txt = QString::fromUtf8((const char*)converted + 1, bit7_size - 1).trimmed();
         } else if (m_ta_df == 3) {
             if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
-                QString txt = QString::fromUtf16((char16_t*)m_ta_data.constData(), size / 2);
-                setText(txt, false);
+                txt = QString::fromUtf16((char16_t*)m_ta_data.constData(), size / 2);
             } else {
-                QString txt;
                 TrunkingUtils::parseUTF16(txt, size, (unsigned char*)m_ta_data.data());
-                setText(txt, false);
             }
         }
 
+        setText(txt, false);
         m_talker_alias_received = true;
         m_ta_data.clear();
         m_ta_dl = 0;
@@ -816,22 +816,19 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
         m_ta_df = 0;
         m_ta_dl = 0;
         m_ta_data.clear();
+        m_embedded_data[0].reset();
+        m_embedded_data[1].reset();
+        m_default_embedded_data.reset();
         m_data_mutex.unlock();
     }
 
     if (dataType == DT_TERMINATOR_WITH_LC) {
-        // reset embedded data buffers
         m_lc = CDMRLC(FLCO::FLCO_USER_USER, 0, 0);
-        m_embedded_data[0].reset();
-        m_embedded_data[1].reset();
-        m_default_embedded_data.reset();
-
     } else if (dataType == DT_VOICE_LC_HEADER) {
-        m_embedded_data[0].reset();
-        m_embedded_data[1].reset();
-        m_default_embedded_data.reset();
         m_default_embedded_data.setLC(m_lc);
-        setText("", false);
+        m_data_mutex.lock();
+        m_text = "";
+        m_data_mutex.unlock();
     } else if (dataType == DT_VOICE_SYNC) {
         m_emb_read = (m_emb_read + 1) % 2;
         m_emb_write = (m_emb_write + 1) % 2;
@@ -866,22 +863,21 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
                 break;
 
                 case FLCO_TALKER_ALIAS_HEADER: {
-                    if (!m_talker_alias_received) {
-                        m_ta_df = (raw_data[2] >> 6) & 0x03;
-                        m_ta_dl = (raw_data[2] >> 1) & 0x1F;
-                        m_ta_data.clear();
+                    m_talker_alias_received = false;
+                    m_ta_df = (raw_data[2] >> 6) & 0x03;
+                    m_ta_dl = (raw_data[2] >> 1) & 0x1F;
+                    m_ta_data.clear();
 
-                        if (m_ta_df == 0) {
-                            // for 7 bit TA the MSB is last bit of byte 3
-                            m_ta_data.append(raw_data[2] & 0x01);
-                        }
-
-                        for (int i = 3; i < 9; i++) {
-                            m_ta_data.append(raw_data[i]);
-                        }
-
-                        processTalkerAlias();
+                    if (m_ta_df == 0) {
+                        // for 7 bit TA the MSB is last bit of byte 3
+                        m_ta_data.append(raw_data[2] & 0x01);
                     }
+
+                    for (int i = 3; i < 9; i++) {
+                        m_ta_data.append(raw_data[i]);
+                    }
+
+                    processTalkerAlias();
                 }
                 break;
 
@@ -949,11 +945,11 @@ void LogicalChannel::setUUID(CDMRData& dmr_data)
     if (dataType == DT_TERMINATOR_WITH_LC) {
         dmr_data.setUUID(m_call_uuid);
         // reset embedded data buffers
-        memset(m_call_uuid, 0, 16U);
+        ::memset(m_call_uuid, 0U, 16U);
     } else if ((dataType == DT_VOICE_LC_HEADER) ||
                (dataType == DT_DATA_HEADER)) {
-        memset(m_call_uuid, 0, 16U);
-        uuid_generate_random(m_call_uuid);
+        ::memset(m_call_uuid, 0U, 16U);
+        ::uuid_generate_random(m_call_uuid);
         dmr_data.setUUID(m_call_uuid);
     } else {
         dmr_data.setUUID(m_call_uuid);

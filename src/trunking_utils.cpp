@@ -211,11 +211,3 @@ unsigned int TrunkingUtils::parseBCDDigits(unsigned char* message_payload, unsig
     return digits;
 }
 
-void TrunkingUtils::removeEmptyChars(QByteArray& data)
-{
-    while (data.at(data.size() - 1U) == 0x00) {
-        data.remove(data.size() - 1U, 1U);
-    }
-}
-
-

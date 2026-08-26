@@ -99,8 +99,8 @@ bool CDMREmbeddedData::addData(const unsigned char* data, unsigned char lcss)
 
 		// Process the complete data block
 		decodeEmbeddedData();
-        //if (m_valid)
-            //encodeEmbeddedData();
+        if (m_valid)
+            encodeEmbeddedData();
 
 		return m_valid;
 	}
