@@ -18,7 +18,7 @@
 
 #include "logicalchannel.h"
 
-const long long TX_TIME = 58000000L; // needs to be ~ two timeslots
+const long long TX_TIME = 55000000L;
 
 LogicalChannel::LogicalChannel(const Settings* settings, Logger* logger, unsigned int id,
                                unsigned int physical_channel, unsigned int slot, bool control_channel, bool gui_enabled, QObject* parent) : QObject(parent)
@@ -202,7 +202,10 @@ void LogicalChannel::updateStats(CDMRData& dmr_data, bool end_call)
 {
     unsigned char dataType = dmr_data.getDataType();
 
-    if ((dataType == DT_CSBK) || (dataType == DT_MBC_HEADER) || (dataType == DT_MBC_CONTINUATION))
+    if ((dataType == DT_CSBK)
+        || (dataType == DT_MBC_HEADER)
+        || (dataType == DT_MBC_CONTINUATION)
+        || ((dataType == DT_VOICE_PI_HEADER) && !end_call))
         return;
 
     m_data_mutex.lock();

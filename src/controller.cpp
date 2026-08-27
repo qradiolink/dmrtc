@@ -269,7 +269,7 @@ void Controller::run()
 
         }
 
-        QThread::usleep(2000);
+        QThread::usleep(5000);
     }
 
     /// Thread stopping
