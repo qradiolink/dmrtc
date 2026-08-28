@@ -205,7 +205,7 @@ void LogicalChannel::updateStats(CDMRData& dmr_data, bool end_call)
     if ((dataType == DT_CSBK)
         || (dataType == DT_MBC_HEADER)
         || (dataType == DT_MBC_CONTINUATION)
-        || ((dataType == DT_VOICE_PI_HEADER) && !end_call))
+        || ((dataType == DT_IDLE) && !end_call))
         return;
 
     m_data_mutex.lock();
@@ -469,7 +469,8 @@ void LogicalChannel::lockChannel(CDMRData& dmr_data)
         && (dataType != DT_CSBK)
         && (dataType != DT_MBC_HEADER)
         && (dataType != DT_MBC_CONTINUATION)
-        && (dataType != DT_TERMINATOR_WITH_LC)) {
+        && (dataType != DT_TERMINATOR_WITH_LC)
+        && (dataType != DT_IDLE)) {
         m_data_mutex.lock();
         m_src_lock = srcId;
         m_data_mutex.unlock();
@@ -489,7 +490,8 @@ bool LogicalChannel::getChannelLock(unsigned int srcId, unsigned int dataType)
     bool locked = (m_src_lock != 0) && (m_src_lock != srcId)
                   && (dataType != DT_CSBK)
                   && (dataType != DT_MBC_HEADER)
-                  && (dataType != DT_MBC_CONTINUATION);
+                  && (dataType != DT_MBC_CONTINUATION)
+                  && (dataType != DT_IDLE);
     m_data_mutex.unlock();
     return locked;
 }
