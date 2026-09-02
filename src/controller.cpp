@@ -261,10 +261,12 @@ void Controller::run()
                     unsigned int gateway_id = 0;
                     bool route_found = m_gateway_router->findRoute(dmr_data_net, gateway_id);
 
-                    if (route_found
-                        && m_gateway_channels.contains(gateway_id)
-                        && m_settings->gateway_enabled) {
+                    if (route_found && m_gateway_channels.contains(gateway_id) && m_settings->gateway_enabled) {
                         m_gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
+
+                    } else if (m_settings->gateway_enabled) {
+                        m_logger->log(Logger::LogLevelWarning,
+                                      QString("No Gateway route found for destination %1").arg(dmr_data_net.getDstId()));
                     }
                 }
             }

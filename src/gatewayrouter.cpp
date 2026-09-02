@@ -174,7 +174,12 @@ bool GatewayRouter::getPrefixRoute(unsigned int dstId, unsigned int& id)
         id = found_ids.at(0);
         return true;
     } else if (found_ids.size() > 1) {
-        m_logger->log(Logger::LogLevelWarning, QString("Found more than 1 route to gateway, could not decide on route."));
+        QString all_ids;
+        for(unsigned int i=0;i<found_ids.size();i++) {
+            all_ids.append(QString::number(found_ids.at(i)) + " ");
+        }
+        m_logger->log(Logger::LogLevelWarning,
+                      QString("Found more than 1 route to gateway, could not decide on route. Gateways: %1").arg(all_ids));
     }
 
     return false;
