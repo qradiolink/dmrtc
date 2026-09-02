@@ -171,7 +171,9 @@ void Controller::run()
 
     }
 
-    for (int i = 0; i < m_settings->gateway_number; i++) {
+    QList<unsigned int> gw_ids = m_gateway_router->getGatewayIds();
+
+    for (int i = 0; i < gw_ids.size(); i++) {
         UDPClient* gateway_udpclient = new UDPClient(m_settings, m_logger, i, m_settings->gateway_listen_port + i, m_settings->gateway_send_port + i,
                                                      m_settings->gateway_remote_address, true);
 
@@ -181,18 +183,18 @@ void Controller::run()
                          this, SLOT(processDMRNetworkMessage(unsigned char*, unsigned int)));
         QObject::connect(this, SIGNAL(writeDMRData(CDMRData&)),
                          gateway_udpclient, SLOT(writeDMRData(CDMRData&)));
-        m_gateway_channels.append(gateway_udpclient);
+        m_gateway_channels.insert(gw_ids.at(i), gateway_udpclient);
     }
 
-    if (m_gateway_channels.size() < 1) {
+    if (m_settings->gateway_enabled && (m_gateway_channels.size() < 1)) {
         m_logger->log(Logger::LogLevelWarning, QString("No DMR Gateways configured"));
     }
 
-    if (m_settings->gateway_enabled) {
-        for (int i = 0; i < m_gateway_channels.size(); i++) {
-            m_gateway_channels.at(i)->enable(true);
-        }
+
+    for (int i = 0; i < m_gateway_channels.size(); i++) {
+        m_gateway_channels[m_gateway_channels.keys().at(i)]->enable(true);
     }
+
 
     announce_system_freqs_timer.setInterval(m_settings->announce_system_freqs_interval * 1000);
     announce_system_freqs_timer.setSingleShot(true);
@@ -259,10 +261,10 @@ void Controller::run()
                     unsigned int gateway_id = 0;
                     bool route_found = m_gateway_router->findRoute(dmr_data_net, gateway_id);
 
-                    if ((gateway_id + 1 <= (unsigned int)m_gateway_channels.size()) && m_settings->gateway_enabled) {
-                        if (route_found) {
-                            m_gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
-                        }
+                    if (route_found
+                        && m_gateway_channels.contains(gateway_id)
+                        && m_settings->gateway_enabled) {
+                        m_gateway_channels[gateway_id]->writeDMRData(dmr_data_net);
                     }
                 }
             }
@@ -286,7 +288,7 @@ void Controller::run()
     }
 
     for (int i = 0; i < m_gateway_channels.size(); i++) {
-        m_gateway_channels.at(i)->enable(false);
+        m_gateway_channels[m_gateway_channels.keys().at(i)]->enable(false);
     }
 
     for (int i = 0; i < m_udp_channels.size(); i++) {
@@ -298,7 +300,7 @@ void Controller::run()
     }
 
     for (int i = 0; i < m_gateway_channels.size(); i++) {
-        delete m_gateway_channels[i];
+        delete m_gateway_channels[m_gateway_channels.keys().at(i)];
     }
 
     announce_system_freqs_timer.stop();

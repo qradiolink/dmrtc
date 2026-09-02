@@ -202,7 +202,7 @@ private:
     DMRMessageHandler* m_dmr_message_handler;
     QMutex m_control_mutex;
     QVector<UDPClient*> m_udp_channels;
-    QVector<UDPClient*> m_gateway_channels;
+    QMap<unsigned int, UDPClient*> m_gateway_channels;
     QVector<LogicalChannel*> m_logical_channels;
     QMap<unsigned int, unsigned int> m_private_calls;
     QMap<unsigned int, unsigned int> m_short_data_messages;
