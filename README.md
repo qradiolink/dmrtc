@@ -7,7 +7,7 @@ This software is licenced under the GPL v3 and is primarily intended for amateur
 This software is intended to work together with DMRGateway, MMDVMHost-SDR, MMDVM-SDR and QRadioLink in order to create a DMR tier III radio site.
 
 
-[![Image](https://qradiolink.org/images/dmrtc1.png)](https://qradiolink.org/images/dmrtc1.png?v=1)
+[![Image](https://qradiolink.org/images/dmrtc1.png)](https://qradiolink.org/images/dmrtc1.png)
 
 
 DMR tier III services partly or completely implemented
@@ -147,7 +147,7 @@ $ ./dmrtc -d
 Documentation
 ----
 
-A complete HTML version of the MMDVM DMR trunking documentation can be found [here](https://qradiolink.org/docs/MMDVM/trunking.html)
+A complete HTML version of the MMDVM DMR trunking documentation can be found [here](https://qradiolink.org/docs/MMDVM/dmr-trunking.html)
 
 The specification for the new IP network communication protocol (Homebrew DMR Trunking Protocol) can now be found in the docs/ directory
 
