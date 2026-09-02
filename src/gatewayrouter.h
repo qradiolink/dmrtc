@@ -32,6 +32,7 @@ class GatewayRouter : public QObject
 public:
     explicit GatewayRouter(const Settings* settings, Logger* logger, QObject* parent = nullptr);
     ~GatewayRouter();
+    QList<unsigned int> getGatewayIds() const;
     bool findRoute(CDMRData& dmr_data, unsigned int& gateway_id);
     bool getPrivateCallGateway(unsigned int& id);
     bool getTrunkingGateway(unsigned int& id);

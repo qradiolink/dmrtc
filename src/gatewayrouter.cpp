@@ -32,6 +32,20 @@ GatewayRouter::~GatewayRouter()
     delete m_network_subscribed_talkgroups;
 }
 
+QList<unsigned int> GatewayRouter::getGatewayIds() const
+{
+    QListIterator<QMap<QString, QString>> it_gws(m_settings->gateways);
+    QList<unsigned int> ids;
+    while (it_gws.hasNext()) {
+        QMap<QString, QString> gw = it_gws.next();
+        bool ok = false;
+        unsigned int id = (unsigned int)(gw.value("gateway_id").toInt(&ok));
+        if (ok)
+            ids.append(id);
+    }
+    return ids;
+}
+
 bool GatewayRouter::findRoute(CDMRData& dmr_data, unsigned int& gateway_id)
 {
     if (dmr_data.getMessageFlag()) {
@@ -66,8 +80,7 @@ bool GatewayRouter::findRoute(CDMRData& dmr_data, unsigned int& gateway_id)
         }
 
         // no gateway or prefix mismatch
-        gateway_id = 0; // default route
-        return true;
+        return false;
     }
 
     return false;
@@ -207,7 +220,7 @@ bool GatewayRouter::getNetSubscriptions(QList<unsigned int>& tg_list)
 }
 
 bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int>& requested_tg_ids,
-        QList<unsigned int>& new_tg_ids)
+                                             QList<unsigned int>& new_tg_ids)
 {
     unsigned int trunking_gw_id = 0;
     bool result = getTrunkingGateway(trunking_gw_id);
@@ -244,7 +257,7 @@ bool GatewayRouter::getTrunkingSubscriptions(QList<unsigned int>& requested_tg_i
 }
 
 bool GatewayRouter::getTrunkingUnSubscriptions(QList<unsigned int>& requested_tg_ids,
-        QList<unsigned int>& new_tg_ids)
+                                               QList<unsigned int>& new_tg_ids)
 {
     unsigned int trunking_gw_id = 0;
     bool result = getTrunkingGateway(trunking_gw_id);
