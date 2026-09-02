@@ -18,7 +18,7 @@
 
 #include "logicalchannel.h"
 
-const long long TX_TIME = 55000000L;
+const long long TX_TIME = 58000000L;
 
 LogicalChannel::LogicalChannel(const Settings* settings, Logger* logger, unsigned int id,
                                unsigned int physical_channel, unsigned int slot, bool control_channel, bool gui_enabled, QObject* parent) : QObject(parent)
