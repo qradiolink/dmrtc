@@ -161,8 +161,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
             msg->udt_format = header.getUDTFormat();
             msg->udt = true;
             m_logger->log(Logger::LogLevelDebug, QString("Received UDT packet data header from %1 to %2 --- A: %3, GI:%4, "
-                          "Format: %5, UDT Format: %6, Opcode: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                          " Data packet format: %13")
+                                                         "Format: %5, UDT Format: %6, Opcode: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                                                         " Data packet format: %13")
                           .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
                           .arg(header.getUDTFormat()).arg(header.getOpcode()).arg(header.getRSVD()).arg(header.getPF())
                           .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
@@ -176,8 +176,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
             msg->udt = false;
             msg->seq_no = header.getSequenceNumber();
             m_logger->log(Logger::LogLevelDebug, QString("Received confirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
-                          "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                          " Data packet format: %13")
+                                                         "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                                                         " Data packet format: %13")
                           .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
                           .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
                           .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
@@ -191,8 +191,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
             msg->udt = false;
             msg->seq_no = header.getSequenceNumber();
             m_logger->log(Logger::LogLevelDebug, QString("Received unconfirmed packet data header from %1 to %2 --- A: %3, GI:%4, "
-                          "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                          " Data packet format: %13")
+                                                         "Format: %5, Pad Nibble: %6, Sequence number: %7, RSVD: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                                                         " Data packet format: %13")
                           .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
                           .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getRSVD()).arg(header.getPF())
                           .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
@@ -206,8 +206,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
             msg->udt = false;
             msg->udt_format = header.getUDTFormat();
             m_logger->log(Logger::LogLevelDebug, QString("Received defined short data header from %1 to %2 --- A: %3, GI:%4, "
-                          "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
-                          " Data packet format: %13")
+                                                         "Format: %5, Pad Nibble: %6, Sequence number: %7, DD format: %8, PF: %9, SF: %10, SAP: %11, No of Blocks: %12,"
+                                                         " Data packet format: %13")
                           .arg(srcId).arg(dstId).arg(header.getA()).arg(header.getGI()).arg(header.getFormat())
                           .arg(header.getPadNibble()).arg(header.getSequenceNumber()).arg(header.getUDTFormat()).arg(header.getPF())
                           .arg(header.getSF()).arg(header.getSAP()).arg(header.getBlocks()).arg(header.getDPF()));
@@ -577,7 +577,7 @@ bool DMRMessageHandler::processUnconfirmedMessage(data_message* msg, unsigned in
             unsigned int udp_hdr_size = sizeof(struct udphdr);
             const struct udphdr* udp = (struct udphdr*)(msg->payload + ip_hdr_size);
             m_logger->log(Logger::LogLevelInfo, QString("UDP datagram source port %1 to destination port %2"
-                          " with length %3.")
+                                                        " with length %3.")
                           .arg(ntohs(udp->source)).arg(ntohs(udp->dest)).arg(ntohs(udp->len)));
             // strip IP and UDP headers
             msg->payload_len = msg->size * block_size - 4 - ip_hdr_size - udp_hdr_size;
