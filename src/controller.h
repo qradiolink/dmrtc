@@ -86,7 +86,7 @@ public:
 public slots:
     void run();
     void stop();
-    void inputNetDMRPayload(unsigned char* payload, unsigned int size, int udp_channel_id, bool from_gateway);
+    void inputNetDMRPayload(unsigned char* payload, unsigned int size, unsigned int udp_channel_id, bool from_gateway);
     void processDMRNetworkMessage(unsigned char* payload, unsigned int size);
     void updateChannelsToGUI();
     void setCallStats(unsigned int srcId, unsigned int dstId, float rssi, float ber, float max_ber, unsigned int call_time, bool private_call);
@@ -141,8 +141,8 @@ private:
     void enableLogicalChannel(LogicalChannel*& logical_channel);
     QVector<LogicalChannel*> findActiveChannels();
     bool validateLocalSourceId(unsigned int srcId);
-    void processSignalling(CDMRData& dmr_data, int udp_channel_id);
-    void processNetworkCSBK(CDMRData& dmr_data, int udp_channel_id);
+    void processSignalling(CDMRData& dmr_data, unsigned int udp_channel_id);
+    void processNetworkCSBK(CDMRData& dmr_data, unsigned int udp_channel_id);
     void transmitCSBK(CDMRCSBK& csbk, LogicalChannel* logical_channel, unsigned int slotNo,
                       unsigned int udp_channel_id, bool channel_grant = false, bool priority_queue = false, bool announce_priority = false);
     void processVoice(CDMRData& dmr_data, unsigned int udp_channel_id, bool data_sync, bool from_gateway = false);
@@ -161,7 +161,7 @@ private:
                                unsigned int srcId, unsigned int dstId, bool local = false);
     void contactMSForPacketCall(CDMRCSBK& csbk, unsigned int slotNo,
                                 unsigned int srcId, unsigned int dstId);
-    void handleCallDisconnect(int udp_channel_id, bool group_call, unsigned int& srcId, unsigned int& dstId,
+    void handleCallDisconnect(unsigned int udp_channel_id, bool group_call, unsigned int& srcId, unsigned int& dstId,
                               unsigned int slotNo, LogicalChannel*& logical_channel, CDMRCSBK& csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData& dmr_data, unsigned int udp_channel_id, bool from_gateway);

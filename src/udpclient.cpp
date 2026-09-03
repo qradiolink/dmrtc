@@ -129,7 +129,7 @@ void UDPClient::readPendingDatagrams()
 
         if (datagram.isValid()) {
             QByteArray data = datagram.data();
-            int size = data.size();
+            unsigned int size = (unsigned int)data.size();
             unsigned char* payload = new unsigned char[size];
             memcpy(payload, (unsigned char*)data.data(), size * sizeof(unsigned char));
             bool ok = parseNetworkData(payload, size);
@@ -144,7 +144,7 @@ void UDPClient::readPendingDatagrams()
     }
 }
 
-void UDPClient::writeDataToNetwork(unsigned char* data, int size)
+void UDPClient::writeDataToNetwork(unsigned char* data, unsigned int size)
 {
     if (!m_started) {
         return;
@@ -154,7 +154,7 @@ void UDPClient::writeDataToNetwork(unsigned char* data, int size)
 }
 
 
-bool UDPClient::parseNetworkData(unsigned char* payload, int size)
+bool UDPClient::parseNetworkData(unsigned char* payload, unsigned int size)
 {
     if (size < 4)
         return false;
@@ -298,7 +298,7 @@ void UDPClient::writeDMRConfig(QVector<unsigned char>& config)
     buffer[6U]  = srcId >> 8;
     buffer[7U]  = srcId >> 0;
 
-    for (int i = 0; i < config.size(); i++) {
+    for (unsigned int i = 0U; i < config.size(); i++) {
         buffer[i + 8U]  = config[i];
     }
 

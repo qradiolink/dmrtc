@@ -48,16 +48,16 @@ public:
     bool isGatewayConnection();
 
 signals:
-    void dmrData(unsigned char* dmr_data, unsigned int size, int udp_channel_id, bool gateway_connection);
+    void dmrData(unsigned char* dmr_data, unsigned int size, unsigned int udp_channel_id, bool gateway_connection);
     void newDMRNetworkMessage(unsigned char* payload, unsigned int size);
-    void writeToNetwork(unsigned char* payload, int size);
+    void writeToNetwork(unsigned char* payload, unsigned int size);
 
 public slots:
     void readPendingDatagrams();
     void enable(bool);
     void handleDisconnect();
     void handleError(QAbstractSocket::SocketError error);
-    void writeDataToNetwork(unsigned char* data, int size);
+    void writeDataToNetwork(unsigned char* data, unsigned int size);
     void writeDMRData(CDMRData& data);
     void writeDMRConfig(QVector<unsigned char>& config);
     void writeDMRTrunkingParams(CDMRData& dmr_control_data);
@@ -68,7 +68,7 @@ public slots:
 private:
     void start();
     void stop();
-    bool parseNetworkData(unsigned char* payload, int size);
+    bool parseNetworkData(unsigned char* payload, unsigned int size);
     QUdpSocket* m_udp_socket_tx;
     const Settings* m_settings;
     Logger* m_logger;

@@ -78,7 +78,7 @@ LogicalChannel::LogicalChannel(const Settings* settings, Logger* logger, unsigne
     QObject::connect(this, SIGNAL(internalStopLastFrameTimer()), &m_last_frame_timer, SLOT(stop()));
     QMap<QString, uint64_t> channel;
 
-    for (int i = 0; i < m_settings->logical_physical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_settings->logical_physical_channels.size(); i++) {
         if (m_settings->logical_physical_channels[i].value("channel_id") == (m_physical_channel + 1)) {
             channel = m_settings->logical_physical_channels[i];
             break;
@@ -300,9 +300,12 @@ void LogicalChannel::putRFQueue(CDMRData& dmr_data, bool first)
 
 void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData>& dmr_data_items, bool first)
 {
+    if (dmr_data_items.size() < 1U)
+        return;
+
     startLastFrameTimer();
 
-    for (int i = 0; i < dmr_data_items.size(); i++) {
+    for (unsigned int i = 0U; i < dmr_data_items.size(); i++) {
         CDMRData dmr_data = dmr_data_items[i];
         rewriteEmbeddedData(dmr_data, true);
     }
@@ -310,12 +313,12 @@ void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData>& dmr_data_items, bool
     m_rf_queue_mutex.lock();
 
     if (first) {
-        for (int i = dmr_data_items.size() - 1; i >= 0; i--) {
+        for (int i = (int)dmr_data_items.size() - 1; i >= 0; i--) {
             CDMRData dmr_data = dmr_data_items[i];
             m_rf_queue.prepend(dmr_data);
         }
     } else {
-        for (int i = 0; i < dmr_data_items.size(); i++) {
+        for (unsigned int i = 0; i < dmr_data_items.size(); i++) {
             CDMRData dmr_data = dmr_data_items[i];
             m_rf_queue.append(dmr_data);
         }
@@ -326,7 +329,7 @@ void LogicalChannel::putRFQueueMultiItem(QVector<CDMRData>& dmr_data_items, bool
     m_call_in_progress = true;
     m_data_mutex.unlock();
 
-    for (int i = 0; i < dmr_data_items.size(); i++) {
+    for (unsigned int i = 0U; i < dmr_data_items.size(); i++) {
         CDMRData dmr_data = dmr_data_items[i];
 
         if (dmr_data.getFLCO() != FLCO_USER_USER) {
@@ -883,7 +886,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
                         m_ta_data.append(raw_data[2] & 0x01);
                     }
 
-                    for (int i = 3; i < 9; i++) {
+                    for (unsigned int i = 3U; i < 9U; i++) {
                         m_ta_data.append(raw_data[i]);
                     }
 
@@ -893,7 +896,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
 
                 case FLCO_TALKER_ALIAS_BLOCK1: {
                     if (!m_talker_alias_received && (m_ta_dl > 0)) {
-                        for (int i = 2; i < 9; i++) {
+                        for (unsigned int i = 2U; i < 9U; i++) {
                             m_ta_data.append(raw_data[i]);
                         }
 
@@ -904,7 +907,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
 
                 case FLCO_TALKER_ALIAS_BLOCK2: {
                     if (!m_talker_alias_received && (m_ta_dl > 0)) {
-                        for (int i = 2; i < 9; i++) {
+                        for (unsigned int i = 2U; i < 9U; i++) {
                             m_ta_data.append(raw_data[i]);
                         }
 
@@ -915,7 +918,7 @@ void LogicalChannel::rewriteEmbeddedData(CDMRData& dmr_data, bool send_embedded_
 
                 case FLCO_TALKER_ALIAS_BLOCK3: {
                     if (!m_talker_alias_received && (m_ta_dl > 0)) {
-                        for (int i = 2; i < 9; i++) {
+                        for (unsigned int i = 2U; i < 9U; i++) {
                             m_ta_data.append(raw_data[i]);
                         }
 

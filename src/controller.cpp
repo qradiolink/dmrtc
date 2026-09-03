@@ -139,7 +139,7 @@ void Controller::run()
         }
     }
 
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if (!m_logical_channels[i]->isControlChannel()) {
             int state = (m_settings->channel_disable_bitmask >> i) & 1;
             m_logical_channels[i]->setDisabled((bool)state);
@@ -155,8 +155,8 @@ void Controller::run()
         UDPClient* client = new UDPClient(m_settings, m_logger, i);
         m_udp_channels.append(client);
         client->enable(true);
-        QObject::connect(client, SIGNAL(dmrData(unsigned char*, uint, int, bool)),
-                         this, SLOT(inputNetDMRPayload(unsigned char*, uint, int, bool)), Qt::DirectConnection);
+        QObject::connect(client, SIGNAL(dmrData(unsigned char*, uint, uint, bool)),
+                         this, SLOT(inputNetDMRPayload(unsigned char*, uint, uint, bool)), Qt::DirectConnection);
 
         // Disable all timeslots at startup
         CDMRData control1;
@@ -173,12 +173,12 @@ void Controller::run()
 
     QList<unsigned int> gw_ids = m_gateway_router->getGatewayIds();
 
-    for (int i = 0; i < gw_ids.size(); i++) {
+    for (unsigned int i = 0; i < gw_ids.size(); i++) {
         UDPClient* gateway_udpclient = new UDPClient(m_settings, m_logger, i, m_settings->gateway_listen_port + i, m_settings->gateway_send_port + i,
                                                      m_settings->gateway_remote_address, true);
 
-        QObject::connect(gateway_udpclient, SIGNAL(dmrData(unsigned char*, unsigned int, int, bool)),
-                         this, SLOT(inputNetDMRPayload(unsigned char*, unsigned int, int, bool)));
+        QObject::connect(gateway_udpclient, SIGNAL(dmrData(unsigned char*, unsigned int, unsigned int, bool)),
+                         this, SLOT(inputNetDMRPayload(unsigned char*, unsigned int, unsigned int, bool)));
         QObject::connect(gateway_udpclient, SIGNAL(newDMRNetworkMessage(unsigned char*, unsigned int)),
                          this, SLOT(processDMRNetworkMessage(unsigned char*, unsigned int)));
         QObject::connect(this, SIGNAL(writeDMRData(CDMRData&)),
@@ -191,7 +191,7 @@ void Controller::run()
     }
 
 
-    for (int i = 0; i < m_gateway_channels.size(); i++) {
+    for (unsigned int i = 0; i < m_gateway_channels.size(); i++) {
         m_gateway_channels[m_gateway_channels.keys().at(i)]->enable(true);
     }
 
@@ -241,7 +241,7 @@ void Controller::run()
         QCoreApplication::processEvents(); // process signals
 
 
-        for (int i = 0; i < m_logical_channels.size(); i++) {
+        for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
             /// data going towards RF
             CDMRData dmr_data;
 
@@ -281,27 +281,27 @@ void Controller::run()
     ///
 
 
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         m_logical_channels.at(i)->stopTimeoutTimer();
     }
 
-    for (int i = 0; i < m_udp_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_udp_channels.size(); i++) {
         m_udp_channels.at(i)->enable(false);
     }
 
-    for (int i = 0; i < m_gateway_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_gateway_channels.size(); i++) {
         m_gateway_channels[m_gateway_channels.keys().at(i)]->enable(false);
     }
 
-    for (int i = 0; i < m_udp_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_udp_channels.size(); i++) {
         delete m_udp_channels.at(i);
     }
 
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         delete m_logical_channels[i];
     }
 
-    for (int i = 0; i < m_gateway_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_gateway_channels.size(); i++) {
         delete m_gateway_channels[m_gateway_channels.keys().at(i)];
     }
 
@@ -326,7 +326,7 @@ void Controller::announceLateEntry()
     if (m_stop_thread)
         return;
 
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if (m_logical_channels.at(i)->getBusy() && !(m_logical_channels.at(i)->getDisabled())
             && !(m_logical_channels.at(i)->isControlChannel())
             && (m_logical_channels.at(i)->getDestination() != 0)
@@ -378,7 +378,7 @@ void Controller::announceSystemFreqs()
     m_logger->log(Logger::LogLevelInfo, QString("Announcing site frequencies, used channels: %1")
                   .arg(m_settings->logical_physical_channels.size()));
 
-    for (int i = 0; i < m_settings->logical_physical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_settings->logical_physical_channels.size(); i++) {
         if (m_settings->logical_physical_channels[i].size() < 4)
             continue;
 
@@ -408,7 +408,7 @@ void Controller::announceAdjacentSites()
     m_logger->log(Logger::LogLevelInfo, QString("Announcing adjacent sites: %1")
                   .arg(m_settings->adjacent_sites.size()));
 
-    for (int i = 0; i < m_settings->adjacent_sites.size(); i++) {
+    for (unsigned int i = 0U; i < m_settings->adjacent_sites.size(); i++) {
         if (m_settings->adjacent_sites[i].size() < 5)
             continue;
 
@@ -446,16 +446,15 @@ void Controller::announceSystemMessage()
     QList<QString> messages;
     messages.append(QString("%1").arg(m_settings->system_announcement_message));
     messages.append(QString("IP connection - %1").arg(m_settings->gateway_enabled ? "yes" : "no"));
-    QString freqs;
+    messages.append(QString("Frequencies - "));
 
-    for (int i = 0; i < m_settings->logical_physical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_settings->logical_physical_channels.size(); i++) {
         if (m_settings->logical_physical_channels[i].size() < 4)
             continue;
 
-        freqs.append(QString::number(m_settings->logical_physical_channels[i].value("rx_freq")) + ", ");
+        messages.append(QString::number(m_settings->logical_physical_channels[i].value("rx_freq")) + " ");
     }
 
-    messages.append(QString("Frequencies - %1").arg(freqs));
     messages.append(QString("Repeater shift - %1").arg(QString::number(m_settings->freq_duplexsplit)));
     messages.append(QString("Users - %1, channels - %2, active calls - %3")
                     .arg(m_registered_ms->size())
@@ -516,13 +515,13 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
 {
     unsigned int msg_size = message.size();
 
-    if (msg_size < 1)
+    if (msg_size < 1U)
         return;
 
     if (msg_size > 46) {
-        int num_msg = msg_size / 46;
+        unsigned int num_msg = msg_size / 46;
 
-        for (int i = 0; i <= num_msg; i++) {
+        for (unsigned int i = 0U; i <= num_msg; i++) {
             QString msg = message.mid(i * 46, 46);
             sendUDTShortMessage(msg, dstId, srcId, group);
         }
@@ -554,7 +553,7 @@ void Controller::sendUDTMultipartMessage(QList<QString> messages, unsigned int d
 {
     QThread::sleep(delay);
 
-    for (int i = 0; i < messages.size(); i++) {
+    for (unsigned int i = 0U; i < messages.size(); i++) {
         QString msg = messages.at(i);
         sendUDTShortMessage(msg, dstId, srcId, group);
         QThread::sleep(1);
@@ -576,7 +575,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
 
     data[0] = (attach) ? 0x01 : 0x00;
 
-    for (int i = 0, k = 1; i < tgids.size(); i++, k = k + 3) {
+    for (unsigned int i = 0U, k = 1U; i < tgids.size(); i++, k = k + 3) {
         bool ok = false;
         unsigned int group = tgids.at(i).toUInt(&ok);
 
@@ -585,7 +584,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
             continue;
         }
 
-        if (group == 0)
+        if (group == 0U)
             continue;
 
         dgna_tg.append(group);
@@ -626,7 +625,7 @@ void Controller::sendUDTDGNA(QString dgids, unsigned int dstId, bool attach)
         QList<unsigned int> existing_dgna_tg = m_talkgroup_dgna->value(dstId);
         QList<unsigned int> registered_tg = m_talkgroup_attachments->value(dstId);
 
-        for (int i = 0; i < existing_dgna_tg.size(); i++) {
+        for (unsigned int i = 0U; i < existing_dgna_tg.size(); i++) {
             registered_tg.removeAll(existing_dgna_tg.at(i));
         }
 
@@ -843,12 +842,12 @@ void Controller::subscribeNetworkTG(QList<unsigned int> old_tgs)
     QList<unsigned int> new_tg;
     bool result = m_gateway_router->getTrunkingSubscriptions(tg_list, new_tg);
 
-    for (int i = 0; i < new_tg.size(); i++) {
+    for (unsigned int i = 0U; i < new_tg.size(); i++) {
         m_logger->log(Logger::LogLevelInfo, QString("Requesting talkgroup subscription from network for TG %1")
                       .arg(new_tg.at(i)));
     }
 
-    if (result && (new_tg.size() > 0)) {
+    if (result && (new_tg.size() > 0U)) {
         CDMRData tg_sub_message;
         m_network_signalling->createGroupSubscriptionMessage(tg_sub_message, new_tg);
         m_control_channel->putNetQueue(tg_sub_message);
@@ -866,12 +865,12 @@ void Controller::unsubscribeNetworkTG(QList<unsigned int> old_tgs)
     QList<unsigned int> new_tg;
     bool result = m_gateway_router->getTrunkingUnSubscriptions(tg_list, new_tg);
 
-    for (int i = 0; i < new_tg.size(); i++) {
+    for (unsigned int i = 0; i < new_tg.size(); i++) {
         m_logger->log(Logger::LogLevelInfo, QString("Requesting talkgroup unsubscription from network for TG %1")
                       .arg(new_tg.at(i)));
     }
 
-    if (result && (new_tg.size() > 0)) {
+    if (result && (new_tg.size() > 0U)) {
         CDMRData tg_unsub_message;
         m_network_signalling->createGroupUnSubscriptionMessage(tg_unsub_message, new_tg);
         m_control_channel->putNetQueue(tg_unsub_message);
@@ -892,7 +891,7 @@ void Controller::subscribeStaticTalkgroups()
             bool result = m_gateway_router->getStaticTgList(static_tgs);
 
             if (result) {
-                for (int i = 0; i < static_tgs.size(); i++) {
+                for (unsigned int i = 0U; i < static_tgs.size(); i++) {
                     unsigned int static_tg_id = static_tgs.at(i);
                     m_gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
                     prefix_removed_static_tgs.append(static_tg_id);
@@ -910,7 +909,7 @@ void Controller::subscribeStaticTalkgroups()
         bool result = m_gateway_router->getNetSubscriptions(resub_tgs);
 
         if (result) {
-            for (int i = 0; i < resub_tgs.size(); i++) {
+            for (unsigned int i = 0U; i < resub_tgs.size(); i++) {
                 unsigned int resub_tg_id = resub_tgs.at(i);
                 m_gateway_router->removeTalkgroupPrefix(resub_tg_id, gateway_id);
                 prefix_removed_net_tgs.append(resub_tg_id);
@@ -939,7 +938,7 @@ void Controller::cleanupSubscriptions()
         bool result = m_gateway_router->getStaticTgList(static_tgs);
 
         if (result) {
-            for (int i = 0; i < static_tgs.size(); i++) {
+            for (unsigned int i = 0U; i < static_tgs.size(); i++) {
                 unsigned int static_tg_id = static_tgs.at(i);
                 m_gateway_router->removeTalkgroupPrefix(static_tg_id, gateway_id);
                 prefix_removed_static_tgs.append(static_tg_id);
@@ -957,7 +956,7 @@ void Controller::cleanupSubscriptions()
         bool result = m_gateway_router->getNetSubscriptions(sub_tgs);
 
         if (result) {
-            for (int i = 0; i < sub_tgs.size(); i++) {
+            for (unsigned int i = 0U; i < sub_tgs.size(); i++) {
                 unsigned int sub_tg_id = sub_tgs.at(i);
                 m_gateway_router->removeTalkgroupPrefix(sub_tg_id, gateway_id);
                 prefix_removed_net_tgs.append(sub_tg_id);
@@ -970,7 +969,7 @@ void Controller::cleanupSubscriptions()
 
     if (m_settings->use_trunking_protocol && m_settings->send_network_registrations) {
         // deregister MSs from network
-        for (int i = 0; i < m_registered_ms->size(); i++) {
+        for (unsigned int i = 0U; i < m_registered_ms->size(); i++) {
             CDMRData deregister_message;
             m_network_signalling->createDeRegistrationMessage(deregister_message, m_registered_ms->at(i));
             m_control_channel->putNetQueue(deregister_message);
@@ -980,7 +979,7 @@ void Controller::cleanupSubscriptions()
 
 LogicalChannel* Controller::findNextFreePayloadChannel(unsigned int dstId, unsigned int srcId, bool local)
 {
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if (!(m_logical_channels[i]->isControlChannel())
             && !(m_logical_channels[i]->getDisabled())
             && !(m_logical_channels[i]->getBusy())) {
@@ -999,11 +998,11 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
     ///  it will not work for local ones due to lack of reverse channel signalling
     unsigned int incoming_priority = m_settings->call_priorities.value(dstId, 0);
 
-    if (incoming_priority == 0)
+    if (incoming_priority == 0U)
         return nullptr;
 
-    for (unsigned int priority = 0; priority < 3; priority++) {
-        for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int priority = 0U; priority < 3; priority++) {
+        for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
             if (!(m_logical_channels[i]->isControlChannel())
                 && !(m_logical_channels[i]->getDisabled()) && !(m_logical_channels[i]->getLocalCall())) {
                 unsigned int existing_call_priority = m_settings->call_priorities.value(m_logical_channels[i]->getDestination(), 0);
@@ -1034,7 +1033,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                         CDMRCSBK csbk;
                         m_signalling_generator->createReplyWaitForSignalling(csbk, srcId);
 
-                        for (int i = 0; i < 3; i++) {
+                        for (unsigned int i = 0U; i < 3U; i++) {
                             transmitCSBK(csbk, nullptr, m_control_channel->getSlot(), m_control_channel->getPhysicalChannel(),
                                          false, false);
                         }
@@ -1051,7 +1050,7 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
 
 LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int srcId, bool dst_only)
 {
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if ((!m_logical_channels[i]->isControlChannel()) && (m_logical_channels[i]->getDestination() == dstId)
             && m_logical_channels[i]->getBusy()
             && !(m_logical_channels[i]->getDisabled())) {
@@ -1071,7 +1070,7 @@ LogicalChannel* Controller::findCallChannel(unsigned int dstId, unsigned int src
 
 LogicalChannel* Controller::findChannelByPhysicalIdAndSlot(unsigned int physical_id, unsigned int slot)
 {
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if ((m_logical_channels[i]->getPhysicalChannel() == physical_id) && (m_logical_channels[i]->getSlot() == slot)) {
             return m_logical_channels[i];
         }
@@ -1084,7 +1083,7 @@ QVector<LogicalChannel*> Controller::findActiveChannels()
 {
     QVector<LogicalChannel*> active_channels;
 
-    for (int i = 0; i < m_logical_channels.size(); i++) {
+    for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
         if ((!m_logical_channels[i]->isControlChannel())
             && m_logical_channels[i]->getBusy()
             && !(m_logical_channels[i]->getDisabled())) {
@@ -1124,14 +1123,14 @@ void Controller::disableLogicalChannel(LogicalChannel*& logical_channel)
     logical_channel->putRFQueue(dmr_control_data, false);
 }
 
-void Controller::inputNetDMRPayload(unsigned char* payload, unsigned int size, int udp_channel_id, bool from_gateway)
+void Controller::inputNetDMRPayload(unsigned char* payload, unsigned int size, unsigned int udp_channel_id, bool from_gateway)
 {
     bool uuid_present = (size == HOMEBREW_DATA_PACKET_LENGTH) ? false : true;
     unsigned char seqNo = payload[4U];
     unsigned int srcId = (payload[5U] << 16) | (payload[6U] << 8) | (payload[7U] << 0);
     unsigned int dstId = (payload[8U] << 16) | (payload[9U] << 8) | (payload[10U] << 0);
     unsigned int slotNo = (payload[15U] & 0x80U) == 0x80U ? 2U : 1U;
-    unsigned int streamId = 0;
+    unsigned int streamId = 0U;
     unsigned char ber = payload[53U];
     unsigned char rssi = payload[54U];
     ::memcpy(&streamId, payload + 16U, 4U);
@@ -1467,7 +1466,7 @@ void Controller::confirmPDPMessageReception(unsigned int srcId, unsigned int slo
     CDMRData terminator = m_signalling_generator->createDataTerminatorLC(
                               StandardAddreses::HDATA_GW, srcId, dmessage->group, 1, 1, dmessage->seq_no);
 
-    for (int i = 0; i < 10; i++) {
+    for (unsigned int i = 0U; i < 10U; i++) {
         dmr_data_frames.append(terminator);
     }
 
@@ -1502,7 +1501,7 @@ void Controller::replayPacketData(unsigned int srcId, unsigned int dstId, unsign
     if (dmr_data_frames != nullptr) {
         QVector<CDMRData> dmr_message_frames;
 
-        for (int i = 0; i < dmr_data_frames->size(); i++) {
+        for (unsigned int i = 0U; i < dmr_data_frames->size(); i++) {
             CDMRData dmr_outbound_data = dmr_data_frames->at(i);
             dmr_outbound_data.setSrcId(StandardAddreses::HDATA_GW);
             dmr_outbound_data.setDstId(dstId);
@@ -2385,7 +2384,7 @@ void Controller::handleGroupPacketDataCallRequest(CDMRCSBK& csbk, LogicalChannel
     }
 }
 
-void Controller::handleCallDisconnect(int udp_channel_id, bool group_call,
+void Controller::handleCallDisconnect(unsigned int udp_channel_id, bool group_call,
                                       unsigned int& srcId, unsigned int& dstId, unsigned int slotNo,
                                       LogicalChannel*& logical_channel, CDMRCSBK& csbk)
 {
@@ -2430,7 +2429,7 @@ void Controller::handleIdleChannelDeallocation(unsigned int channel_id)
 
     m_signalling_generator->createChannelIdleDeallocation(csbk, call_type);
 
-    for (int i = 0; i < 5; i++) {
+    for (unsigned int i = 0U; i < 5U; i++) {
         transmitCSBK(csbk, m_logical_channels[channel_id], m_logical_channels[channel_id]->getSlot(),
                      m_logical_channels[channel_id]->getPhysicalChannel(), false);
     }
@@ -2480,7 +2479,7 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
     }
 }
 
-void Controller::processSignalling(CDMRData& dmr_data, int udp_channel_id)
+void Controller::processSignalling(CDMRData& dmr_data, unsigned int udp_channel_id)
 {
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstId = dmr_data.getDstId();
@@ -2831,7 +2830,7 @@ void Controller::processSignalling(CDMRData& dmr_data, int udp_channel_id)
     else if ((csbko == CSBKO_RAND) && (csbk.getServiceKind() == ServiceKind::CancelCall) && (csbk.getDstId() == 0)) {
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
 
-        for (int i = 0; i < 3; i++)
+        for (unsigned int i = 0U; i < 3U; i++)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
 
         m_control_channel->setText(QString("Call cancelled: %1").arg(srcId));
@@ -2846,13 +2845,13 @@ void Controller::processSignalling(CDMRData& dmr_data, int udp_channel_id)
     else if ((csbko == CSBKO_MAINT) && (csbk.getServiceKind() == ServiceKind::IndivVoiceCall)) {
         handleCallDisconnect(udp_channel_id, group_call, srcId, dstId, slotNo, logical_channel, csbk);
 
-        for (int i = 0; i < 3; i++)
+        for (unsigned int i = 0U; i < 3U; i++)
             transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, channel_grant, false);
 
         CDMRCSBK csbk_receiver;
         m_signalling_generator->createCallDisconnect(csbk_receiver, srcId, group_call);
 
-        for (int i = 0; i < 3; i++)
+        for (unsigned int i = 0U; i < 3U; i++)
             transmitCSBK(csbk_receiver, logical_channel, slotNo, udp_channel_id, channel_grant, false);
 
         m_control_channel->setText(QString("Call disconnect: %1").arg(srcId));
@@ -3176,7 +3175,7 @@ void Controller::processSignalling(CDMRData& dmr_data, int udp_channel_id)
     }
 }
 
-void Controller::processNetworkCSBK(CDMRData& dmr_data, int udp_channel_id)
+void Controller::processNetworkCSBK(CDMRData& dmr_data, unsigned int udp_channel_id)
 {
     (void)udp_channel_id;
     unsigned int srcId = dmr_data.getSrcId();
@@ -3216,18 +3215,23 @@ void Controller::transmitCSBK(CDMRCSBK& csbk, LogicalChannel* logical_channel, u
         payload_channel_data.setSlotNo(logical_channel->getSlot());
         logical_channel->putRFQueue(payload_channel_data);
 
-        for (unsigned int i = 0; i < 2U; i++)
+        if (m_settings->use_absolute_channel_grants) {
             main_channel->putRFQueue(dmr_data, priority_queue);
+        } else {
+            for (unsigned int i = 0; i < 2U; i++)
+                main_channel->putRFQueue(dmr_data, priority_queue);
+        }
 
-        for (int i = 0; i < 4; i++)
+        for (unsigned int i = 0; i < 4U; i++)
             logical_channel->putRFQueue(payload_channel_data);
 
         if (m_settings->announce_priority &&
             (m_subscribed_talkgroups->contains(logical_channel->getDestination())
              || (m_registered_ms->contains(logical_channel->getDestination())))) {
+
             QVector<LogicalChannel*> active_channels = findActiveChannels();
 
-            for (int i = 0; i < active_channels.size(); i++) {
+            for (unsigned int i = 0; i < active_channels.size(); i++) {
                 CDMRData announce_data = payload_channel_data;
                 announce_data.setSlotNo(active_channels[i]->getSlot());
                 active_channels[i]->putRFQueue(announce_data);
@@ -3241,7 +3245,7 @@ void Controller::transmitCSBK(CDMRCSBK& csbk, LogicalChannel* logical_channel, u
              || (m_registered_ms->contains(logical_channel->getDestination())))) {
             QVector<LogicalChannel*> active_channels = findActiveChannels();
 
-            for (int i = 0; i < active_channels.size(); i++) {
+            for (unsigned int i = 0; i < active_channels.size(); i++) {
                 CDMRData announce_data = dmr_data;
                 announce_data.setSlotNo(active_channels[i]->getSlot());
                 active_channels[i]->putRFQueue(announce_data);
@@ -3312,7 +3316,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
             m_logger->log(Logger::LogLevelWarning, QString("Could not parse network UDT short data message"));
         }
     } else if (opcode == NetworkSignalling::OpCode::UDTAccept) {
-        unsigned int srcId = 0, dstId = 0;
+        unsigned int srcId = 0U, dstId = 0U;
         unsigned char uuid[16U];
 
         if (m_network_signalling->parseUDTAcceptMessage(payload, size, srcId, dstId,
@@ -3324,7 +3328,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
             m_logger->log(Logger::LogLevelWarning, QString("Could not parse network accept UDT short data message"));
         }
     } else if (opcode == NetworkSignalling::OpCode::RegistrationConfirmation) {
-        unsigned int srcId = 0;
+        unsigned int srcId = 0U;
         bool accept = false;
 
         if (m_network_signalling->parseRegistrationConfirmationMessage(payload, size, srcId, accept)) {
@@ -3338,7 +3342,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
             m_logger->log(Logger::LogLevelWarning, QString("Could not parse registration confirmation message"));
         }
     } else if (opcode == NetworkSignalling::OpCode::NetDeRegistration) {
-        unsigned int srcId = 0;
+        unsigned int srcId = 0U;
 
         if (m_network_signalling->parseDeRegistrationConfirmationMessage(payload, size, srcId)) {
             m_logger->log(Logger::LogLevelInfo, QString("Network has de-registered MS %1")
@@ -3354,7 +3358,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
         QList<unsigned int> confirmed_tgs;
 
         if (m_network_signalling->parseSubscriptionConfirmationMessage(payload, size, confirmed_tgs)) {
-            for (int i = 0; i < confirmed_tgs.size(); i++) {
+            for (unsigned int i = 0U; i < confirmed_tgs.size(); i++) {
                 m_logger->log(Logger::LogLevelInfo, QString("Network accepted subscription for TG %1")
                               .arg(confirmed_tgs.at(i)));
             }
@@ -3365,7 +3369,7 @@ void Controller::processDMRNetworkMessage(unsigned char* payload, unsigned int s
         QList<unsigned int> confirmed_tgs;
 
         if (m_network_signalling->parseUnSubscriptionConfirmationMessage(payload, size, confirmed_tgs)) {
-            for (int i = 0; i < confirmed_tgs.size(); i++) {
+            for (unsigned int i = 0U; i < confirmed_tgs.size(); i++) {
                 m_logger->log(Logger::LogLevelInfo, QString("Network accepted unsubscription for TG %1")
                               .arg(confirmed_tgs.at(i)));
             }
