@@ -58,7 +58,6 @@ public:
     int window_width;
     int headless_mode;
     int channel_number;
-    int gateway_number;
     int control_channel_physical_id;
     int control_channel_slot;
     int payload_channel_idle_timeout;

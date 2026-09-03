@@ -1294,24 +1294,10 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="2">
-                   <widget class="QLabel" name="label_14">
-                    <property name="text">
-                     <string>System identity code</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="13" column="0">
                    <widget class="QLabel" name="label_22">
                     <property name="text">
                      <string>Announce adjacent BS interval (s)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="5" column="0">
-                   <widget class="QLabel" name="label_7">
-                    <property name="text">
-                     <string>Number of DMR Gateways</string>
                     </property>
                    </widget>
                   </item>
@@ -1599,25 +1585,6 @@ message</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="3">
-                   <widget class="QLineEdit" name="lineEditSystemCode">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>150</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="toolTip">
-                     <string>14 bits, consists of Size, Area, Site</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="6" column="1">
                    <widget class="QLineEdit" name="lineEditControlChannelPhysicalId">
                     <property name="sizePolicy">
@@ -1748,16 +1715,6 @@ message</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="5" column="1">
-                   <widget class="QSpinBox" name="spinBoxNumberOfGateways">
-                    <property name="minimum">
-                     <number>1</number>
-                    </property>
-                    <property name="maximum">
-                     <number>30</number>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="6" column="3">
                    <widget class="QLineEdit" name="lineEditDuplexSplit">
                     <property name="sizePolicy">
@@ -1795,6 +1752,32 @@ message</string>
                    <widget class="QLabel" name="label_26">
                     <property name="text">
                      <string>Log level</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_14">
+                    <property name="text">
+                     <string>System identity code</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QLineEdit" name="lineEditSystemCode">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>14 bits, consists of Size, Area, Site</string>
                     </property>
                    </widget>
                   </item>

@@ -38,8 +38,7 @@ Settings::Settings(Logger* logger)
     mmdvm_send_port = 44560;
     gateway_listen_port = 44660;
     gateway_send_port = 44670;
-    channel_number = 1;
-    gateway_number = 1;
+    channel_number = 4;
     udp_local_address = "127.0.0.1";
     mmdvm_remote_address = "127.0.0.1";
     gateway_remote_address = "127.0.0.1";
@@ -111,12 +110,12 @@ void Settings::readConfig()
         cfg.readFile(m_config_file->absoluteFilePath().toStdString().c_str());
     } catch (const libconfig::FileIOException& fioex) {
         m_logger->log(Logger::LogLevelFatal, "I/O error while reading configuration file.");
-        exit(EXIT_FAILURE); // a bit radical
+        exit(EXIT_FAILURE);
     } catch (const libconfig::ParseException& pex) {
         m_logger->log(Logger::LogLevelFatal,
                       QString("Configuration parse error at %1: %2 - %3").arg(pex.getFile()).arg(
                           pex.getLine()).arg(pex.getError()));
-        exit(EXIT_FAILURE); // a bit radical
+        exit(EXIT_FAILURE);
     }
 
     /// Read values
@@ -192,17 +191,6 @@ void Settings::readConfig()
 
     if ((channel_number < 1) || (channel_number > 7)) {
         m_logger->log(Logger::LogLevelFatal, "Number of channels needs to be at least 1 and at most 7.");
-        exit(EXIT_FAILURE);
-    }
-
-    try {
-        gateway_number = cfg.lookup("gateway_number");
-    } catch (const libconfig::SettingNotFoundException& nfex) {
-        gateway_number = 1;
-    }
-
-    if ((gateway_number < 1) || (gateway_number > 30)) {
-        m_logger->log(Logger::LogLevelFatal, "Number of gateways needs to be at least 1 and at most 30.");
         exit(EXIT_FAILURE);
     }
 
@@ -600,7 +588,6 @@ void Settings::saveConfig()
     root.add("window_height", libconfig::Setting::TypeInt) = window_height;
     root.add("headless_mode", libconfig::Setting::TypeInt) = headless_mode;
     root.add("channel_number", libconfig::Setting::TypeInt) = channel_number;
-    root.add("gateway_number", libconfig::Setting::TypeInt) = gateway_number;
     root.add("udp_local_address", libconfig::Setting::TypeString) = udp_local_address.toStdString();
     root.add("mmdvm_remote_address", libconfig::Setting::TypeString) = mmdvm_remote_address.toStdString();
     root.add("gateway_remote_address", libconfig::Setting::TypeString) = gateway_remote_address.toStdString();

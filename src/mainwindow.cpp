@@ -202,7 +202,6 @@ void MainWindow::setConfig()
     ui->spinBoxLogLevel->setValue(m_settings->log_level);
     ui->lineEditControlChannelPhysicalId->setText(QString::number(m_settings->control_channel_physical_id));
     ui->spinBoxControlChannelSlot->setValue(m_settings->control_channel_slot);
-    ui->spinBoxNumberOfGateways->setValue(m_settings->gateway_number);
     ui->lineEditPayloadChannelTimeout->setText(QString::number(m_settings->payload_channel_idle_timeout));
     ui->lineEditSystemCode->setText(QString::number(m_settings->system_identity_code));
     ui->lineEditAnnounceSystemFreqsTime->setText(QString::number(m_settings->announce_system_freqs_interval));
@@ -250,7 +249,6 @@ void MainWindow::saveConfig()
     m_settings->log_level = ui->spinBoxLogLevel->text().toInt();
     m_settings->control_channel_physical_id = ui->lineEditControlChannelPhysicalId->text().toInt();
     m_settings->control_channel_slot = ui->spinBoxControlChannelSlot->value();
-    m_settings->gateway_number = ui->spinBoxNumberOfGateways->text().toInt();
     m_settings->payload_channel_idle_timeout = ui->lineEditPayloadChannelTimeout->text().toInt();
     m_settings->system_identity_code = ui->lineEditSystemCode->text().toInt();
     m_settings->announce_system_freqs_interval = ui->lineEditAnnounceSystemFreqsTime->text().toInt();
