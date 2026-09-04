@@ -268,23 +268,24 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                             // Last data block seems to contain gibberish, CRC9 check will fail, DBSN also invalid
                             if ((msg->block > 1) && (msg->size > 1)) {
                                 msg->crc_valid = false;
-
+                                /*
                                 if (dbsn < 64)
                                     msg->missed_blocks[0] |= 1 << dbsn;
                                 else
                                     msg->missed_blocks[1] |= 1 << (dbsn - 64);
+                                */
 
                                 m_logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
                                               .arg(dbsn));
                             }
                         } else {
                             msg->crc_valid = false;
-
+                            /*
                             if (dbsn < 64)
                                 msg->missed_blocks[0] |= 1 << dbsn;
                             else
                                 msg->missed_blocks[1] |= 1 << (dbsn - 64);
-
+                            */
                             m_logger->log(Logger::LogLevelWarning, QString("Confirmed data block %1 failed CRC9 check")
                                           .arg(dbsn));
                         }
@@ -307,7 +308,10 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     clearMessage(srcId);
                     return finished_message;
                 } else if (msg->block == 1 && msg->type == DPF_CONFIRMED_DATA) {
+                    m_logger->log(Logger::LogLevelInfo, QString("Last block confirmed data message from %1 to %2 of length %3.")
+                                      .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                     if (!msg->crc_valid && (msg->size > 1)) {
+                        /*
                         bool retry = false;
 
                         for (uint8_t i = 0; i < 2; i++)
@@ -328,6 +332,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                             clearMessage(srcId);
                             return nullptr;
                         }
+                        */
                     } else if (!msg->crc_valid && (msg->size == 1)) {
                         msg->crc_valid = true; // in case last block contains unparseable data
                     }
@@ -335,6 +340,8 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     bool valid = processConfirmedMessage(msg, block_size);
 
                     if (!valid) {
+                        m_logger->log(Logger::LogLevelInfo, QString("Confirmed data message from %1 to %2 of length %3 failed CRC check.")
+                                          .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                         clearMessage(srcId);
                         return nullptr;
                     }
@@ -352,9 +359,13 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     clearMessage(srcId);
                     return finished_message;
                 } else if (msg->block == 1 && msg->type == DPF_UNCONFIRMED_DATA) {
+                    m_logger->log(Logger::LogLevelInfo, QString("Last block unconfirmed data message from %1 to %2 of length %3.")
+                                      .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                     bool valid = processUnconfirmedMessage(msg, block_size);
 
                     if (!valid) {
+                        m_logger->log(Logger::LogLevelInfo, QString("Unconfirmed data message from %1 to %2 of length %3 failed CRC check.")
+                                          .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                         clearMessage(srcId);
                         return nullptr;
                     }
@@ -372,9 +383,13 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
                     clearMessage(srcId);
                     return finished_message;
                 } else if (msg->block == 1 && msg->type == DPF_DEFINED_SHORT) {
+                    m_logger->log(Logger::LogLevelInfo, QString("Last block defined data message from %1 to %2 of length %3.")
+                                      .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                     bool valid = processDefinedDataMessage(msg, block_size);
 
                     if (!valid) {
+                        m_logger->log(Logger::LogLevelInfo, QString("Defined data message from %1 to %2 of length %3 failed CRC check.")
+                                          .arg(dmr_data.getSrcId()).arg(dmr_data.getDstId()).arg(msg->payload_len));
                         clearMessage(srcId);
                         return nullptr;
                     }
