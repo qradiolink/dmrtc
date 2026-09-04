@@ -42,7 +42,6 @@ void Signalling::rewriteUDTHeader(CDMRData& dmr_data, unsigned int dstId)
 
         if (header.getUDT()) {
             header.setDstId(dstId);
-            header.construct();
             header.get(data);
             CDMRSlotType slotType;
             slotType.setColorCode(1);
@@ -50,6 +49,7 @@ void Signalling::rewriteUDTHeader(CDMRData& dmr_data, unsigned int dstId)
             slotType.getData(data);
             CSync::addDMRDataSync(data, true);
             dmr_data.setData(data);
+            dmr_data.setDstId(dstId);
         }
     }
 }
