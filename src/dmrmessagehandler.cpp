@@ -78,7 +78,7 @@ void DMRMessageHandler::clearRetryMessage(unsigned int srcId)
     }
 }
 
-void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData& dmr_data)
+void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData dmr_data)
 {
     if (m_dmr_data_buffer.contains(srcId)) {
         QVector<CDMRData>* data_frames = m_dmr_data_buffer[srcId];

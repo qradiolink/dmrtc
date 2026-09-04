@@ -94,7 +94,7 @@ public:
     explicit DMRMessageHandler(const Settings* settings, Logger* logger, QObject* parent = nullptr);
     ~DMRMessageHandler();
     data_message* processData(CDMRData& dmr_data, bool from_gateway = false);
-    void addDataToBuffer(unsigned int srcId, CDMRData& dmr_data);
+    void addDataToBuffer(unsigned int srcId, CDMRData dmr_data);
     QVector<CDMRData>* getDataFromBuffer(unsigned int srcId);
     void clearDataBuffer(unsigned int srcId);
 
