@@ -535,7 +535,8 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     } else {
         // expect ACKU from target
         if (!group) {
-            m_ack_handler->addAck(dstId, ServiceAction::ActionMessageRequest);
+            if(m_registered_ms->contains(dstId))
+                m_ack_handler->addAck(dstId, ServiceAction::ActionMessageRequest);
             m_logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
         } else {
             m_logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to group: %2").arg(message).arg(dstId));
@@ -1349,7 +1350,7 @@ void Controller::processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRM
 void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
                                     DMRMessageHandler::data_message* dmessage, bool group, bool from_gateway)
 {
-    if (group || dmessage->group)
+    if (!from_gateway && (group || dmessage->group))
         dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dstId);
 
     if ((dmessage->udt_format == 4) || (dmessage->udt_format == 3) || (dmessage->udt_format == 7)) {
@@ -1864,14 +1865,14 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 /// Talkgroup attachment list
                 if (m_ack_handler->hasAck(srcId, ServiceAction::RegistrationWithAttachment) &&
                     (message->udt) &&
-                    (message->udt_format == 1)) {
+                    (message->udt_format == 1) && !from_gateway) {
                     forward_to_gw = false;
                     processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
                 /// Talkgroup attachment list
                 else if (m_ack_handler->hasAck(srcId, ServiceAction::CallDivert) &&
                          message->udt &&
-                         (message->udt_format == 1)) {
+                         (message->udt_format == 1) && !from_gateway) {
                     forward_to_gw = false;
                     processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
@@ -1879,12 +1880,17 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 else {
                     if (message->udt) { // UDT message on control channel
                         if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
-                            if (m_settings->service_ids.values().contains(dstId)) {
+                            if (m_settings->service_ids.values().contains(dstId) && !from_gateway) {
                                 forward_to_gw = false;
                                 processTextServiceRequest(dmr_data, message, udp_channel_id);
                             } else {
                                 forward_to_gw = true;
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
+                                if (!from_gateway && !m_registered_ms->contains(dstId)) {
+                                    CDMRCSBK csbk;
+                                    m_signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId(), dmr_data.getDstId(), false);
+                                    transmitCSBK(csbk, nullptr, m_control_channel->getSlot(), m_control_channel->getPhysicalChannel(), false, true);
+                                }
                             }
 
                         } else if ((message->udt_format == 2) && !from_gateway) {
@@ -1921,6 +1927,8 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
 
     /// Rewriting destination to match DMR tier III flat numbering
     if (from_gateway) {
+        /// for now let data be processed according to type
+        return;
 
         if (dmr_data.getFLCO() == FLCO_GROUP) {
             if (m_settings->receive_tg_attach &&
