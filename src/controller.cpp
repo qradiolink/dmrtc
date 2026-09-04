@@ -1817,6 +1817,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     if (message->udt_format == 5) {
                         forward_to_gw = false;
                         processNMEAMessage(srcId, dstId, message);
+                        m_dmr_message_handler->clearDataBuffer(srcId);
                     }
 
                     /// Text message
@@ -1825,9 +1826,13 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                         processTextMessage(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP, from_gateway);
                     }
                     /// Digits
-                    else if ((message->udt_format == 2) && !from_gateway) {
+                    else if (message->udt_format == 2) {
                         forward_to_gw = false;
-                        processDigits(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP);
+
+                        if (!from_gateway)
+                            processDigits(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP);
+
+                        m_dmr_message_handler->clearDataBuffer(srcId);
                     }
 
                     m_logger->log(Logger::LogLevelDebug, QString("DMR Slot %1, received UDT data MS to TG from %2 to %3")
@@ -1866,24 +1871,36 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 /// Talkgroup attachment list
                 if (m_ack_handler->hasAck(srcId, ServiceAction::RegistrationWithAttachment) &&
                     (message->udt) &&
-                    (message->udt_format == 1) && !from_gateway) {
+                    (message->udt_format == 1)) {
                     forward_to_gw = false;
-                    processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
+
+                    if (!from_gateway)
+                        processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
+
+                    m_dmr_message_handler->clearDataBuffer(srcId);
                 }
                 /// Talkgroup attachment list
                 else if (m_ack_handler->hasAck(srcId, ServiceAction::CallDivert) &&
                          message->udt &&
-                         (message->udt_format == 1) && !from_gateway) {
+                         (message->udt_format == 1)) {
                     forward_to_gw = false;
-                    processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
+
+                    if (!from_gateway)
+                        processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
+
+                    m_dmr_message_handler->clearDataBuffer(srcId);
                 }
                 /// Text message
                 else {
                     if (message->udt) { // UDT message on control channel
                         if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
-                            if (m_settings->service_ids.values().contains(dstId) && !from_gateway) {
+                            if (m_settings->service_ids.values().contains(dstId)) {
                                 forward_to_gw = false;
-                                processTextServiceRequest(dmr_data, message, udp_channel_id);
+
+                                if (!from_gateway)
+                                    processTextServiceRequest(dmr_data, message, udp_channel_id);
+
+                                m_dmr_message_handler->clearDataBuffer(srcId);
                             } else {
                                 forward_to_gw = true;
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
@@ -1895,12 +1912,17 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                                 }
                             }
 
-                        } else if ((message->udt_format == 2) && !from_gateway) {
+                        } else if (message->udt_format == 2) {
                             forward_to_gw = false;
-                            processDigits(dstId, srcId, message, false);
+
+                            if (!from_gateway)
+                                processDigits(dstId, srcId, message, false);
+
+                            m_dmr_message_handler->clearDataBuffer(srcId);
                         } else if (message->udt_format == 5) {
                             forward_to_gw = false;
                             processNMEAMessage(srcId, dstId, message);
+                            m_dmr_message_handler->clearDataBuffer(srcId);
                         }
                     } else if (message->sap == 4) {
                         forward_to_gw = true;
@@ -1927,8 +1949,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     if (message != nullptr)
         delete message;
 
-    /// Rewriting destination to match DMR tier III flat numbering
-    if (from_gateway) {
+    if (from_gateway && forward_to_gw)
+        m_dmr_message_handler->clearDataBuffer(srcId);
+    else if (from_gateway) {
+
         /// for now let data be processed according to type
         return;
 
