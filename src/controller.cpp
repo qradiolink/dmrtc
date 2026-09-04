@@ -535,8 +535,9 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
     } else {
         // expect ACKU from target
         if (!group) {
-            if(m_registered_ms->contains(dstId))
+            if (m_registered_ms->contains(dstId))
                 m_ack_handler->addAck(dstId, ServiceAction::ActionMessageRequest);
+
             m_logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to radio: %2").arg(message).arg(dstId));
         } else {
             m_logger->log(Logger::LogLevelInfo, QString("Sending system message %1 to group: %2").arg(message).arg(dstId));
@@ -1886,6 +1887,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                             } else {
                                 forward_to_gw = true;
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
+
                                 if (!from_gateway && !m_registered_ms->contains(dstId)) {
                                     CDMRCSBK csbk;
                                     m_signalling_generator->createReplyMessageAccepted(csbk, dmr_data.getSrcId(), dmr_data.getDstId(), false);
@@ -1953,8 +1955,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     } else if (!from_gateway && forward_to_gw) {
         unsigned int lastId = dmr_data.getSrcId();
         QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
-        for(unsigned int i=0;i < data_frames->size();i++) {
+
+        for (unsigned int i = 0; i < data_frames->size(); i++) {
             CDMRData forwarded_data = data_frames->at(i);
+
             if (forwarded_data.getFLCO() == FLCO_GROUP) {
                 m_signalling_generator->rewriteUDTHeader(forwarded_data, dstIdRewritten);
                 forwarded_data.setDstId(dstIdRewritten);
@@ -1967,8 +1971,13 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
 
             if ((forwarded_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(forwarded_data.getDstId())) {
                 m_control_channel->putNetQueue(forwarded_data);
+                m_logger->log(Logger::LogLevelDebug,
+                              QString("Forwarding data packet from %1 to %2 to network")
+                              .arg(forwarded_data.getSrcId())
+                              .arg(forwarded_data.getDstId()));
             }
         }
+
         m_dmr_message_handler->clearDataBuffer(lastId);
     }
 }
