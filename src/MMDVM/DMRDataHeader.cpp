@@ -179,23 +179,23 @@ void CDMRDataHeader::construct()
 {
     ::memset(m_data, 0, 11U);
     m_UDT = true;
-    m_data[0] |= ((unsigned int)m_GI) << 7;
-    m_data[0] |= ((unsigned int)m_A) << 6;
-    m_data[0] |= (m_rsvd & 0x03) << 4;
-    m_data[0] |= (m_format & 0x0F);
-    m_data[1] |= m_sap << 4;
-    m_data[1] |= m_UDTFormat;
-    m_data[2] = m_dstId >> 16;
-    m_data[3] = (m_dstId >> 8) & 0xFF;
-    m_data[4] = (m_dstId & 0xFF);
-    m_data[5] = m_srcId >> 16;
-    m_data[6] = (m_srcId >> 8) & 0xFF;
-    m_data[7] = (m_srcId & 0xFF);
-    m_data[8] |= (m_padNibble << 3) & 0xF8;
-    m_data[8] |= (m_blocks - 1) & 0x03;
-    m_data[9] |= ((unsigned int)m_SF) << 7;
-    m_data[9] |= ((unsigned int)m_PF) << 6;
-    m_data[9] |= m_opcode;
+    m_data[0U] |= ((unsigned int)m_GI) << 7;
+    m_data[0U] |= ((unsigned int)m_A) << 6;
+    m_data[0U] |= (m_rsvd & 0x03) << 4;
+    m_data[0U] |= (m_format & 0x0F);
+    m_data[1U] |= m_sap << 4;
+    m_data[1U] |= m_UDTFormat;
+    m_data[2U] = m_dstId >> 16;
+    m_data[3U] = (m_dstId >> 8) & 0xFF;
+    m_data[4U] = (m_dstId & 0xFF);
+    m_data[5U] = m_srcId >> 16;
+    m_data[6U] = (m_srcId >> 8) & 0xFF;
+    m_data[7U] = (m_srcId & 0xFF);
+    m_data[8U] |= (m_padNibble << 3) & 0xF8;
+    m_data[8U] |= (m_blocks - 1) & 0x03;
+    m_data[9U] |= ((unsigned int)m_SF) << 7;
+    m_data[9U] |= ((unsigned int)m_PF) << 6;
+    m_data[9U] |= m_opcode;
 }
 
 void CDMRDataHeader::setData(unsigned char *data)
@@ -315,6 +315,9 @@ unsigned int CDMRDataHeader::getSrcId() const
 void CDMRDataHeader::setSrcId(unsigned int srcId)
 {
     m_srcId = srcId;
+    m_data[5U] = srcId >> 16;
+    m_data[6U] = srcId >> 8;
+    m_data[7U] = srcId >> 0;
 }
 
 unsigned int CDMRDataHeader::getDstId() const
@@ -325,6 +328,9 @@ unsigned int CDMRDataHeader::getDstId() const
 void CDMRDataHeader::setDstId(unsigned int dstId)
 {
     m_dstId = dstId;
+    m_data[2U] = dstId >> 16;
+    m_data[3U] = dstId >> 8;
+    m_data[4U] = dstId >> 0;
 }
 
 unsigned int CDMRDataHeader::getBlocks() const
