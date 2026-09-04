@@ -1813,11 +1813,13 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 if (message->udt) {
                     /// Location upload
                     if (message->udt_format == 5) {
+                        forward_to_gw = false;
                         processNMEAMessage(srcId, dstId, message);
                     }
 
                     /// Text message
                     else if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
+                        forward_to_gw = true;
                         processTextMessage(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP, from_gateway);
                     }
                     /// Digits
@@ -1863,12 +1865,14 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 if (m_ack_handler->hasAck(srcId, ServiceAction::RegistrationWithAttachment) &&
                     (message->udt) &&
                     (message->udt_format == 1)) {
+                    forward_to_gw = false;
                     processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
                 /// Talkgroup attachment list
                 else if (m_ack_handler->hasAck(srcId, ServiceAction::CallDivert) &&
                          message->udt &&
                          (message->udt_format == 1)) {
+                    forward_to_gw = false;
                     processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
                 }
                 /// Text message
@@ -1876,8 +1880,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     if (message->udt) { // UDT message on control channel
                         if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
                             if (m_settings->service_ids.values().contains(dstId)) {
+                                forward_to_gw = false;
                                 processTextServiceRequest(dmr_data, message, udp_channel_id);
                             } else {
+                                forward_to_gw = true;
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
                             }
 
@@ -1885,6 +1891,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                             forward_to_gw = false;
                             processDigits(dstId, srcId, message, false);
                         } else if (message->udt_format == 5) {
+                            forward_to_gw = false;
                             processNMEAMessage(srcId, dstId, message);
                         }
                     } else if (message->sap == 4) {
@@ -1914,7 +1921,6 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
 
     /// Rewriting destination to match DMR tier III flat numbering
     if (from_gateway) {
-        return; // cannot handle this type of data here
 
         if (dmr_data.getFLCO() == FLCO_GROUP) {
             if (m_settings->receive_tg_attach &&
@@ -1937,22 +1943,25 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
         dmr_data.setSlotNo(m_control_channel->getSlot());
         m_control_channel->putRFQueue(dmr_data);
     } else if (!from_gateway && forward_to_gw) {
-        if (dmr_data.getFLCO() == FLCO_GROUP) {
-            dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
-            m_signalling_generator->rewriteUDTHeader(dmr_data, dstId);
-        } else {
-            if (m_settings->call_diverts.contains(dstId)) {
-                dstId = m_settings->call_diverts.value(dstId);
-                m_signalling_generator->rewriteUDTHeader(dmr_data, dstId);
+        unsigned int lastId = dmr_data.getSrcId();
+        QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
+        for(unsigned int i=0;i < data_frames->size();i++) {
+            CDMRData forwarded_data = data_frames->at(i);
+            if (forwarded_data.getFLCO() == FLCO_GROUP) {
+                m_signalling_generator->rewriteUDTHeader(forwarded_data, dstIdRewritten);
+                forwarded_data.setDstId(dstIdRewritten);
+            } else {
+                if (m_settings->call_diverts.contains(forwarded_data.getDstId())) {
+                    dstId = m_settings->call_diverts.value(dstId);
+                    m_signalling_generator->rewriteUDTHeader(forwarded_data, dstId);
+                }
+            }
+
+            if ((forwarded_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(forwarded_data.getDstId())) {
+                m_control_channel->putNetQueue(forwarded_data);
             }
         }
-
-        dmr_data.setDstId(dstId);
-
-        if ((dmr_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(dstId)) {
-            m_dmr_rewrite->rewriteSlot(dmr_data);
-            m_control_channel->putNetQueue(dmr_data);
-        }
+        m_dmr_message_handler->clearDataBuffer(lastId);
     }
 }
 

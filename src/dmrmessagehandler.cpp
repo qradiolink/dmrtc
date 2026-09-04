@@ -50,7 +50,7 @@ void DMRMessageHandler::removeMessages()
     for (int i = 0; i < ids.size(); i++) {
         clearMessage(i);
         clearRetryMessage(i);
-        clearDataBuffer(i);
+        //clearDataBuffer(i);
     }
 }
 
@@ -78,7 +78,7 @@ void DMRMessageHandler::clearRetryMessage(unsigned int srcId)
     }
 }
 
-void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData dmr_data)
+void DMRMessageHandler::addDataToBuffer(unsigned int srcId, CDMRData& dmr_data)
 {
     if (m_dmr_data_buffer.contains(srcId)) {
         QVector<CDMRData>* data_frames = m_dmr_data_buffer[srcId];
@@ -126,7 +126,7 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
         header.put(data);
 
 
-        clearDataBuffer(srcId);
+        //clearDataBuffer(srcId);
         addDataToBuffer(srcId, dmr_data);
         clearMessage(srcId);
 
