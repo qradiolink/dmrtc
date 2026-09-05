@@ -1947,40 +1947,45 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
         m_control_channel->putRFQueue(dmr_data);
 #endif
     } else if ((message != nullptr) && !from_gateway && forward_to_gw) {
-        unsigned int lastId = dmr_data.getSrcId();
-        QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
-
-        for (unsigned int i = 0; i < data_frames->size(); i++) {
-            CDMRData forwarded_data = data_frames->at(i);
-
-            if (forwarded_data.getFLCO() == FLCO_GROUP) {
-                m_signalling_generator->rewriteUDTHeader(forwarded_data, dstIdRewritten);
-                forwarded_data.setDstId(dstIdRewritten);
-            } else {
-                if (m_settings->call_diverts.contains(forwarded_data.getDstId())) {
-                    dstId = m_settings->call_diverts.value(dstId);
-                    m_signalling_generator->rewriteUDTHeader(forwarded_data, dstId);
-                }
-
-                forwarded_data.setSlotNo(2);
-            }
-
-            if ((forwarded_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(forwarded_data.getDstId())) {
-                m_control_channel->putNetQueue(forwarded_data);
-                m_logger->log(Logger::LogLevelDebug,
-                              QString("Forwarding data packet from %1 to %2 to network")
-                              .arg(forwarded_data.getSrcId())
-                              .arg(forwarded_data.getDstId()));
-            }
-        }
-
-        m_dmr_message_handler->clearDataBuffer(lastId);
+        forwardDataToGateway(dmr_data, dstIdRewritten);
     }
 
     if (message != nullptr) {
         delete message;
         m_dmr_message_handler->clearDataBuffer(srcId);
     }
+}
+
+void Controller::forwardDataToGateway(CDMRData& dmr_data, unsigned int dstIdRewritten)
+{
+    unsigned int lastId = dmr_data.getSrcId();
+    QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
+
+    for (unsigned int i = 0; i < data_frames->size(); i++) {
+        CDMRData forwarded_data = data_frames->at(i);
+
+        if (forwarded_data.getFLCO() == FLCO_GROUP) {
+            m_signalling_generator->rewriteUDTHeader(forwarded_data, dstIdRewritten);
+            forwarded_data.setDstId(dstIdRewritten);
+        } else {
+            if (m_settings->call_diverts.contains(forwarded_data.getDstId())) {
+                unsigned int newDstId = m_settings->call_diverts.value(dstIdRewritten);
+                m_signalling_generator->rewriteUDTHeader(forwarded_data, newDstId);
+            }
+
+            forwarded_data.setSlotNo(2);
+        }
+
+        if ((forwarded_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(forwarded_data.getDstId())) {
+            m_control_channel->putNetQueue(forwarded_data);
+            m_logger->log(Logger::LogLevelDebug,
+                          QString("Forwarding data packet from %1 to %2 to network")
+                          .arg(forwarded_data.getSrcId())
+                          .arg(forwarded_data.getDstId()));
+        }
+    }
+
+    m_dmr_message_handler->clearDataBuffer(lastId);
 }
 
 void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,

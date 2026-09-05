@@ -165,6 +165,7 @@ private:
                               unsigned int slotNo, LogicalChannel*& logical_channel, CDMRCSBK& csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData& dmr_data, unsigned int udp_channel_id, bool from_gateway);
+    void forwardDataToGateway(CDMRData& dmr_data, unsigned int dstIdRewritten);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id);
     void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id);
     void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message* message);
