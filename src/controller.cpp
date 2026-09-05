@@ -30,7 +30,6 @@ Controller::Controller(Settings* settings, Logger* logger, DMRIdLookup* id_looku
     m_talkgroup_dgna = new QMap<unsigned int, QList<unsigned int>>;
     m_rejected_calls = new QSet<unsigned int>;
     m_subscribed_talkgroups = new QSet<unsigned int>;
-    // Because ACKU CSBK contains no ServiceKind, need to store some state to determine which service is it pertinent for
     m_ack_handler = new AckHandler;
     m_auth_responses = new QMap<unsigned int, unsigned int>;
     m_dmr_rewrite = new DMRRewrite(settings, m_registered_ms);
@@ -238,7 +237,7 @@ void Controller::run()
             }
         }
 
-        QCoreApplication::processEvents(); // process signals
+        QCoreApplication::processEvents();
 
 
         for (unsigned int i = 0U; i < m_logical_channels.size(); i++) {
@@ -716,7 +715,6 @@ void Controller::pollData(unsigned int target_id, unsigned int poll_format, unsi
         srcId = StandardAddreses::SDMI;
 
     CDMRCSBK csbk;
-    // NMEA location poll test
     m_signalling_generator->createRequestToUploadUDTPolledData(csbk, srcId, target_id, poll_format, 1);
     transmitCSBK(csbk, nullptr, m_control_channel->getSlot(), m_control_channel->getPhysicalChannel(), false, true);
 }
@@ -970,7 +968,6 @@ void Controller::cleanupSubscriptions()
     }
 
     if (m_settings->use_trunking_protocol && m_settings->send_network_registrations) {
-        // deregister MSs from network
         for (unsigned int i = 0U; i < m_registered_ms->size(); i++) {
             CDMRData deregister_message;
             m_network_signalling->createDeRegistrationMessage(deregister_message, m_registered_ms->at(i));
@@ -1014,9 +1011,9 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                                   .arg(m_logical_channels[i]->getDestination())
                                   .arg(srcId)
                                   .arg(dstId));
-                    /* // TODO
-                    if(m_logical_channels[i]->getLocalCall())
-                    {
+#if 0
+
+                    if (m_logical_channels[i]->getLocalCall()) {
                         CDMRData dmr_control_data;
                         dmr_control_data.setSlotNo(m_logical_channels[i]->getSlot());
                         dmr_control_data.setControl(true);
@@ -1024,8 +1021,8 @@ LogicalChannel* Controller::findLowerPriorityChannel(unsigned int dstId, unsigne
                         m_logical_channels[i]->putRFQueue(dmr_control_data);
                         return nullptr;
                     }
-                    */
 
+#endif
                     m_logical_channels[i]->setDestination(0);
                     m_logical_channels[i]->clearNetQueue();
                     m_logical_channels[i]->clearRFQueue();
@@ -1175,7 +1172,6 @@ void Controller::inputNetDMRPayload(unsigned char* payload, unsigned int size, u
         dmr_data.setN(0U);
 
         if (dataType == DT_CSBK && !from_gateway) {
-            // skip network csbk for now
             processSignalling(dmr_data, udp_channel_id);
         } else if (((dataType == DT_DATA_HEADER) ||
                     (dataType == DT_RATE_12_DATA) ||
@@ -1423,9 +1419,7 @@ void Controller::processDigits(unsigned int dstId, unsigned int srcId,
                                .arg(srcId)
                                .arg(dstId)
                                .arg(dialId);
-        /// poke in PBX call logic
-        ///
-        ///
+        /// poke in PBX logic
 
         m_logger->log(Logger::LogLevelInfo, text_message);
 
@@ -1527,14 +1521,11 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
         text_message = QString::fromUtf8((const char*)dmessage->payload, dmessage->payload_len).trimmed();
         confirmPDPMessageReception(srcId, slotNo, dmessage, udp_channel_id);
 
-        ///** Sending the message on the control channel
         int size = text_message.size();
 
         if (size > 0) {
             sendUDTShortMessage(text_message, dstId, srcId, dmessage->group);
         }
-
-        //*/
 
         ///** TODO: replay received packet data on dedicated channel
         //replayPacketData(srcId, dstId, slotNo);
@@ -1592,8 +1583,6 @@ void Controller::processUDPProtocolMessage(unsigned int dstId, unsigned int srcI
     }
 
     text_message = text_message.trimmed();
-
-    ///** Sending the message on the control channel
     int size = text_message.size();
 
     if (size > 0) {
@@ -1627,8 +1616,6 @@ void Controller::processUDPProtocolMessage(unsigned int dstId, unsigned int srcI
 
 bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id)
 {
-    /// Used for testing and debug purposes
-    ///
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
 
@@ -1886,7 +1873,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 }
                 /// Text message
                 else {
-                    if (message->udt) { // UDT message on control channel
+                    if (message->udt) {
                         if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
                             if (m_settings->service_ids.values().contains(dstId)) {
                                 forward_to_gw = false;
@@ -1937,6 +1924,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
 
     if (from_gateway) {
 #if 0
+
         if (dmr_data.getFLCO() == FLCO_GROUP) {
             if (m_settings->receive_tg_attach &&
                 m_settings->transmit_subscribed_tg_only &&
@@ -1973,6 +1961,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     dstId = m_settings->call_diverts.value(dstId);
                     m_signalling_generator->rewriteUDTHeader(forwarded_data, dstId);
                 }
+
                 forwarded_data.setSlotNo(2);
             }
 
@@ -2001,7 +1990,6 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
     unsigned int dstId, srcId;
     unsigned int dataType = dmr_data.getDataType();
 
-    /// Rewriting destination to match DMR tier III flat numbering
     if (local_data) {
         if (dmr_data.getFLCO() == FLCO_GROUP)
             dstId = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
@@ -2018,7 +2006,6 @@ void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,
             if (m_settings->receive_tg_attach &&
                 m_settings->transmit_subscribed_tg_only &&
                 !m_subscribed_talkgroups->contains(dstId)) {
-                // Do not transmit unsubscribed talkgroups if not configured to do so
                 return;
             }
 
@@ -3198,11 +3185,15 @@ void Controller::processSignalling(CDMRData& dmr_data, unsigned int udp_channel_
     }
     /// Not implemeted yet
     else {
-        qDebug() << "CSBKO: " << QString::number(csbk.getCSBKO(), 16) <<
-                 " FID " << csbk.getFID() <<
-                 " data1: " << csbk.getData1() << " data2: " << csbk.getCBF() <<
-                 " dst: " << dstId << " src: " << srcId;
         m_logger->log(Logger::LogLevelDebug, QString("Unhandled CSBK type slot %1, channel %2").arg(slotNo).arg(udp_channel_id));
+        m_logger->log(Logger::LogLevelDebug,
+                      QString("CSBKO:  %1, FID: %2, data1: %3, data2: %4, dst: %5, src: %6")
+                      .arg(QString::number(csbk.getCSBKO(), 16))
+                      .arg(QString::number(csbk.getFID(), 16))
+                      .arg(QString::number(csbk.getData1(), 16))
+                      .arg(QString::number(csbk.getCBF(), 16))
+                      .arg(dstId)
+                      .arg(srcId));
         m_control_channel->setText(QString("Unknown service request: %1").arg(srcId));
 
         if (!m_settings->headless_mode) {
@@ -3233,10 +3224,14 @@ void Controller::processNetworkCSBK(CDMRData& dmr_data, unsigned int udp_channel
         return;
     }
 
-    qDebug() << "CSBKO: " << QString::number(csbk.getCSBKO(), 16) <<
-             " FID " << csbk.getFID() <<
-             " data1: " << csbk.getData1() << " data2: " << csbk.getCBF() <<
-             " dst: " << dstId << " src: " << srcId;
+    m_logger->log(Logger::LogLevelDebug,
+                  QString("CSBKO:  %1, FID: %2, data1: %3, data2: %4, dst: %5, src: %6")
+                  .arg(QString::number(csbk.getCSBKO(), 16))
+                  .arg(QString::number(csbk.getFID(), 16))
+                  .arg(QString::number(csbk.getData1(), 16))
+                  .arg(QString::number(csbk.getCBF(), 16))
+                  .arg(dstId)
+                  .arg(srcId));
 }
 
 
