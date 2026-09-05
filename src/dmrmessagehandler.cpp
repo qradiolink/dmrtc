@@ -27,7 +27,7 @@ DMRMessageHandler::DMRMessageHandler(const Settings* settings, Logger* logger, Q
 {
     m_settings = settings;
     m_logger = logger;
-    m_message_timeout_timer.setInterval(1000);
+    m_message_timeout_timer.setInterval(10000);
     m_message_timeout_timer.setSingleShot(true);
     QObject::connect(&m_message_timeout_timer, SIGNAL(timeout()), this, SLOT(removeMessages()), Qt::DirectConnection);
     QObject::connect(this, SIGNAL(internalStartTimer()), &m_message_timeout_timer, SLOT(start()));
