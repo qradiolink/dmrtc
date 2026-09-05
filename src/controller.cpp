@@ -1764,7 +1764,6 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstIdRewritten = 0U;
 
-    /// Rewriting destination to match DMR tier III flat numbering
     if (local_data) {
         if (dmr_data.getFLCO() == FLCO_GROUP)
             dstIdRewritten = TrunkingUtils::convertBase11GroupNumberToBase10(dmr_data.getDstId());
@@ -1842,10 +1841,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
                     }
                 } else if (message->sap == 4) {
-                    forward_to_gw = true;
+                    forward_to_gw = false;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 } else if (message->sap == 10 && message->type == 13) {
-                    forward_to_gw = true;
+                    forward_to_gw = false;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 } else {
                     forward_to_gw = false;
@@ -1915,10 +1914,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                             processNMEAMessage(srcId, dstId, message);
                         }
                     } else if (message->sap == 4) {
-                        forward_to_gw = true;
+                        forward_to_gw = false;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     } else if (message->sap == 10 && message->type == 13) {
-                        forward_to_gw = true;
+                        forward_to_gw = false;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     } else {
                         forward_to_gw = false;
@@ -1937,9 +1936,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     }
 
     if (from_gateway) {
-
-        /// for now let data be processed according to type
-        /**
+#if 0
         if (dmr_data.getFLCO() == FLCO_GROUP) {
             if (m_settings->receive_tg_attach &&
                 m_settings->transmit_subscribed_tg_only &&
@@ -1960,7 +1957,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
         dmr_data.setDstId(dstId);
         dmr_data.setSlotNo(m_control_channel->getSlot());
         m_control_channel->putRFQueue(dmr_data);
-        */
+#endif
     } else if ((message != nullptr) && !from_gateway && forward_to_gw) {
         unsigned int lastId = dmr_data.getSrcId();
         QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
@@ -1976,6 +1973,7 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     dstId = m_settings->call_diverts.value(dstId);
                     m_signalling_generator->rewriteUDTHeader(forwarded_data, dstId);
                 }
+                forwarded_data.setSlotNo(2);
             }
 
             if ((forwarded_data.getFLCO() == FLCO_GROUP) || !m_registered_ms->contains(forwarded_data.getDstId())) {
