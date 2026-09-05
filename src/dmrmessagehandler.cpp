@@ -35,22 +35,27 @@ DMRMessageHandler::DMRMessageHandler(const Settings* settings, Logger* logger, Q
 
 DMRMessageHandler::~DMRMessageHandler()
 {
-    QList<unsigned int> keys = m_messages.keys();
-
-    for (int i = 0; i < keys.size(); i++) {
-        clearMessage(keys[i]);
-        clearDataBuffer(keys[i]);
-    }
+    removeMessages();
 }
 
 void DMRMessageHandler::removeMessages()
 {
-    QVector<unsigned int> ids = m_messages.keys().toVector();
+    QList<unsigned int> msg_ids = m_messages.keys();
 
-    for (int i = 0; i < ids.size(); i++) {
-        clearMessage(i);
-        clearRetryMessage(i);
-        //clearDataBuffer(i);
+    for (int i = 0; i < msg_ids.size(); i++) {
+        clearMessage(msg_ids.at(i));
+    }
+
+    QList<unsigned int> retry_ids = m_retry_messages.keys();
+
+    for (int i = 0; i < retry_ids.size(); i++) {
+        clearRetryMessage(retry_ids.at(i));
+    }
+
+    QList<unsigned int> buffer_ids = m_dmr_data_buffer.keys();
+
+    for (int i = 0; i < buffer_ids.size(); i++) {
+        clearDataBuffer(buffer_ids.at(i));
     }
 }
 
@@ -124,9 +129,6 @@ DMRMessageHandler::data_message* DMRMessageHandler::processData(CDMRData& dmr_da
         dmr_data.getData(data);
         CDMRDataHeader header;
         header.put(data);
-
-
-        //clearDataBuffer(srcId);
         addDataToBuffer(srcId, dmr_data);
         clearMessage(srcId);
 
