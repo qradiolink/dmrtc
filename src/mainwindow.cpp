@@ -53,6 +53,10 @@ MainWindow::MainWindow(Settings* settings, Logger* logger, DMRIdLookup* id_looku
                      this, SLOT(deleteCallPriorityRow()));
     QObject::connect(ui->pushButtonAddCallPriority, SIGNAL(clicked(bool)),
                      this, SLOT(addCallPriorityRow()));
+    QObject::connect(ui->pushButtonRemoveAuthKey, SIGNAL(clicked(bool)),
+                     this, SLOT(deleteAuthKeyRow()));
+    QObject::connect(ui->pushButtonAddAuthKey, SIGNAL(clicked(bool)),
+                     this, SLOT(addAuthKeyRow()));
     QObject::connect(ui->pushButtonRemoveSlotRoute, SIGNAL(clicked(bool)),
                      this, SLOT(deleteSlotRewrite()));
     QObject::connect(ui->pushButtonAddSlotRoute, SIGNAL(clicked(bool)),
@@ -227,6 +231,7 @@ void MainWindow::setConfig()
 
     loadTalkgroupRouting();
     loadCallPriorities();
+    loadAuthKeys();
     loadSlotRewrite();
     loadLogicalPhysicalChannels();
     loadAdjacentSites();
@@ -274,6 +279,7 @@ void MainWindow::saveConfig()
 
     saveTalkgroupRouting();
     saveCallPriorities();
+    saveAuthKeys();
     saveSlotRewrite();
     saveLogicalPhysicalChannels();
     saveAdjacentSites();
@@ -424,6 +430,76 @@ void MainWindow::deleteCallPriorityRow()
 
     for (int row : rows) {
         ui->tableWidgetCallPriorities->removeRow(row);
+    }
+}
+
+void MainWindow::loadAuthKeys()
+{
+    QMapIterator<unsigned int, QString> i(m_settings->auth_keys);
+    QStringList header_auth_keys;
+    header_auth_keys.append("Id");
+    header_auth_keys.append("Key");
+    ui->tableWidgetAuthKeys->setRowCount(m_settings->auth_keys.size());
+    ui->tableWidgetAuthKeys->setColumnCount(2);
+    ui->tableWidgetAuthKeys->setHorizontalHeaderLabels(header_auth_keys);
+    ui->tableWidgetAuthKeys->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidgetAuthKeys->horizontalHeader()->resizeSections(QHeaderView::ResizeMode::Stretch);
+    int row = 0;
+
+    while (i.hasNext()) {
+        i.next();
+        QTableWidgetItem* id = new QTableWidgetItem(QString::number(i.key()));
+        QTableWidgetItem* key = new QTableWidgetItem(i.value());
+
+        ui->tableWidgetAuthKeys->setItem(row, 0, id);
+        ui->tableWidgetAuthKeys->setItem(row, 1, key);
+        row++;
+    }
+}
+
+void MainWindow::saveAuthKeys()
+{
+    m_settings->auth_keys.clear();
+    int rows = ui->tableWidgetAuthKeys->rowCount();
+
+    for (int i = 0; i < rows; i++) {
+        QTableWidgetItem* item1 = ui->tableWidgetAuthKeys->item(i, 0);
+        QTableWidgetItem* item2 = ui->tableWidgetAuthKeys->item(i, 1);
+        bool ok1 = false;
+
+        if (item1->text().size() > 0) {
+            item1->text().toInt(&ok1);
+        }
+
+        if (ok1) {
+            m_settings->auth_keys.insert(item1->text().toInt(), item2->text());
+        }
+    }
+}
+
+void MainWindow::addAuthKeyRow()
+{
+    ui->tableWidgetAuthKeys->setRowCount(ui->tableWidgetAuthKeys->rowCount() + 1);
+    QTableWidgetItem* id = new QTableWidgetItem(QString(""));
+    QTableWidgetItem* key = new QTableWidgetItem(QString(""));
+
+    ui->tableWidgetAuthKeys->setItem(ui->tableWidgetAuthKeys->rowCount() - 1, 0, id);
+    ui->tableWidgetAuthKeys->setItem(ui->tableWidgetAuthKeys->rowCount() - 1, 1, key);
+    ui->tableWidgetAuthKeys->scrollToBottom();
+}
+
+void MainWindow::deleteAuthKeyRow()
+{
+    QList<QTableWidgetItem*> items = ui->tableWidgetAuthKeys->selectedItems();
+    QSet<int> rows;
+
+    for (QTableWidgetItem* item : items) {
+        int row = item->row();
+        rows.insert(row);
+    }
+
+    for (int row : rows) {
+        ui->tableWidgetAuthKeys->removeRow(row);
     }
 }
 

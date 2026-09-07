@@ -61,10 +61,13 @@ public slots:
     void saveConfig();
     void saveTalkgroupRouting();
     void saveCallPriorities();
+    void saveAuthKeys();
     void deleteTalkgroupRow();
     void addTalkgroupRow();
     void deleteCallPriorityRow();
+    void deleteAuthKeyRow();
     void addCallPriorityRow();
+    void addAuthKeyRow();
     void deleteSlotRewrite();
     void addSlotRewrite();
     void saveSlotRewrite();
@@ -121,6 +124,7 @@ private:
     void setConfig();
     void loadTalkgroupRouting();
     void loadCallPriorities();
+    void loadAuthKeys();
     void loadSlotRewrite();
     void loadLogicalPhysicalChannels();
     void loadAdjacentSites();
