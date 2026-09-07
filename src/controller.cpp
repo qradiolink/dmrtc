@@ -501,16 +501,19 @@ void Controller::announcePrivateCalls()
 
 
 void Controller::buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message,
-                                              bool group)
+                                              bool group, bool forward_to_gw)
 {
     dstId = group ? TrunkingUtils::convertBase10ToBase11GroupNumber(dstId) : dstId;
     unsigned int slot_no = m_control_channel->getSlot();
     QVector<CDMRData> dmr_data_frames;
     m_signalling_generator->buildUDTShortMessageSequence(dmr_data_frames, srcId, dstId, message, group, slot_no);
     m_control_channel->putRFQueueMultiItem(dmr_data_frames);
+
+    if (forward_to_gw)
+        forwardDataToGateway(dmr_data_frames);
 }
 
-void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId, bool group)
+void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId, bool group, bool forward_to_gw)
 {
     unsigned int msg_size = message.size();
 
@@ -522,7 +525,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
 
         for (unsigned int i = 0U; i <= num_msg; i++) {
             QString msg = message.mid(i * 46, 46);
-            sendUDTShortMessage(msg, dstId, srcId, group);
+            sendUDTShortMessage(msg, dstId, srcId, group, forward_to_gw);
         }
 
         return;
@@ -547,7 +550,7 @@ void Controller::sendUDTShortMessage(QString message, unsigned int dstId, unsign
         srcId = StandardAddreses::DISPATI;
     }
 
-    buildUDTShortMessageSequence(srcId, dstId, message, group);
+    buildUDTShortMessageSequence(srcId, dstId, message, group, forward_to_gw);
 }
 
 void Controller::sendUDTMultipartMessage(QList<QString> messages, unsigned int dstId, unsigned int srcId, bool group, uint8_t delay)
@@ -1370,7 +1373,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
             text_message = text_message.trimmed();
         }
 
-        sendUDTShortMessage(text_message, dstId, srcId, group);
+        sendUDTShortMessage(text_message, dstId, srcId, group, !from_gateway);
 
         if (group) {
             m_logger->log(Logger::LogLevelInfo, QString("Received group UDT short data message from %1 to %2: %3")
@@ -1388,7 +1391,7 @@ void Controller::processTextMessage(unsigned int dstId, unsigned int srcId,
             CDMRData text_message_data;
             m_network_signalling->createUDTTransferMessage(text_message_data, srcId, dstId, text_message, 4, group); // TODO: format
             m_control_channel->putNetQueue(text_message_data);
-            m_logger->log(Logger::LogLevelDebug, QString("Sending UDT message to network"));
+            m_logger->log(Logger::LogLevelDebug, QString("Sending UDT message to network via trunking protocol"));
         }
 
         if (!m_settings->headless_mode) {
@@ -1524,7 +1527,7 @@ void Controller::processDataProtocolMessage(unsigned int dstId, unsigned int src
         int size = text_message.size();
 
         if (size > 0) {
-            sendUDTShortMessage(text_message, dstId, srcId, dmessage->group);
+            sendUDTShortMessage(text_message, dstId, srcId, dmessage->group, !from_gateway);
         }
 
         ///** TODO: replay received packet data on dedicated channel
@@ -1746,7 +1749,6 @@ bool Controller::processTextServiceRequest(CDMRData& dmr_data, DMRMessageHandler
 void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bool from_gateway)
 {
     bool local_data = !from_gateway;
-    bool forward_to_gw = false;
     unsigned int dstId = dmr_data.getDstId();
     unsigned int srcId = dmr_data.getSrcId();
     unsigned int dstIdRewritten = 0U;
@@ -1802,19 +1804,15 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 if (message->udt) {
                     /// Location upload
                     if (message->udt_format == 5) {
-                        forward_to_gw = false;
                         processNMEAMessage(srcId, dstId, message);
                     }
 
                     /// Text message
                     else if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
-                        forward_to_gw = true;
                         processTextMessage(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP, from_gateway);
                     }
                     /// Digits
                     else if (message->udt_format == 2) {
-                        forward_to_gw = false;
-
                         if (!from_gateway)
                             processDigits(dstId, srcId, message, dmr_data.getFLCO() == FLCO_GROUP);
                     }
@@ -1828,13 +1826,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                         transmitCSBK(csbk, nullptr, dmr_data.getSlotNo(), udp_channel_id, false, true);
                     }
                 } else if (message->sap == 4) {
-                    forward_to_gw = false;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 } else if (message->sap == 10 && message->type == 13) {
-                    forward_to_gw = false;
                     processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                 } else {
-                    forward_to_gw = false;
                     processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo(), from_gateway);
                 }
             } else if (message->udt && !from_gateway) {
@@ -1857,7 +1852,6 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 if (m_ack_handler->hasAck(srcId, ServiceAction::RegistrationWithAttachment) &&
                     (message->udt) &&
                     (message->udt_format == 1)) {
-                    forward_to_gw = false;
 
                     if (!from_gateway)
                         processTalkgroupSubscriptionsMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
@@ -1866,7 +1860,6 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                 else if (m_ack_handler->hasAck(srcId, ServiceAction::CallDivert) &&
                          message->udt &&
                          (message->udt_format == 1)) {
-                    forward_to_gw = false;
 
                     if (!from_gateway)
                         processCallDivertMessage(srcId, dmr_data.getSlotNo(), message, udp_channel_id);
@@ -1876,12 +1869,10 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                     if (message->udt) {
                         if ((message->udt_format == 4) || (message->udt_format == 3) || (message->udt_format == 7)) {
                             if (m_settings->service_ids.values().contains(dstId)) {
-                                forward_to_gw = false;
 
                                 if (!from_gateway)
                                     processTextServiceRequest(dmr_data, message, udp_channel_id);
                             } else {
-                                forward_to_gw = true;
                                 processTextMessage(dstId, srcId, message, false, from_gateway);
 
                                 if (!from_gateway && !m_registered_ms->contains(dstId)) {
@@ -1892,22 +1883,17 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
                             }
 
                         } else if (message->udt_format == 2) {
-                            forward_to_gw = false;
 
                             if (!from_gateway)
                                 processDigits(dstId, srcId, message, false);
                         } else if (message->udt_format == 5) {
-                            forward_to_gw = false;
                             processNMEAMessage(srcId, dstId, message);
                         }
                     } else if (message->sap == 4) {
-                        forward_to_gw = false;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     } else if (message->sap == 10 && message->type == 13) {
-                        forward_to_gw = false;
                         processUDPProtocolMessage(dstId, srcId, message, from_gateway);
                     } else {
-                        forward_to_gw = false;
                         processDataProtocolMessage(dstId, srcId, message, udp_channel_id, dmr_data.getSlotNo(), from_gateway);
                     }
                 }
@@ -1946,8 +1932,6 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
         dmr_data.setSlotNo(m_control_channel->getSlot());
         m_control_channel->putRFQueue(dmr_data);
 #endif
-    } else if ((message != nullptr) && !from_gateway && forward_to_gw) {
-        forwardDataToGateway(dmr_data, dstIdRewritten);
     }
 
     if (message != nullptr) {
@@ -1956,13 +1940,16 @@ void Controller::processData(CDMRData& dmr_data, unsigned int udp_channel_id, bo
     }
 }
 
-void Controller::forwardDataToGateway(CDMRData& dmr_data, unsigned int dstIdRewritten)
+void Controller::forwardDataToGateway(QVector<CDMRData>& dmr_data_frames)
 {
-    unsigned int lastId = dmr_data.getSrcId();
-    QVector<CDMRData>* data_frames = m_dmr_message_handler->getDataFromBuffer(dmr_data.getSrcId());
+    for (unsigned int i = 0; i < dmr_data_frames.size(); i++) {
+        CDMRData forwarded_data = dmr_data_frames.at(i);
+        unsigned int dstIdRewritten = 0U;
 
-    for (unsigned int i = 0; i < data_frames->size(); i++) {
-        CDMRData forwarded_data = data_frames->at(i);
+        if (forwarded_data.getFLCO() == FLCO_GROUP)
+            dstIdRewritten = TrunkingUtils::convertBase11GroupNumberToBase10(forwarded_data.getDstId());
+        else
+            dstIdRewritten = forwarded_data.getDstId();
 
         if (forwarded_data.getFLCO() == FLCO_GROUP) {
             m_signalling_generator->rewriteUDTHeader(forwarded_data, dstIdRewritten);
@@ -1984,8 +1971,6 @@ void Controller::forwardDataToGateway(CDMRData& dmr_data, unsigned int dstIdRewr
                           .arg(forwarded_data.getDstId()));
         }
     }
-
-    m_dmr_message_handler->clearDataBuffer(lastId);
 }
 
 void Controller::processVoice(CDMRData& dmr_data, unsigned int udp_channel_id,

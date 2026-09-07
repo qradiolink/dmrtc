@@ -95,7 +95,7 @@ public slots:
     bool userRegister(unsigned int dmrId);
     bool userDeRegister(unsigned int dmrId);
     void setChannelEnabled(unsigned int index, bool state);
-    void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId = 0, bool group = false);
+    void sendUDTShortMessage(QString message, unsigned int dstId, unsigned int srcId = 0, bool group = false, bool forward_to_gw = false);
     void sendUDTMultipartMessage(QList<QString> messages, unsigned int dstId, unsigned int srcId = 0, bool group = false, uint8_t delay = 0);
     void sendUDTDGNA(QString dgids, unsigned int dstId, bool attach = true);
     void sendUDTCallDivertInfo(unsigned int srcId, unsigned int dstId, unsigned int sap = 0);
@@ -165,7 +165,7 @@ private:
                               unsigned int slotNo, LogicalChannel*& logical_channel, CDMRCSBK& csbk);
     void handleLocalVoiceOnUnallocatedChannel(unsigned int call_type, unsigned int slotNo, unsigned int udp_channel_id);
     void processData(CDMRData& dmr_data, unsigned int udp_channel_id, bool from_gateway);
-    void forwardDataToGateway(CDMRData& dmr_data, unsigned int dstIdRewritten);
+    void forwardDataToGateway(QVector<CDMRData>& dmr_data_frames);
     void processTalkgroupSubscriptionsMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id);
     void processCallDivertMessage(unsigned int srcId, unsigned int slotNo, DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id);
     void processNMEAMessage(unsigned int srcId, unsigned int dstId, DMRMessageHandler::data_message* message);
@@ -180,7 +180,7 @@ private:
                                    DMRMessageHandler::data_message* dmessage, bool from_gateway);
     void updateSubscriptions(QList<unsigned int> tg_list, unsigned int srcId);
     void resetPing();
-    void buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message, bool group);
+    void buildUDTShortMessageSequence(unsigned int srcId, unsigned int dstId, QString message, bool group, bool forward_to_gw = false);
     void confirmPDPMessageReception(unsigned int srcId, unsigned int slotNo,
                                     DMRMessageHandler::data_message* dmessage, unsigned int udp_channel_id);
     void replayPacketData(unsigned int srcId, unsigned int dstId, unsigned int slotNo);
