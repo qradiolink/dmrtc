@@ -38,6 +38,8 @@ m_dstId(0U),
 m_dataContent(false),
 m_CBF(0U),
 m_OVCM(false),
+m_service_kind(0U),
+m_service_options(0U),
 m_LB(false),
 m_PF(false),
 m_dataType(DT_CSBK)
@@ -57,6 +59,8 @@ m_dstId(csbk.m_dstId),
 m_dataContent(csbk.m_dataContent),
 m_CBF(csbk.m_CBF),
 m_OVCM(csbk.m_OVCM),
+m_service_kind(csbk.m_service_kind),
+m_service_options(csbk.m_service_options),
 m_LB(csbk.m_LB),
 m_PF(csbk.m_PF),
 m_dataType(csbk.m_dataType)
@@ -79,6 +83,8 @@ CDMRCSBK& CDMRCSBK::operator=(const CDMRCSBK& csbk)
         m_dataContent      = csbk.m_dataContent;
         m_CBF     = csbk.m_CBF;
         m_OVCM = csbk.m_OVCM;
+        m_service_kind = csbk.m_service_kind;
+        m_service_options = csbk.m_service_options;
         m_LB    = csbk.m_LB;
         m_PF    = csbk.m_PF;
         m_dataType = csbk.m_dataType;

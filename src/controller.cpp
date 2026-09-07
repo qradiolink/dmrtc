@@ -2491,6 +2491,7 @@ void Controller::processRegistration(unsigned int srcId, unsigned int dstId, CDM
         m_signalling_generator->createRequestToUploadTgAttachments(csbk, srcId, uab);
         m_short_data_messages.insert(srcId, uab);
         transmitCSBK(csbk, logical_channel, m_control_channel->getSlot(), m_control_channel->getPhysicalChannel(), false, false);
+        m_logger->log(Logger::LogLevelInfo, QString("Requesting user %1 to upload talkgroup attachments.").arg(srcId));
     } else {
         transmitCSBK(csbk, logical_channel, m_control_channel->getSlot(), m_control_channel->getPhysicalChannel(), false, true);
 
@@ -2539,6 +2540,7 @@ void Controller::processSignalling(CDMRData& dmr_data, unsigned int udp_channel_
         if (m_settings->authentication_required && !m_registered_ms->contains(srcId)) {
             m_logger->log(Logger::LogLevelInfo, QString("User %1 is required to authenticate")
                           .arg(srcId));
+            CDMRCSBK original_csbk = csbk;
             bool key_valid = sendAuthCheck(srcId);
 
             if (!key_valid) {
@@ -2547,7 +2549,7 @@ void Controller::processSignalling(CDMRData& dmr_data, unsigned int udp_channel_
                 m_signalling_generator->createReplyRegistrationDenied(csbk, srcId);
                 transmitCSBK(csbk, logical_channel, slotNo, udp_channel_id, false, false);
             } else {
-                m_auth_user.insert(srcId, csbk);
+                m_auth_user.insert(srcId, original_csbk);
             }
         } else {
             processRegistration(srcId, dstId, csbk);
@@ -2566,13 +2568,16 @@ void Controller::processSignalling(CDMRData& dmr_data, unsigned int udp_channel_
         if (m_auth_responses->contains(srcId)) {
             if ((dstId == m_auth_responses->value(srcId))) {
                 if (m_auth_user.contains(srcId)) {
-                    CDMRCSBK csbk = m_auth_user[srcId];
-                    processRegistration(srcId, dstId, csbk);
+                    CDMRCSBK original_csbk = m_auth_user[srcId];
+                    m_logger->log(Logger::LogLevelInfo, QString("Authentication successful from %1, slot %2, continue with registration")
+                                  .arg(srcId).arg(slotNo));
+                    processRegistration(srcId, dstId, original_csbk);
                     m_auth_user.remove(srcId);
-                }
+                } else {
 
-                m_logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
-                              .arg(srcId).arg(slotNo));
+                    m_logger->log(Logger::LogLevelInfo, QString("Received authentication reply (SUCCESS) from %1, slot %2")
+                                  .arg(srcId).arg(slotNo));
+                }
 
                 if (!m_settings->headless_mode)
                     emit authSuccess(true);
