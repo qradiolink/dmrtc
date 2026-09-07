@@ -2309,6 +2309,11 @@ message</string>
               </layout>
              </widget>
              <widget class="QWidget" name="tabAuthentication">
+              <attribute name="icon">
+               <iconset>
+                <normalon>:/res/preferences-desktop-user-password.png</normalon>
+               </iconset>
+              </attribute>
               <attribute name="title">
                <string>Authentication</string>
               </attribute>

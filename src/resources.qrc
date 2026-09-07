@@ -40,6 +40,7 @@
         <file>res/mail-receive.png</file>
         <file>res/dashboard-show.png</file>
         <file>res/bookmark-new.png</file>
+        <file>res/preferences-desktop-user-password.png</file>
     </qresource>
     <qresource prefix="/fonts"/>
 </RCC>
